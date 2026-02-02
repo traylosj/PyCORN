@@ -313,8 +313,22 @@ WITH folderHierarchyData as
 		left join dbo.PeakUnit pu on pt.ChromatogramID = pu.ChromatogramID and pt.ChromatogramPos = pu.ChromatogramPos 
 		left join dbo.Peak p on pt.ChromatogramID = p.ChromatogramID and pt.ChromatogramPos = p.ChromatogramPos  
 		left join curveData c on pt.DataCurveChromID = c.ChromatogramID and pt.DataCurveChromPos = c.ChromatogramPos 
+	),
+	resultCount AS (
+		SELECT 
+		r.FolderID,
+		count(*) as 'Number of Results'
+		FROM dbo.[Result] r
+		GROUP BY r.FolderID
+	),
+	methodCount AS (
+		select 
+		m.FolderID,
+		count(*) as 'Number of Methods'
+		from dbo.[Method] m
+		group by m.FolderID
 	)
 select *
-FROM resultVariablesData l 
+FROM methodCount m 
 
 -- ucaccess, pool, pooltable
