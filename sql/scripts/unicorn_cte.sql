@@ -314,6 +314,30 @@ WITH folderHierarchyData as
 		left join dbo.Peak p on pt.ChromatogramID = p.ChromatogramID and pt.ChromatogramPos = p.ChromatogramPos  
 		left join curveData c on pt.DataCurveChromID = c.ChromatogramID and pt.DataCurveChromPos = c.ChromatogramPos 
 	),
+	resultRank AS (
+		SELECT
+		r.FolderID,
+		r.ResultID,
+		r.Created,
+		r.CreatedBy,
+		ROW_NUMBER() OVER (
+			PARTITION BY r.FolderID
+			ORDER BY r.Created DESC
+		) as RowNum
+		FROM dbo.[Result] r
+	),
+	methodRank AS (
+		SELECT
+		m.FolderID,
+		m.MethodID,
+		m.Created,
+		m.CreatedBy,
+		ROW_NUMBER() OVER (
+			PARTITION BY m.FolderID
+			ORDER BY m.Created DESC
+		) as RowNum
+		FROM dbo.[Method] m
+	),
 	resultCount AS (
 		SELECT 
 		r.FolderID,
