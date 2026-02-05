@@ -316,43 +316,65 @@ WITH folderHierarchyData as
 	),
 	resultRank AS (
 		SELECT
-		r.FolderID,
-		r.ResultID,
-		r.Created,
-		r.CreatedBy,
+		f.FolderID,
+		r.ResultID as LatestResultID,
+		r.Created as LatestResultCreated,
+		r.CreatedBy as LatestResultCreatedBy,
 		ROW_NUMBER() OVER (
-			PARTITION BY r.FolderID
+			PARTITION BY f.FolderID
 			ORDER BY r.Created DESC
-		) as RowNum
-		FROM dbo.[Result] r
+		) as ResultRowNum
+		FROM dbo.Folder f
+		left join dbo.[Result] r on f.FolderID = r.FolderID
 	),
 	methodRank AS (
 		SELECT
-		m.FolderID,
-		m.MethodID,
-		m.Created,
-		m.CreatedBy,
+		f.FolderID,
+		m.MethodID as LatestMethodID,
+		m.Created as LatestMethodCreated,
+		m.CreatedBy as LatestMethodCreatedBy,
 		ROW_NUMBER() OVER (
-			PARTITION BY m.FolderID
+			PARTITION BY f.FolderID
 			ORDER BY m.Created DESC
-		) as RowNum
-		FROM dbo.[Method] m
+		) as MethodRowNum
+		FROM dbo.Folder f
+		left join dbo.[Method] m on f.FolderID = m.FolderID
 	),
 	resultCount AS (
 		SELECT 
-		r.FolderID,
-		count(*) as 'Number of Results'
-		FROM dbo.[Result] r
-		GROUP BY r.FolderID
+		f.FolderID,
+		count(r.ResultID) as 'ResultCount'
+		FROM dbo.Folder f
+		left join dbo.[Result] r on f.FolderID = r.FolderID 
+		GROUP BY f.FolderID
 	),
 	methodCount AS (
 		select 
-		m.FolderID,
-		count(*) as 'Number of Methods'
-		from dbo.[Method] m
-		group by m.FolderID
+		f.FolderID,
+		count(m.MethodID) as 'MethodCount'
+		from dbo.Folder f
+		left join dbo.[Method] m on f.FolderID = m.FolderID
+		group by f.FolderID
+	),
+	folderSummary as (
+		select
+		f.FolderID,
+		rc.ResultCount,
+		mc.MethodCount,
+		rr.LatestResultID,
+		rr.LatestResultCreated,
+		rr.LatestResultCreatedBy,
+		mr.LatestMethodID,
+		mr.LatestMethodCreated,
+		mr.LatestMethodCreatedBy 
+		from dbo.Folder f
+		left join resultCount rc on f.FolderID = rc.FolderID
+		left join methodCount mc on f.FolderID = mc.FolderID
+		left join resultRank rr on f.FolderID = rr.FolderID
+		left join methodRank mr on f.FolderID = mr.FolderID
+		where rr.ResultRowNum = 1 and mr.MethodRowNum = 1
 	)
 select *
-FROM methodCount m 
+FROM folderSummary m 
 
 -- ucaccess, pool, pooltable
