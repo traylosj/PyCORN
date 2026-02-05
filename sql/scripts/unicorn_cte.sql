@@ -5,7 +5,7 @@ WITH folderHierarchyData as
 	(
 		SELECT f.FolderID, f.ParentFolderID, f.Description, f.IsGlobal, f.IsHidden, f.Created, f.CreatedBy, f.LastModified, f.LastModifiedBy, f.tstamp,	1 as Level, cast ( concat('/',f.Description) as varchar(max) ) as FolderPath
 		FROM dbo.Folder f 
-		WHERE f.ParentFolderID is null and f.IsHidden = 0
+		WHERE f.ParentFolderID is null -- and f.IsHidden = 0
 		UNION ALL
 		SELECT m.FolderID, m.ParentFolderID, m.Description, m.IsGlobal, m.IsHidden, m.Created, m.CreatedBy, m.LastModified, m.LastModifiedBy, m.tstamp, r.Level+1 as Level,cast ( concat(r.FolderPath,'/',m.Description) as varchar(max) ) as FolderPath
 		FROM dbo.Folder m
@@ -366,15 +366,26 @@ WITH folderHierarchyData as
 		rr.LatestResultCreatedBy,
 		mr.LatestMethodID,
 		mr.LatestMethodCreated,
-		mr.LatestMethodCreatedBy 
+		mr.LatestMethodCreatedBy,
+		f.ParentFolderID, f.Description, f.IsGlobal, f.IsHidden, f.Created, f.CreatedBy, f.LastModified, f.LastModifiedBy, f.tstamp
 		from dbo.Folder f
 		left join resultCount rc on f.FolderID = rc.FolderID
 		left join methodCount mc on f.FolderID = mc.FolderID
 		left join resultRank rr on f.FolderID = rr.FolderID
 		left join methodRank mr on f.FolderID = mr.FolderID
 		where rr.ResultRowNum = 1 and mr.MethodRowNum = 1
+	),
+	folderHierarchySummary as (
+		SELECT f.FolderID, f.ResultCount, f.MethodCount, f.ParentFolderID, f.Description, f.IsGlobal, f.IsHidden, f.Created, f.CreatedBy, f.LastModified, f.LastModifiedBy, f.tstamp,	1 as Level, cast ( concat('/',f.Description) as varchar(max) ) as FolderPath
+		FROM folderSummary f
+		WHERE f.ParentFolderID is null -- and f.IsHidden = 0
+		UNION ALL
+		SELECT m.FolderID, m.ResultCount+s.ResultCount as ResultCount, m.MethodCount+s.MethodCount as MethodCount, m.ParentFolderID, m.Description, m.IsGlobal, m.IsHidden, m.Created, m.CreatedBy, m.LastModified, m.LastModifiedBy, m.tstamp, s.Level+1 as Level,cast ( concat(s.FolderPath,'/',m.Description) as varchar(max) ) as FolderPath
+		FROM folderSummary m
+		INNER JOIN folderHierarchySummary s
+		ON m.ParentFolderID = s.FolderID
 	)
 select *
-FROM folderSummary m 
+FROM folderHierarchySummary m 
 
 -- ucaccess, pool, pooltable
