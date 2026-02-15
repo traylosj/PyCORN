@@ -356,9 +356,10 @@ WITH folderHierarchyData as
 		left join dbo.[Method] m on f.FolderID = m.FolderID
 		group by f.FolderID
 	),
-	folderSummary as (
+	folderCountSummary as (
 		select
 		f.FolderID,
+		f.ParentFolderID,
 		rc.ResultCount,
 		mc.MethodCount,
 		rr.LatestResultID,
@@ -366,8 +367,7 @@ WITH folderHierarchyData as
 		rr.LatestResultCreatedBy,
 		mr.LatestMethodID,
 		mr.LatestMethodCreated,
-		mr.LatestMethodCreatedBy,
-		f.ParentFolderID, f.Description, f.IsGlobal, f.IsHidden, f.Created, f.CreatedBy, f.LastModified, f.LastModifiedBy, f.tstamp
+		mr.LatestMethodCreatedBy
 		from dbo.Folder f
 		left join resultCount rc on f.FolderID = rc.FolderID
 		left join methodCount mc on f.FolderID = mc.FolderID
@@ -375,17 +375,31 @@ WITH folderHierarchyData as
 		left join methodRank mr on f.FolderID = mr.FolderID
 		where rr.ResultRowNum = 1 and mr.MethodRowNum = 1
 	),
-	folderHierarchySummary as (
-		SELECT f.FolderID, f.ResultCount, f.MethodCount, f.ParentFolderID, f.Description, f.IsGlobal, f.IsHidden, f.Created, f.CreatedBy, f.LastModified, f.LastModifiedBy, f.tstamp,	1 as Level, cast ( concat('/',f.Description) as varchar(max) ) as FolderPath
-		FROM folderSummary f
-		WHERE f.ParentFolderID is null -- and f.IsHidden = 0
+	folderHierarchyRollup as (
+		SELECT 
+			f.FolderID as RootFolderID,
+			f.FolderID,
+			f.ResultCount,
+			f.MethodCount
+		FROM folderCountSummary f
 		UNION ALL
-		SELECT m.FolderID, m.ResultCount+s.ResultCount as ResultCount, m.MethodCount+s.MethodCount as MethodCount, m.ParentFolderID, m.Description, m.IsGlobal, m.IsHidden, m.Created, m.CreatedBy, m.LastModified, m.LastModifiedBy, m.tstamp, s.Level+1 as Level,cast ( concat(s.FolderPath,'/',m.Description) as varchar(max) ) as FolderPath
-		FROM folderSummary m
-		INNER JOIN folderHierarchySummary s
-		ON m.ParentFolderID = s.FolderID
+		SELECT 
+			fh.RootFolderID,
+			s.FolderID,
+			s.ResultCount,
+			s.MethodCount
+		FROM folderHierarchyRollup fh
+		INNER JOIN folderCountSummary s
+		ON fh.FolderID = s.ParentFolderID
+	),
+	folderRollupCount as (
+		select 
+			f.FolderID,
+			sum(s.ResultCount) as TotalResultCount,
+			sum(s.MethodCount) as TotalMethodCount
+		FROM dbo.Folder f
+		left join folderHierarchyRollup s on f.FolderID = s.RootFolderID
+		group by f.FolderID		
 	)
-select *
-FROM folderHierarchySummary m 
-
+select * from folderRollupCount
 -- ucaccess, pool, pooltable
