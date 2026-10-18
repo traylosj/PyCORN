@@ -31,4 +31,3 @@ secrets.txt -text
 sql/.env.example -text
 AGENTS.md -text
 
-EOF && echo "✓ .gitattributes updated with credential protection" && git add .gitattributes
