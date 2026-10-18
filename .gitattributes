@@ -10,13 +10,25 @@
 *.dbproj merge=union
 
 # Standard to msysgit
-*.doc	 diff=astextplain
-*.DOC	 diff=astextplain
+*.doc	diff=astextplain
+*.DOC	diff=astextplain
 *.docx diff=astextplain
 *.DOCX diff=astextplain
 *.dot  diff=astextplain
 *.DOT  diff=astextplain
 *.pdf  diff=astextplain
-*.PDF	 diff=astextplain
-*.rtf	 diff=astextplain
-*.RTF	 diff=astextplain
+*.PDF	diff=astextplain
+*.rtf  diff=astextplain
+*.RTF	diff=astextplain
+
+# Credential protection rules (cross-platform line endings)
+*.env text=auto
+.env text=auto
+*.pem -text
+*.key -text
+.id_rsa* -text
+secrets.txt -text
+sql/.env.example -text
+AGENTS.md -text
+
+EOF && echo "✓ .gitattributes updated with credential protection" && git add .gitattributes
