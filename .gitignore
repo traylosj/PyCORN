@@ -183,6 +183,16 @@ $RECYCLE.BIN/
 
 
 #############
+## Virtual Environments (anywhere in repo)
+#############
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+
+#############
 ## Python
 #############
 
@@ -217,3 +227,49 @@ pip-log.txt
 ## PyCharm
 #############
 .idea
+
+#############
+## Environment Files & Secrets (NEVER COMMIT THESE!)
+#############
+# .env files anywhere in the repository (security critical)
+.env
+sql/.env
+sql/.env.local
+
+# SECURITY: Always use .env from environment variables, never commit
+# CRITICAL RULE: Never write actual credentials to chat history or files!
+
+# SSL/Private keys
+*.pem
+*.key
+.id_rsa
+.id_rsa.pub
+*.p12
+*.pfx
+
+#############
+## Python secrets module output
+#############
+secrets.txt
+
+#############
+## SECURITY: Credential Prevention Rules
+#############
+# NEVER commit actual credential values - these patterns will be ignored
+# if accidentally written to files (defense in depth)
+credentials.log
+passwords.txt
+auth_tokens.json
+db_creds.yaml
+.secrets/
+_credentials/
+__secrets__/
+
+# Example output from testing that might leak credentials
+test_credentials_output.txt
+cred_dump_*.txt
+
+#############
+## Environment Templates (SHOULD BE COMMITTED)
+#############
+.env.example  # Template file - users should copy this to .env with their values

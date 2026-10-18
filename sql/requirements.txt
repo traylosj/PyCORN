@@ -1,0 +1,10 @@
+# PyCORN Database Connector - SQL Server (No ODBC Required)
+# Install with: pip install -r requirements.txt
+
+pymssql>=2.1.0
+pandas>=1.5.0
+xmltodict>=0.13.0  # Required by pymssql
+
+# Optional dependencies for advanced features
+# pyarrow  # For faster DataFrame operations
+# sqlalchemy  # Alternative connection pooling library
