@@ -1,0 +1,3395 @@
+<!DOCTYPE html>
+<!--
+  PyCORN in the browser (docs/ROADMAP.md, item 6). This is the template: build the page with
+  python tools/build_web_page.py, which puts the PyCORN wheel and its pure-Python dependencies
+  into the "wheels" script element. The built page is one file: open it from GitHub Pages or a
+  shared drive. Python runs in the browser (Pyodide); dropped files never leave the computer.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Content-Security-Policy (tools/build_web_page.py puts this page's own script hash in). What the
+     browser then allows: this script, the Pyodide and Plotly files from their two CDNs, requests
+     to those CDNs and to this page's own address (the sample), nothing else: a file you drop
+     cannot be sent anywhere. 'unsafe-eval' is Pyodide's (it loads numpy and pandas with it; the
+     engine also runs pyodide.js with it, after checking its hash); the web worker that runs
+     Python is made from the engine text in this page (worker-src blob:) and keeps this policy;
+     styles are inline because Plotly writes them. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src __PYCORN_SCRIPT_HASH__ 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdn.plot.ly; style-src 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; font-src 'self' data:; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title></title>
+<link rel="icon" href="data:,">
+
+<!-- integrity: the browser refuses this file if the CDN serves anything else (update with the version);
+     Pyodide is loaded by the engine below (PYODIDE, PYODIDE_SRI), checked the same way -->
+<script src="https://cdn.plot.ly/plotly-basic-3.7.0.min.js" integrity="sha384-XPf/yZU+7YHOOK1zu0qFyjETky28iDlzWu1QBMXPoONR5S4zywnrXdgSClQyPcYb" crossorigin="anonymous"></script>
+<style>
+  /* two text sizes (1rem, 0.875rem) plus headings; rem so nested elements don't shrink further */
+  /* colors: light by default, the dark set when the system asks for it (the plot reads them too: theme()) */
+  :root {
+    color-scheme: light dark;
+    --fg: #222; --bg: #fafafa; --card: #fff; --border: #ddd; --muted: #666; --link: #1f5f99;
+    --head: #1f3b57; --th: #f1f3f6; --status: #eef3f8; --err-bg: #fbe9e7; --err-fg: #8a1f11;
+    --drop-border: #8aa4bd; --over: #e6f0fa; --hover: #f3f8fd; --shown: #dcebf9; --warn: #8a4b00;
+    --grid: #e0e0e0; --spike: #555; --inj: #c0392b; --pause: #8a1f11; --pause-fill: rgba(138, 31, 17, 0.08);
+    --tag-u-bg: #e3eef9; --tag-u-fg: #1f3b57; --tag-y-bg: #efe7f7; --tag-y-fg: #4b2a6b;
+    --tag-c-bg: #e6f4ea; --tag-c-fg: #1e5631; --tag-p-bg: #fdf0dc; --tag-p-fg: #7a4a00; --tag-m-fg: #333;
+    --primary: #1f5f99; --primary-fg: #fff; --primary-hover: #184c7a;
+    --row-line: #eceef1; --zebra: #f8f9fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e4e6e9; --bg: #16191d; --card: #1f2328; --border: #3a4047; --muted: #a0a7af; --link: #7ab4e8;
+      --head: #14263a; --th: #2a3036; --status: #223041; --err-bg: #3c1f1b; --err-fg: #ffb4a8;
+      --drop-border: #566a80; --over: #243447; --hover: #26303a; --shown: #2b4560; --warn: #e8a64a;
+      --grid: #343a41; --spike: #aaa; --inj: #ff7b6b; --pause: #ff8a78; --pause-fill: rgba(255, 138, 120, 0.14);
+      --tag-u-bg: #1f3550; --tag-u-fg: #bcd8f5; --tag-y-bg: #38274d; --tag-y-fg: #dac6f0;
+      --tag-c-bg: #1f3d2a; --tag-c-fg: #b5e2c2; --tag-p-bg: #4a3512; --tag-p-fg: #f2cf94; --tag-m-fg: #eee;
+      --primary: #7ab4e8; --primary-fg: #10202f; --primary-hover: #9cc8ef;
+      --row-line: #2d3238; --zebra: #23282e;
+    }
+  }
+  html { font-size: 15px; }
+  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; font-size: 1rem; line-height: 1.45;
+         margin: 0; color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; }
+  code { font-family: ui-monospace, Consolas, "Courier New", monospace; font-size: 0.9em; }
+  h2 { font-size: 1.2rem; font-weight: 600; margin: 18px 0 8px; }
+  p { margin: 6px 0; }
+  header { background: var(--head); color: #fff; padding: 12px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  header h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+  header h1 .privacy { margin-left: 12px; font-size: 0.875rem; font-weight: normal; opacity: 0.9; }
+  header select { order: 2; margin-left: auto; font-size: 0.875rem; min-height: 32px; }
+  header a { color: #fff; }
+  a { color: var(--link); }
+  main { padding: 16px 20px; max-width: 1400px; }
+  /* sticky: the message stays in view next to the buttons that cause it (above Plotly's modebar) */
+  /* panels (status, drop box, boxes, sections, plot) share one corner radius */
+  #statusbar { padding: 8px 12px; border-radius: 10px; background: var(--status); margin-bottom: 12px; position: sticky; top: 0;
+               z-index: 2000; box-shadow: 0 1px 3px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; }
+  #statusbar.error { background: var(--err-bg); color: var(--err-fg); }
+  #status { flex: 1; }
+  #cancel { margin: 0; }
+  #drop { border: 2px dashed var(--drop-border); border-radius: 10px; padding: 24px; text-align: center; background: var(--card); }
+  #drop.over { background: var(--over); }
+  #drop.disabled { opacity: 0.5; pointer-events: none; }
+  /* large until runs are listed, then a one-line "Add files" bar (dropping anywhere still works) */
+  #drop .add { display: none; }
+  #drop.compact { padding: 4px 12px; text-align: left; }
+  #drop.compact p { margin: 0; }
+  #drop.compact .big { display: none; }
+  #drop.compact .add { display: inline; }
+  /* Runs and the shown run: a card each (the download panel is its own card, a popover) */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 2px 16px 10px; margin: 12px 0; }
+  .card > h2 { margin-top: 12px; }
+  #summarybox { margin: 8px 0; }
+  /* "More details" (W6): a divider, then the group's title as a bar; its headings group the tables */
+  #more { margin: 16px 0 4px; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 0; }
+  #more > summary { font-size: 1.1rem; padding: 10px 6px; margin-top: 6px; border-radius: 6px; }
+  #more > :not(summary) { margin-left: 0; margin-right: 0; }
+  #more > h3 { font-size: 0.875rem; font-weight: 600; color: var(--muted); margin: 14px 0 4px; }
+  #more .count { font-size: 0.875rem; font-weight: normal; color: var(--warn); margin-left: 10px; }
+  /* the one Download button (in the status bar, so it is always in reach) and its panel (popover) */
+  #dlopen { margin: 0; }
+  #dlpanel { position: fixed; box-sizing: border-box; width: min(28em, 92vw); max-width: none; overflow: auto; padding: 12px 14px; }
+  #dlpanel fieldset { border: 0; padding: 0; margin: 0 0 10px; min-width: 0; }
+  #dlpanel legend { font-weight: 600; padding: 0; margin-bottom: 2px; }
+  #dlpanel p { margin: 6px 0; }
+  #dlpanel label { padding: 3px 6px; }
+  #dlpanel .core label { display: inline-flex; }
+  /* W16: a group's tables under its tick box, in line with the box's text */
+  #dlpanel .grouptables { display: block; margin: -2px 0 4px calc(6px + 13px + 8px); font-size: 0.85em; }
+  #dlpanel .name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  #runs th.tick, #runs td.tick { width: 1%; padding-right: 2px; cursor: default; }
+  /* image downloads: small icon buttons on the plot bar */
+  #plotbar .imgs { margin-left: auto; }
+  button.icon { min-height: 0; padding: 3px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; }
+  /* tables: a rounded frame inside the panel (.frame; .scroll also scrolls), a shaded header, lines
+     between rows only, every other row lightly shaded */
+  table { border-collapse: separate; border-spacing: 0; font-size: 0.875rem; background: var(--card); }
+  th, td { border: 0; border-bottom: 1px solid var(--row-line); padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--th); position: sticky; top: 0; font-weight: 600; }
+  thead th { border-bottom-color: var(--border); }
+  tbody tr:nth-child(even) > td { background: var(--zebra); }
+  tbody tr:last-child > * { border-bottom: 0; }
+  .frame, .scroll { border: 1px solid var(--border); border-radius: 8px; overflow: auto; box-sizing: border-box; max-width: 100%; }
+  .scroll { max-height: 360px; width: fit-content; margin: 6px 0 12px; }
+  /* inside a section: the section's side space too, so a wide table scrolls short of its edge */
+  details > .scroll { margin: 6px 14px 12px; max-width: calc(100% - 28px); }
+  details > .tools { margin: 0 14px 12px; }
+  #summary { width: 100%; }
+  #summary th { position: static; width: 1%; white-space: nowrap; font-weight: 600; }
+  #runs tbody tr { cursor: pointer; }
+  #runs td:nth-child(5) { white-space: nowrap; }
+  /* the method text: UNICORN's indentation as padding (fillTable), so a wrapped line keeps it */
+  #method_steps td.indent { padding-left: calc(10px + var(--depth) * 1.6em); }
+  #method_steps td.nowrap { white-space: nowrap; }
+  #runs tbody tr:hover > td { background: var(--hover); }
+  /* ticked rows lightly shaded; the shown (last clicked) row darker, with a bar at its left edge */
+  #runs tbody tr.ticked > td { background: color-mix(in srgb, var(--shown) 65%, var(--card)); }
+  #runs tbody tr.shown > td { background: var(--shown); }
+  #runs tbody tr.shown > td:first-child { box-shadow: inset 3px 0 0 var(--link); }
+  #runhint { margin: 2px 0 4px; font-size: 0.875rem; }
+  #runs th { cursor: pointer; user-select: none; }
+  #runs th[aria-sort=ascending]::after { content: " \25B2"; font-size: 0.7em; }
+  #runs th[aria-sort=descending]::after { content: " \25BC"; font-size: 0.7em; }
+  #runfilter { margin: 4px 0; min-height: 30px; width: 16em; max-width: 100%; }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  #runname { scroll-margin-top: 60px; }
+  #plotbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 6px 0; }
+  #plotbar p { margin: 0; }
+  .seg button { margin: 0; border-radius: 0; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+  .seg button[aria-pressed=true], .seg button[aria-pressed=true]:hover:not(:disabled) { color: var(--primary-fg); background: var(--primary); border-color: var(--primary); }
+  #overlaynote { margin: 4px 0; font-size: 0.875rem; }
+  /* W17: the chromatogram picker in a run row's Chromatograms cell, folded */
+  #runs details.chroms summary { cursor: pointer; white-space: nowrap; }
+  #runs details.chroms label { display: block; white-space: nowrap; }
+  #runs details.chroms p { margin: 2px 0; font-size: 0.8125rem; white-space: normal; min-width: 14em; }
+  #overlaynote p { margin: 2px 0; }
+  /* curves: one chip per curve in its color, filled when drawn (aria-pressed) */
+  #curvepick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 0.875rem; }
+  #curvepick .count { color: var(--muted); margin-right: 4px; }
+  button.chip { --c: var(--link); min-height: 28px; margin: 0; padding: 2px 12px 2px 9px; border-radius: 999px;
+                font-size: 0.8125rem; display: inline-flex; align-items: center; gap: 7px;
+                border: 1.5px solid var(--border); color: var(--muted); background: transparent; }
+  button.chip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--c); box-sizing: border-box; }
+  button.chip[aria-pressed=true] { color: var(--fg); border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+  button.chip[aria-pressed=true]::before { background: var(--c); }
+  button.chip:hover:not(:disabled) { border-color: var(--c); background: color-mix(in srgb, var(--c) 8%, var(--card)); }
+  button.chip[aria-pressed=true]:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 22%, var(--card)); }
+  #curvepick button.small { margin: 0; }
+  /* table tools (W13): the bar above a table holds Columns, a filter and the Copy / CSV icons at the
+     right; a header click sorts; the first columns stay at the left while a wide table scrolls */
+  table.grid { --sel: #cfe3f7; }
+  @media (prefers-color-scheme: dark) { table.grid { --sel: #35516d; } }
+  table.grid td { user-select: none; cursor: cell; }
+  table.grid thead th { z-index: 2; cursor: pointer; user-select: none; white-space: nowrap; }
+  /* frozen columns (layoutFrozen sets each `left`): opaque, above the scrolled cells */
+  table.grid th.key, table.grid td.key { position: sticky; }
+  table.grid td.key { background: var(--card); z-index: 1; cursor: pointer; }
+  table.grid th.key { z-index: 3; }
+  table.grid th.keyend, table.grid td.keyend { box-shadow: 1px 0 0 var(--border); }
+  table.grid tbody td.sel, table.grid tbody tr:nth-child(even) > td.sel { background: var(--sel); }
+  table.grid th[aria-sort=ascending] .nm::after { content: " \25B2"; font-size: 0.7em; }
+  table.grid th[aria-sort=descending] .nm::after { content: " \25BC"; font-size: 0.7em; }
+  table.grid th .q { display: inline-block; margin-left: 5px; font-weight: normal; color: var(--muted); cursor: help; }
+  div.cols { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  div.cols[hidden] { display: none; }
+  div.cols button { margin: 0; }
+  div.cols .tfilter { min-height: 26px; width: 12em; max-width: 100%; }
+  div.cols .count { color: var(--muted); font-size: 0.8125rem; }
+  div.cols .acts { margin-left: auto; display: flex; gap: 4px; }
+  div.cols button.icon { padding: 3px 6px; }
+  /* rollups: a rounded card; the title is the whole top bar, a chevron turns when open */
+  details { margin: 8px 0; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+  details[open] { padding-bottom: 4px; }
+  summary { cursor: pointer; font-weight: 600; list-style: none; padding: 9px 14px; border-radius: 10px;
+            display: flex; align-items: center; flex-wrap: wrap; gap: 4px; transition: background-color 0.15s; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: ""; width: 7px; height: 7px; margin: 0 8px 0 2px; flex: none;
+                    border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform 0.15s; }
+  details[open] > summary::before { transform: rotate(45deg); }
+  summary:hover { background: var(--hover); }
+  details[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  details > :not(summary) { margin-left: 14px; margin-right: 14px; }
+  .box details { background: transparent; }
+  /* columns: a button above the table opens a menu (popover: Esc or a click outside closes it) */
+  div.cols { margin-top: 4px; }
+  div.cols > button.colbtn::after { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 2px 3px 9px;
+                             border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .menu { position: absolute; inset: auto; margin: 4px 0 0; padding: 8px; min-width: 14em; max-width: min(24em, 92vw);
+          color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+          box-shadow: 0 6px 24px rgba(0,0,0,0.18); font-size: 0.875rem; }
+  .menu input[type=search] { width: 100%; box-sizing: border-box; margin: 0 0 6px; }
+  .menu .list { max-height: 300px; overflow: auto; }
+  .menu label { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  .menu label:hover { background: var(--hover); }
+  .menu .foot { display: flex; gap: 6px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
+  .menu .foot button { margin: 0; }
+  #plot { width: 100%; height: 480px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+          overflow: hidden; box-sizing: border-box; }
+  .box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 8px 0; }
+  .muted { color: var(--muted); font-size: 0.875rem; }
+  .warn { color: var(--warn); }
+  /* 34 px high: a comfortable touch target */
+  /* outlined; the main action of a group filled (.primary); colors from the variables above (dark too) */
+  button { font-size: 0.875rem; padding: 6px 14px; min-height: 34px; margin: 2px 6px 2px 0; cursor: pointer;
+           color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+           transition: background-color 0.15s, border-color 0.15s; }
+  button:hover:not(:disabled) { background: var(--hover); border-color: var(--drop-border); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button.primary { color: var(--primary-fg); background: var(--primary); border-color: var(--primary); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+  button:disabled { cursor: default; opacity: 0.55; }
+  .tools button, div.cols button, button.small { min-height: 0; font-size: 0.8125rem; padding: 3px 10px; }
+  h2 button { font-weight: normal; vertical-align: middle; margin-left: 8px; }
+  label { margin-right: 12px; font-size: 0.875rem; }
+  input, select { font-size: 0.875rem; }
+  /* fields: rounded, the page's colors, a drawn chevron on drop-downs */
+  select, input[type=number], input[type=search] { min-height: 30px; padding: 3px 8px; color: var(--fg); background-color: var(--card);
+         border: 1px solid var(--border); border-radius: 6px; transition: border-color 0.15s, box-shadow 0.15s; }
+  select { appearance: none; padding-right: 28px; cursor: pointer;
+           background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+           background-position: right 14px center, right 9px center; background-size: 5px 5px; background-repeat: no-repeat; }
+  select:hover, input[type=number]:hover, input[type=search]:hover { border-color: var(--drop-border); }
+  select:focus-visible, input[type=number]:focus-visible, input[type=search]:focus-visible {
+         outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+  header select { color: #fff; background-color: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35);
+                  background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%); }
+  header select option { color: var(--fg); background: var(--card); }
+  input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; margin: 0 4px 0 0; vertical-align: -3px; cursor: pointer; }
+  /* a file input: a button-like label with the page's text, the input itself out of sight (kept
+     focusable: Tab reaches it, the frame shows its focus) */
+  label.filepick { display: inline-block; font-size: 0.875rem; padding: 5px 12px; margin: 2px 6px 2px 0; cursor: pointer;
+         color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 6px; position: relative; }
+  label.filepick:hover { background: var(--hover); border-color: var(--drop-border); }
+  label.filepick:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 1px; }
+  label.filepick:has(input:disabled) { cursor: default; opacity: 0.55; }
+  label.filepick input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+  input[type=number] { width: 6em; }
+  /* M22: the phase window form (text fields as the number fields) */
+  #winbox input[type=text] { min-height: 30px; padding: 3px 8px; box-sizing: border-box; color: var(--fg); background-color: var(--card);
+         border: 1px solid var(--border); border-radius: 6px; }
+  #winbox input[type=text]:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+  #winbox input.off { width: 6em; }
+  #winbox #winname { width: 8em; }
+  #wintext { width: min(26em, 70vw); font-family: ui-monospace, Consolas, "Courier New", monospace; }
+  #winbox .winform label { display: inline-block; margin: 2px 12px 2px 0; }
+  #winbox fieldset { border: 0; padding: 0; margin: 6px 14px; min-width: 0; }
+  #winbox legend { font-weight: 600; font-size: 0.875rem; padding: 0; margin-bottom: 2px; }
+  #winroles label { display: inline-block; margin: 2px 10px 2px 0; }
+  ul.winitems { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.875rem; }
+  ul.winitems:empty { display: none; }
+  ul.winitems li { display: inline-flex; align-items: center; gap: 6px; }
+  ul.notes { margin: 4px 0; padding-left: 20px; font-size: 0.875rem; }
+  #drop p { margin: 6px 0; }
+  #footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--border); }
+  [hidden] { display: none !important; }
+  .tag { font-size: 0.75rem; font-weight: normal; padding: 0 5px; border-radius: 3px; margin-left: 6px; }
+  .tag.u { background: var(--tag-u-bg); color: var(--tag-u-fg); }
+  .tag.y { background: var(--tag-y-bg); color: var(--tag-y-fg); }
+  .tag.c { background: var(--tag-c-bg); color: var(--tag-c-fg); }
+  .tag.p { background: var(--tag-p-bg); color: var(--tag-p-fg); }
+  .tag.m { background: linear-gradient(90deg, var(--tag-u-bg) 50%, var(--tag-p-bg) 50%); color: var(--tag-m-fg); }
+  /* a column or table name with a hint: tap, click or Enter shows it (hover has no touch) */
+  th.hint, .tag.hint { cursor: help; }
+  .colhint { white-space: pre-line; font-size: 0.875rem; background: var(--status); border-radius: 4px; padding: 6px 10px; margin: 6px 0; }
+  th.pc, span.pc { text-decoration: underline solid #2e8b57 2px; }
+  th.pa, span.pa { text-decoration: underline dotted #c98a1a 2px; }
+  th.py, span.py { text-decoration: underline dashed #7b4fa6 2px; }
+  /* a small screen (a phone): small controls, less space around them, more for the plot (the
+     same width as SMALL in the script) */
+  @media (max-width: 600px) {
+    html { font-size: 14px; }
+    header { padding: 8px 12px; }
+    header h1 { font-size: 1.1rem; }
+    header select { min-height: 26px; }
+    h2 { font-size: 1.05rem; margin: 12px 0 6px; }
+    main { padding: 10px; }
+    #statusbar { padding: 6px 10px; margin-bottom: 8px; }
+    #drop { padding: 12px; }
+    .box { padding: 8px 10px; }
+    .card { padding: 0 8px 6px; margin: 8px 0; }
+    .card > h2 { margin-top: 8px; }
+    th, td { padding: 4px 6px; }
+    button { min-height: 28px; padding: 3px 10px; font-size: 0.8125rem; margin: 2px 4px 2px 0; }
+    .tools button, div.cols button, button.small { min-height: 0; padding: 2px 8px; font-size: 0.75rem; }
+    button.chip { min-height: 22px; padding: 1px 8px 1px 6px; font-size: 0.75rem; gap: 5px; }
+    button.chip::before { width: 7px; height: 7px; }
+    #curvepick { gap: 4px; }
+    select, input[type=number], input[type=search] { min-height: 26px; padding-top: 2px; padding-bottom: 2px; font-size: 0.8125rem; }
+    label { margin-right: 8px; font-size: 0.8125rem; }
+    label.filepick { padding: 3px 10px; font-size: 0.8125rem; }
+    input[type=checkbox] { width: 14px; height: 14px; }
+    #plot .modebar-btn { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <!-- every text a person reads comes from web/i18n/<language>.json (data-i18n: text, data-i18n-html: text with links) -->
+  <select id="lang" hidden></select>
+  <h1><span data-i18n="title"></span> <span class="privacy" data-i18n-html="privacy"></span></h1>
+</header>
+<main>
+  <!-- shown in every language but English (applyLanguage) -->
+  <p class="muted" id="translation-note" data-i18n="translation.note" hidden></p>
+  <!-- Cancel: shown while Python works; stops at the next step, then "Stop now" restarts Python -->
+  <!-- Download: one button, shown once runs are listed; it opens the download panel -->
+  <div id="statusbar"><div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+    <button id="cancel" class="small" hidden></button>
+    <button id="dlopen" class="primary" popovertarget="dlpanel" aria-haspopup="dialog" data-i18n="download.title" hidden></button></div>
+  <p><button id="retry" data-i18n="status.retry" hidden></button></p>
+
+  <!-- Every download in one panel (popover: Esc or a click outside closes it). Its settings are
+       kept in this browser across visits (DL_PICK); never anything from a file. -->
+  <div id="dlpanel" class="menu" popover="auto" role="dialog" aria-labelledby="dlhead">
+    <p><strong id="dlhead" data-i18n="download.title"></strong></p>
+    <fieldset><legend data-i18n="dl.format"></legend>
+      <label><input type="radio" name="dlformat" value="xlsx" checked> <span data-i18n="download.xlsx"></span></label>
+      <label><input type="radio" name="dlformat" value="csv"> <span data-i18n="download.csv"></span></label>
+      <label><input type="radio" name="dlformat" value="core"> <span data-i18n="core.title"></span></label>
+    </fieldset>
+    <fieldset><legend data-i18n="dl.what"></legend>
+      <label><input type="radio" name="dlscope" value="shown" checked> <span data-i18n="dl.scope_shown"></span> <span class="name" id="dlshown"></span></label>
+      <label><input type="radio" name="dlscope" value="ticked"> <span id="dlticked"></span></label>
+      <label><input type="radio" name="dlscope" value="all"> <span id="dlall"></span></label>
+    </fieldset>
+    <div id="dltables">
+      <!-- W16: what goes in. Curves: the plot's chips (named) or all; tables: one box per page group
+           (names.groups), each group's tables named under it (buildGroups) -->
+      <fieldset><legend data-i18n="dl.curves_title"></legend>
+        <label><input type="radio" name="dlcurvesel" value="chips" checked> <span data-i18n="dl.curves_chips"></span></label>
+        <label><input type="radio" name="dlcurvesel" value="all"> <span data-i18n="dl.curves_every"></span></label>
+        <p class="muted" id="dlcurves"></p>
+      </fieldset>
+      <fieldset id="dlgroups"><legend data-i18n="dl.tables"></legend></fieldset>
+      <p class="muted" id="dlalways"></p>
+      <p class="muted" id="dlwindows" hidden></p>
+      <p><label><input type="checkbox" id="mask"> <span data-i18n="download.mask"></span></label></p>
+      <p>
+        <label><span data-i18n="size.label"></span>
+          <select id="sizemode">
+            <option value="all" data-i18n="size.all"></option>
+            <option value="grid" data-i18n="size.grid"></option>
+            <option value="every" data-i18n="size.every"></option>
+            <option value="hybrid" data-i18n="size.hybrid"></option>
+          </select></label>
+        <input type="number" id="sizevalue" step="any" min="1" hidden>
+      </p>
+      <p class="muted" id="sizenote" data-i18n-html="size.note" hidden></p>
+    </div>
+    <div id="dlcore" class="core" hidden>
+      <p class="warn" data-i18n-html="dl.cadetExperimental"></p>
+      <p>
+        <label><span data-i18n="core.version"></span> <select id="coreversion"><option value="6">6</option><option value="5">5</option></select></label>
+        <label><span data-i18n="core.bed"></span> <input type="number" id="bed" step="any" min="0"> cm</label>
+        <label><span data-i18n="core.diameter"></span> <input type="number" id="diam" step="any" min="0"> cm</label>
+        <label><span data-i18n="core.particle"></span> <input type="number" id="part" step="any" min="0"> um</label>
+      </p>
+      <p><span id="overrideslabel" data-i18n="core.overrides"></span>
+        <label class="filepick"><input type="file" id="overrides" aria-labelledby="overrideslabel" accept=".json"><span data-i18n="file.choose_one"></span></label>
+        <span class="muted" id="overridesname"></span></p>
+      <p class="muted" data-i18n-html="core.note"></p>
+    </div>
+    <p><button id="dlgo" class="primary" data-i18n="download.title"></button></p>
+    <div id="dlnotes"></div>
+  </div>
+
+  <div id="drop" class="disabled">
+    <!-- the file inputs are hidden behind a label in the page's language (a browser names its own
+         button in the browser's language, not the page's). Once runs are listed: one line (compact) -->
+    <p><strong id="droptitle" class="big" data-i18n="drop.title"></strong><strong class="add" data-i18n="shell.add_files"></strong> <span data-i18n="drop.or"></span>
+      <label class="filepick"><input type="file" id="files" aria-labelledby="droptitle" multiple disabled accept=".zip,.Result,.result,.UFol,.ufol"><span data-i18n="file.choose"></span></label></p>
+  </div>
+  <!-- outside #drop, which is disabled while Python loads: the link must work right away.
+       The button shows only where a sample.zip sits next to this page (GitHub Pages). -->
+  <p class="muted" id="samplehint"><span data-i18n-html="sample.hint"></span> <button id="trysample" class="primary" data-i18n="sample.button" hidden disabled></button></p>
+  <div id="notread" class="box warn" hidden></div>
+
+  <section id="list" class="card" hidden>
+    <h2><span data-i18n="list.title"></span> <button id="clear" data-i18n="list.clear"></button></h2>
+    <p class="muted" id="runhint" data-i18n="list.hint"></p>
+    <input type="search" id="runfilter" hidden>
+    <!-- a tick per run: the overlay (2 or more ticked) and "Ticked runs" in the download panel; a click
+         ticks only its row, Ctrl / Shift add (pickRow); the head's box ticks the rows shown (filter) -->
+    <div class="scroll"><table id="runs" aria-describedby="runhint"><thead><tr>
+      <th class="tick"><input type="checkbox" id="tickall"></th>
+      <th data-i18n="runs.run"></th><th data-i18n="runs.file"></th><th data-i18n="runs.folder"></th>
+      <th data-i18n="runs.started"></th><th data-i18n="runs.system"></th><th data-i18n="runs.chromatograms"></th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="view" class="card" hidden>
+    <h2 id="runname"></h2>
+    <p id="chrompick" hidden><label><span data-i18n="view.chromatogram"></span> <select id="chrom"></select></label></p>
+    <div class="frame" id="summarybox"><table id="summary"></table></div>
+    <div id="plotbar" hidden>
+      <p id="axispick" hidden><label><span data-i18n="view.xaxis"></span> <select id="xaxis"></select></label></p>
+      <!-- W11: the plot of the shown run, or of the runs ticked in the list (overlaid by curve role) -->
+      <p id="sourcepick" class="seg" role="group"><button id="src-one" class="small"></button><button id="src-ticked" class="small"></button></p>
+      <p id="layoutpick" class="seg" role="group"><button id="lay-overlay" class="small"></button><button id="lay-stacked" class="small"></button></p>
+      <p id="overlaypick" class="seg" role="group" hidden><button id="lay-roles" class="small"></button><button id="lay-runs" class="small"></button></p>
+      <!-- the plot as an image: icons, named by their title (applyLanguage) -->
+      <p class="imgs">
+        <button id="img-png" class="icon"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>PNG</button>
+        <button id="img-svg" class="icon"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>SVG</button>
+      </p>
+    </div>
+    <div id="curvepick" role="group" hidden></div>
+    <div id="overlaynote" class="warn" hidden></div>
+    <div id="plot"></div>
+    <!-- several runs ticked: which one the tables below are of (the shown, last clicked, run) -->
+    <p class="muted" id="tablesof" hidden></p>
+    <!-- table titles, origins and notes come from pycorn/export_tables.py: the same names as the downloads -->
+    <p class="muted" id="legend" data-i18n-html="legend"></p>
+    <details open><summary data-table="phases"></summary><div class="scroll"><table id="phases"></table></div></details>
+    <details><summary data-table="injections"></summary><div class="scroll"><table id="injections"></table></div></details>
+    <details><summary data-table="fractions"></summary><div class="scroll"><table id="fractions"></table></div></details>
+    <!-- hidden when the run has no pooled fractions (showChrom) -->
+    <details id="poolsbox"><summary data-table="pools"></summary><div class="scroll"><table id="pools"></table></div></details>
+    <!-- M22 (owner, 2026-11-12): curve statistics over windows relative to a phase, for the ticked
+         runs (the shown one when 0-1 ticked), folded. The picker writes the window as pycorn export's
+         --window text; an edited text fills the picker when Python's parser reads it. No default
+         window or curve: the table shows once both are set (Session.window_stats), and the downloads
+         then hold it too (options windows / window_curves). Kept in this browser (WIN_PICK). -->
+    <details id="winbox"><summary data-table="phase_windows"></summary>
+      <p class="muted" id="winhint" data-i18n="win.hint"></p>
+      <p class="winform">
+        <label><span data-i18n="win.phase"></span> <select id="winphase"></select></label>
+        <label><span data-i18n="win.from"></span> <input type="text" id="winfrom" class="off" value="0" spellcheck="false" autocomplete="off" aria-describedby="winhint"></label>
+        <label><span data-i18n="win.to"></span> <input type="text" id="winto" class="off" value="end" spellcheck="false" autocomplete="off" aria-describedby="winhint"></label>
+        <label><span data-i18n="win.unit"></span> <select id="winunit"></select></label>
+        <label><span data-i18n="win.name"></span> <input type="text" id="winname" class="off" spellcheck="false" autocomplete="off"></label>
+      </p>
+      <p class="winform">
+        <label><span data-i18n="win.text"></span> <input type="text" id="wintext" spellcheck="false" autocomplete="off" aria-describedby="winerror"></label>
+        <button id="winadd" class="small" data-i18n="win.add"></button>
+      </p>
+      <p id="winerror" class="warn" role="alert" hidden></p>
+      <ul id="winlist" class="winitems"></ul>
+      <fieldset id="wincurves"><legend data-i18n="win.curves"></legend>
+        <span id="winroles"></span>
+        <label><span data-i18n="win.curve_name"></span> <input type="text" id="wincurve" list="wincurvenames" spellcheck="false" autocomplete="off"></label>
+        <datalist id="wincurvenames"></datalist>
+        <button id="wincurveadd" class="small" data-i18n="win.add_curve"></button>
+        <ul id="winnamelist" class="winitems"></ul>
+      </fieldset>
+      <p><button id="winclear" class="small" data-i18n="win.clear"></button></p>
+      <div id="wintable" hidden>
+        <p class="muted" data-i18n-html="win.interim"></p>
+        <div id="winnotes"></div>
+        <div class="scroll"><table id="phase_windows"></table></div>
+      </div>
+    </details>
+    <!-- W6: above, the key information (always shown); below the divider, everything else in one
+         group, collapsed by default (KEY_TABLES, VIEW_PICK). Its tables are drawn only when seen. -->
+    <details id="more"><summary><span data-i18n="view.more"></span><span class="count" id="morecount"></span></summary>
+    <h3 data-i18n="view.group.peaks"></h3>
+    <details><summary data-table="peaks"></summary><div class="scroll"><table id="peaks"></table></div></details>
+    <details><summary data-table="peak_summary"></summary><div class="scroll"><table id="peak_summary"></table></div></details>
+    <h3 data-i18n="view.group.method"></h3>
+    <details><summary data-table="hint_blocks"></summary><div class="scroll"><table id="hint_blocks"></table></div></details>
+    <details><summary data-table="hint_injections"></summary><div class="scroll"><table id="hint_injections"></table></div></details>
+    <details><summary data-table="variables"></summary><div class="scroll"><table id="variables"></table></div></details>
+    <details><summary data-table="method_steps"></summary><div class="scroll"><table id="method_steps"></table></div></details>
+    <details><summary data-table="scouting_runs"></summary><div class="scroll"><table id="scouting_runs"></table></div></details>
+    <details><summary data-table="start_questions"></summary><div class="scroll"><table id="start_questions"></table></div></details>
+    <h3 data-i18n="view.group.details"></h3>
+    <details><summary data-table="run_details"></summary><div class="scroll"><table id="run_details"></table></div></details>
+    <details><summary data-table="column"></summary><div class="scroll"><table id="column"></table></div></details>
+    <details><summary data-table="calibration"></summary><div class="scroll"><table id="calibration"></table></div></details>
+    <details><summary data-table="instrument"></summary><div class="scroll"><table id="instrument"></table></div></details>
+    <details><summary data-table="system_settings"></summary><div class="scroll"><table id="system_settings"></table></div></details>
+    <h3 data-i18n="view.group.audit"></h3>
+    <details><summary data-table="audit_log"></summary><div class="scroll"><table id="audit_log"></table></div></details>
+    <details><summary data-table="warnings"></summary>
+      <p class="muted" data-i18n-html="warnings.note"></p>
+      <div class="scroll"><table id="warnings"></table></div></details>
+    </details>
+  </section>
+  <p class="muted" id="footer"><span data-i18n-html="footer"></span> <span id="version"></span></p>
+</main>
+
+<script type="application/json" id="wheels">__PYCORN_WHEELS__</script>
+<script type="application/json" id="strings">__PYCORN_STRINGS__</script>
+<!-- The engine: Python (Pyodide) and the jobs the page gives it. The page runs this text in a web
+     worker, so it stays live while Python reads or writes; where a worker can't start, on the page
+     itself (startEngine). Not run as a script here (type text/plain). -->
+<script type="text/plain" id="engine">
+// makeEngine(post) -> {run(job, args), cancel()}. post(message) tells the page how far a job is:
+// {type: "progress", level: "job" | "step", key, vars, extra} (texts: web/i18n), {type: "added", file,
+// runs, not_read} after each file. cancel(): the job stops before its next step (file, run, zip);
+// a step that is running can't be stopped here (the page then restarts the worker: "Stop now").
+function makeEngine(post) {
+  // pyodide.js is fetched with its hash (the browser refuses any other file) and run with eval: a
+  // worker has no script element (Pyodide then loads its other parts with import())
+  const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
+  const PYODIDE_SRI = "sha384-hYKrcQ7FiKU7f1c92md9N2eh7BoBVX4CPkNDfQyyVclsjZevvDOBUkajGcYk1EF8";
+  let py = null, session = null, stop = false, drops = 0;
+  const overlayRead = new Set();  // runs in Python's overlay cache (W11): no step, no pause for them
+  const job = (key, vars, extra) => post({ type: "progress", level: "job", key, vars: vars || {}, extra });
+  // an error the page translates: a message {key, values, text} as Python's (text: English)
+  const message = (key, values, text) => ({ key, values, text });
+  const failure = (msg) => Object.assign(new Error(msg.text), { msg });
+  // a moment between steps: a cancel message gets in, and on the page the status line is drawn
+  const pause = () => new Promise((r) => setTimeout(r, 30));
+  // a file Python wrote, as bytes for the page (sent, not copied, from a worker)
+  const withBytes = (r) => (r.path ? { ...r, bytes: py.FS.readFile(r.path).buffer } : r);
+
+  const jobs = {
+    async start({ wheels }) {
+      // two phases in the status line: the downloads (Pyodide, then numpy and pandas), then Python
+      // starting with PyCORN installed from this page
+      job("status.downloading");
+      const r = await fetch(PYODIDE + "pyodide.js", { integrity: PYODIDE_SRI });
+      if (!r.ok) throw failure(message("shell.engine_http", { file: "pyodide.js", status: r.status }, "pyodide.js: HTTP " + r.status));
+      (0, eval)(await r.text());
+      py = await globalThis.loadPyodide({ indexURL: PYODIDE });
+      // Pyodide's own progress lines ("Loading numpy"), after the page's text
+      await py.loadPackage(["micropip", "numpy", "pandas"], { messageCallback: (m) => job("status.downloading", {}, m) });
+      job("status.starting");
+      py.FS.mkdirTree("/wheels");
+      const urls = [];
+      for (const [name, b64] of Object.entries(JSON.parse(wheels))) {
+        py.FS.writeFile("/wheels/" + name, Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+        urls.push("emfs:/wheels/" + name);
+      }
+      // numpy and pandas come from Pyodide; the rest are in this page, so nothing else is fetched
+      await py.pyimport("micropip").install(py.toPy(urls), { deps: false });
+      py.globals.set("_pycorn_step", (key, values) => post({ type: "progress", level: "step", key, vars: JSON.parse(values) }));
+      session = py.runPython("from pycorn.browser import Session\nSession(progress=_pycorn_step)");
+      return { names: py.runPython("from pycorn.browser import names\nnames()"),
+               python: py.runPython("import sys; sys.version.split()[0]"), pyodide: py.version };
+    },
+    // files: [{name, data (ArrayBuffer)}], one at a time, each reported ("added") as it is read
+    async add({ files }) {
+      const folder = "/in/" + (++drops);
+      py.FS.mkdirTree(folder);
+      for (let i = 0; i < files.length; i++) {
+        job("status.reading_file", { n: i + 1, total: files.length, name: files[i].name });
+        await pause();
+        if (stop) return { cancelled: true };
+        const path = folder + "/" + files[i].name.replace(/[\/\\]/g, "_");
+        py.FS.writeFile(path, new Uint8Array(files[i].data));
+        post({ type: "added", file: i, ...JSON.parse(session.add(py.toPy([path]))) });
+      }
+      return {};
+    },
+    // chromatograms (W17): the names ticked in the run list (null: the run's original one), as JSON text
+    async view({ index, chromatograms }) { return session.view(index, JSON.stringify(chromatograms || null)); },
+    async download({ index, kind, options }) {
+      return withBytes(JSON.parse(session.download(index, kind, "/out", JSON.stringify(options))));
+    },
+    // several runs in one zip (the ticked runs, or all): one run per step. ids: the list's run
+    // indexes; curves: the curve names ticked on the plot (null: Python's choice)
+    async all({ kind, ids, curves, options }) {
+      const pyIds = py.toPy(ids), pyCurves = curves ? py.toPy(curves) : null;
+      // no curves: left out, so Python gets None (a JS null arrives as JsNull)
+      const kwargs = { ids: pyIds, kind, folder: "/out_all", options: JSON.stringify(options) };
+      if (pyCurves) kwargs.curves = pyCurves;
+      let start;
+      try {
+        start = JSON.parse(session.export_start.callKwargs(kwargs));
+      } finally {
+        pyIds.destroy();
+        if (pyCurves) pyCurves.destroy();
+      }
+      if (start.error) return start;
+      const rows = start.ids || ids;
+      for (let i = 0; i < rows.length; i++) {
+        job("status.writing_run", { n: i + 1, total: rows.length });
+        await pause();
+        if (stop) return { cancelled: true };
+        session.export_one(rows[i]);
+      }
+      job("status.zipping");
+      await pause();
+      if (stop) return { cancelled: true };
+      return { ...withBytes(JSON.parse(session.export_finish())), runs: rows.length };
+    },
+    // overlaid runs (W11): each run not read yet goes into Python's cache of thinned curves one
+    // per step (progress, Cancel between runs), then the plot data of all of them on one axis.
+    // ids: [list's run index, chromatogram name or null (its original one)] (W17: two chromatograms
+    // of one run are two ids); roles: the curve roles drawn (null: Python's default); axis: the
+    // x axis wanted (null: Python's default)
+    async overlay({ ids, roles, axis }) {
+      for (let i = 0; i < ids.length; i++) {
+        const key = JSON.stringify(ids[i]);
+        if (overlayRead.has(key)) continue;
+        job("plot.reading_runs", { n: i + 1, total: ids.length });
+        await pause();
+        if (stop) return { cancelled: true };
+        const [index, chrom] = ids[i];
+        const r = JSON.parse(chrom === null ? session.overlay_run(index) : session.overlay_run(index, chrom));
+        if (!r.error) overlayRead.add(key);
+      }
+      // the ids as JSON text (their nulls stay None); a JS null would arrive as JsNull: left out, so Python gets None
+      const kwargs = { ids: JSON.stringify(ids) };
+      if (roles) kwargs.roles = py.toPy(roles);
+      if (axis) kwargs.axis = axis;
+      try {
+        return JSON.parse(session.overlay.callKwargs(kwargs));
+      } finally {
+        if (kwargs.roles) kwargs.roles.destroy();
+      }
+    },
+    // phase window statistics (M22): ids as the overlay's ([list index, chromatogram or null]); each
+    // run is read in a step of its own (progress, Cancel between runs), Python keeps what it found
+    async windowInfo({ ids }) {
+      for (let i = 0; i < ids.length; i++) {
+        job("win.reading_runs", { n: i + 1, total: ids.length });
+        await pause();
+        if (stop) return { cancelled: true };
+        session.window_info(JSON.stringify([ids[i]]));
+      }
+      return JSON.parse(session.window_info(JSON.stringify(ids)));
+    },
+    async windowParse({ text }) { return JSON.parse(session.parse_window(text)); },
+    async windowStats({ ids, windows, curves, labels }) {
+      const w = JSON.stringify(windows), c = JSON.stringify(curves);
+      for (let i = 0; i < ids.length; i++) {
+        job("win.reading_runs", { n: i + 1, total: ids.length });
+        await pause();
+        if (stop) return { cancelled: true };
+        session.window_stats(JSON.stringify([ids[i]]), w, c);
+      }
+      return JSON.parse(session.window_stats(JSON.stringify(ids), w, c, JSON.stringify(labels || null)));
+    },
+    async clear() {
+      session.clear();
+      overlayRead.clear();
+      const removeTree = (path) => {
+        for (const n of py.FS.readdir(path)) {
+          if (n === "." || n === "..") continue;
+          const p = path + "/" + n;
+          if (py.FS.isDir(py.FS.stat(p).mode)) removeTree(p); else py.FS.unlink(p);
+        }
+        py.FS.rmdir(path);
+      };
+      try { py.FS.readdir("/in").filter((n) => n !== "." && n !== "..").forEach((n) => removeTree("/in/" + n)); } catch (e) { /* nothing added yet */ }
+      return {};
+    },
+  };
+  return {
+    run(name, args) { stop = false; return jobs[name](args || {}); },
+    cancel() { stop = true; },
+  };
+}
+</script>
+<script>
+"use strict";
+let ready = false, shown = null, current = null, busy = false, names = null, versions = null;
+const $ = (id) => document.getElementById(id);
+// curve name -> on or off as the user switched it (this page only; names differ per instrument);
+// a curve the user never switched is drawn as the run says (`shown`: the Excel chart's curves)
+const curveChoice = new Map();
+const curveOn = (k) => (curveChoice.has(k.name) ? curveChoice.get(k.name) : k.shown !== false);
+
+// busy: Python does one job at a time; the buttons that start one say so by being disabled. The
+// rest of the page (plot, tables, pickers, images) works meanwhile: Python runs in a web worker.
+function setBusy(on) {
+  busy = on || restarting;
+  if (!busy) cancelAsked = false;
+  document.body.setAttribute("aria-busy", busy ? "true" : "false");
+  for (const b of document.querySelectorAll("#clear, #trysample")) b.disabled = busy || (b.id === "trysample" && !ready);
+  $("files").disabled = busy || !ready;
+  const cancel = $("cancel");
+  cancel.hidden = !busy || restarting || (cancelAsked && !worker);
+  if (!cancelAsked) cancel.textContent = i18n("cancel");
+  updatePanel();
+}
+const DETAILS = ["run_details", "method_steps", "scouting_runs", "start_questions", "column", "calibration", "instrument", "system_settings", "audit_log"];
+
+// Texts: web/i18n/<language>.json, put into the page by tools/build_web_page.py; en.json is the
+// reference and the fallback for a key another language lacks. i18n(key, {name: value}) fills {name};
+// {github} is the repository link. Table titles, column names, notes and warnings come from Python
+// (pycorn/export_tables.py) in English: they are the names the downloads use.
+const STRINGS = JSON.parse($("strings").textContent);
+const VALUES = { github: "https://github.com/traylosj/PyCORN" };
+const LANG_PICK = "pycorn.lang";
+let lang = "en";
+function i18n(key, vars) {
+  const s = (STRINGS[lang] || {})[key] ?? STRINGS.en[key] ?? key;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : k in VALUES ? VALUES[k] : m));
+}
+
+// Messages from Python and the engine: {key, values, text} (key: a msg.* or shell.* text in
+// web/i18n, values fill it, text: the English to show where no language has the key); plain text
+// (older Python, the browser's own errors) as it is. A value that is itself a message is translated.
+const message = (key, values, text) => ({ key, values, text });
+function msgText(m) {
+  if (m === null || m === undefined) return "";
+  if (typeof m !== "object") return String(m);
+  if (m.key && m.key in STRINGS.en) {
+    const values = {};
+    for (const [k, v] of Object.entries(m.values || {})) values[k] = v && typeof v === "object" ? msgText(v) : v;
+    return i18n(m.key, values);
+  }
+  return String(m.text ?? m.key ?? "");
+}
+// an Error carrying a message (the engine's errors); errText: any error's text in the page's language
+const failure = (m) => Object.assign(new Error(typeof m === "object" && m ? String(m.text) : String(m)), { msg: m });
+const errText = (e) => msgText((e && e.msg) || (e && e.message) || String(e));
+// a Python result's error: {error: English text, message: {key, values, text}}
+const errorOf = (r) => msgText(r.message || r.error);
+// a download format's name in the page's language (Python sends xlsx / csv)
+const KIND_NAMES = { xlsx: () => i18n("msg.format.xlsx"), csv: () => i18n("msg.format.csv"), core: () => i18n("msg.format.core") };
+const kindName = (kind) => (KIND_NAMES[kind] ? KIND_NAMES[kind]() : String(kind));
+
+// the language to start in: the user's pick (kept in this browser), else the browser's, else English
+function chooseLanguage() {
+  let want = null;
+  try { want = localStorage.getItem(LANG_PICK); } catch (e) { /* storage blocked: the browser's language */ }
+  for (const code of [want, ...(navigator.languages || [navigator.language])]) {
+    const base = String(code || "").toLowerCase().split("-")[0];
+    const found = Object.keys(STRINGS).find((k) => k === code || k === base);
+    if (found) return found;
+  }
+  return "en";
+}
+
+// the page's fixed texts in the chosen language
+function applyLanguage() {
+  document.documentElement.lang = lang;
+  document.title = i18n("title");
+  for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = i18n(el.dataset.i18n);
+  for (const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = i18n(el.dataset.i18nHtml);
+  const pick = $("lang");
+  pick.setAttribute("aria-label", i18n("language"));
+  pick.innerHTML = "";
+  for (const code of Object.keys(STRINGS)) pick.add(new Option(STRINGS[code]["lang.name"] || code, code));
+  pick.value = lang;
+  $("translation-note").hidden = lang === "en";
+  pick.hidden = Object.keys(STRINGS).length < 2;
+  $("runfilter").placeholder = i18n("runs.filter");
+  $("runfilter").setAttribute("aria-label", i18n("runs.filter"));
+  $("tickall").setAttribute("aria-label", i18n("dl.tick_all"));
+  $("tickall").title = i18n("dl.tick_all");
+  for (const tick of $("runs").tBodies[0].querySelectorAll("td.tick input")) tick.setAttribute("aria-label", i18n("dl.tick_run"));
+  chromTexts();
+  tablesOf();
+  for (const [id, text] of [["img-png", i18n("plot.png")], ["img-svg", i18n("plot.svg")]]) {
+    $(id).title = text;
+    $(id).setAttribute("aria-label", text);
+  }
+  showOverridesName();
+  updateSize();
+  buildGroups();
+  winRender();
+  updatePanel();
+  moreCount();
+}
+
+// the parameters file picked for CADET-Core, by name (the browser's own text is hidden: filepick)
+function showOverridesName() {
+  const file = $("overrides").files[0];
+  $("overridesname").textContent = file ? file.name : i18n("file.none");
+}
+
+// the size choice for xlsx / csv downloads: a mode and the number that goes with it, filled in
+// with a starting value per mode (grid step in the run's time unit, usually min) so a download
+// works without typing; a number typed for a mode is kept when switching back to it
+const SIZE_VALUES = { grid: 0.05, every: 10, hybrid: 2000 };
+let sizeMode = null;
+function updateSize() {
+  const mode = $("sizemode").value;
+  if (sizeMode in SIZE_VALUES && Number($("sizevalue").value) > 0) SIZE_VALUES[sizeMode] = Number($("sizevalue").value);
+  sizeMode = mode;
+  const hint = { grid: i18n("size.value.grid"), every: i18n("size.value.every"), hybrid: i18n("size.value.hybrid") }[mode];
+  $("sizevalue").hidden = !hint;
+  $("sizenote").hidden = !hint;
+  if (hint) {
+    $("sizevalue").value = SIZE_VALUES[mode];
+    $("sizevalue").placeholder = hint; $("sizevalue").title = hint; $("sizevalue").setAttribute("aria-label", hint);
+  }
+}
+
+// {mode, value} for the download options; throws when a size is chosen without its number
+function sizeOptions() {
+  const mode = $("sizemode").value, value = $("sizevalue").value;
+  if (mode !== "all" && !(Number(value) > 0)) throw new Error(i18n("size.missing"));
+  return { mode, value: mode === "all" ? null : Number(value) };
+}
+
+// -- the download panel ---------------------------------------------------------------------------
+// One Download button opens it: the format, what goes in (the shown run, the ticked runs, all
+// runs), the mask and size, the CADET-Core fields. Its settings are kept in this browser across
+// visits: settings only, never a file or a value from one (the column geometry belongs to a run
+// and the parameters are a file, so neither is kept).
+const DL_PICK = "pycorn.download";
+// the user's pick (null: none yet, then "Ticked runs" with 2 or more ticked, else "Shown run"); a
+// format that can't take it shows another
+let scopeWanted = null;
+let groupsOff = new Set();  // W16: the table groups unticked (names.groups); all ticked at first
+const radio = (name) => (document.querySelector("input[name=" + name + "]:checked") || {}).value;
+function setRadio(name, value) {
+  const r = document.querySelector("input[name=" + name + "][value='" + value + "']");
+  if (r) r.checked = true;
+}
+function loadDownloadSettings() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(DL_PICK) || "null"); } catch (e) { /* blocked or unreadable: defaults */ }
+  if (!s || typeof s !== "object") return;
+  setRadio("dlformat", s.format);
+  // kept only when picked (scope_picked); earlier pages kept "shown" without a pick, as the default
+  const picked = "scope_picked" in s ? s.scope_picked === true : s.scope !== "shown";
+  if (picked && ["shown", "ticked", "all"].includes(s.scope)) scopeWanted = s.scope;
+  $("mask").checked = s.mask === true;
+  setRadio("dlcurvesel", s.curves);
+  if (Array.isArray(s.groups_off)) groupsOff = new Set(s.groups_off.map(String));
+  for (const [mode, value] of Object.entries(s.sizes || {})) if (mode in SIZE_VALUES && Number(value) > 0) SIZE_VALUES[mode] = Number(value);
+  if ([...$("sizemode").options].some((o) => o.value === s.size)) $("sizemode").value = s.size;
+  if ([...$("coreversion").options].some((o) => o.value === s.core_version)) $("coreversion").value = s.core_version;
+}
+function saveDownloadSettings() {
+  if (sizeMode in SIZE_VALUES && Number($("sizevalue").value) > 0) SIZE_VALUES[sizeMode] = Number($("sizevalue").value);
+  const boxes = [...document.querySelectorAll("input[name=dlgroup]")];
+  if (boxes.length) groupsOff = new Set(boxes.filter((b) => !b.checked).map((b) => b.value));
+  const s = { format: radio("dlformat"), scope: scopeWanted, scope_picked: scopeWanted !== null, mask: $("mask").checked, size: $("sizemode").value,
+              sizes: SIZE_VALUES, core_version: $("coreversion").value, curves: radio("dlcurvesel"),
+              groups_off: [...groupsOff] };
+  try { localStorage.setItem(DL_PICK, JSON.stringify(s)); } catch (e) { /* storage blocked: kept for this page */ }
+}
+
+// a group's name in the page's language (the keys written out: tests check every key is used)
+const groupText = (g) => ({ key: i18n("dl.group.key"), peaks: i18n("dl.group.peaks"), method: i18n("dl.group.method"),
+                            details: i18n("dl.group.details"), audit: i18n("dl.group.audit"),
+                            runlog: i18n("dl.group.runlog") })[g] || g;
+// W16: a tick box per table group, as the page groups them (pycorn/run_export.py TABLE_GROUPS), its
+// tables named under it as the downloads name them; and what always goes in
+function buildGroups() {
+  const box = $("dlgroups");
+  box.querySelectorAll(":scope > :not(legend)").forEach((e) => e.remove());
+  if (!names || !names.groups) return;
+  for (const [group, keys] of names.groups) {
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.name = "dlgroup";
+    tick.value = group;
+    tick.checked = !groupsOff.has(group);
+    const lab = document.createElement("label");
+    const text = document.createElement("span");
+    text.textContent = groupText(group);
+    lab.append(tick, text);
+    const list = document.createElement("span");
+    list.className = "muted grouptables";
+    list.textContent = keys.map((k) => (names.tables[k] || { title: k }).title).join(", ");
+    box.append(lab, list);
+  }
+  const always = ["run_info", "warnings", "column_guide"].map((k) => names.tables[k].title).join(", ");
+  $("dlalways").textContent = i18n("dl.always", { tables: always });
+}
+// the ticked groups (null before Python named them: every table)
+const tickedGroups = () => (names && names.groups ? names.groups.map((g) => g[0]).filter((g) => !groupsOff.has(g)) : null);
+
+const runRows = () => [...$("runs").tBodies[0].rows];
+// the ticked runs (list indexes), in the list's order
+const tickedIds = () => runRows().filter((tr) => tr.querySelector("input").checked).map((tr) => Number(tr.dataset.index));
+// the curves downloaded, by name: those ticked on the shown chromatogram's plot, at full
+// resolution unless a size is picked (null: "All curves" or no run shown, every curve)
+function tickedCurves() {
+  if (!current || radio("dlcurvesel") === "all") return null;
+  const c = current.chromatograms[Number($("chrom").value) || 0];
+  return c && c.plot ? c.plot.curves.filter(curveOn).map((k) => k.name) : [];
+}
+
+// the panel as the page stands: which choices apply, the counts, the curves line
+function updatePanel() {
+  const format = radio("dlformat"), rows = runRows().length, ticked = tickedIds().length;
+  // CADET-Core: one run, the shown one
+  const allowed = { shown: shown !== null, ticked: format !== "core", all: format !== "core" };
+  for (const r of document.querySelectorAll("input[name=dlscope]")) r.disabled = !allowed[r.value];
+  const want = scopeWanted || (ticked >= 2 ? "ticked" : "shown");
+  setRadio("dlscope", allowed[want] ? want : Object.keys(allowed).find((k) => allowed[k]) || want);
+  $("dlshown").textContent = current && shown !== null ? current.name : "";
+  $("dlticked").textContent = i18n("dl.scope_ticked", { count: ticked });
+  $("dlall").textContent = i18n("dl.scope_all", { count: rows });
+  $("dltables").hidden = format === "core";
+  $("dlcore").hidden = format !== "core";
+  const curves = tickedCurves(), line = $("dlcurves");
+  line.textContent = curves === null ? i18n("dl.curves_all")
+    : curves.length ? i18n("dl.curves_list", { names: curves.join(", ") }) : i18n("dl.curves_none");
+  line.classList.toggle("warn", !!curves && !curves.length);
+  // M22: the phase window statistics go in with the windows and curves set on the page
+  const win = $("dlwindows");
+  win.hidden = !winSet();
+  win.textContent = winSet() ? i18n("dl.windows", { count: winWindows.length, curves: winCurves().map(roleName).join(", ") }) : "";
+  const scope = radio("dlscope");
+  $("dlgo").disabled = busy || !ready || !allowed[scope] || (scope === "ticked" && !ticked) || (scope === "all" && !rows)
+    || (format !== "core" && !!curves && !curves.length);  // no curve ticked: Python refuses (msg.no_curves)
+}
+
+// the panel under its button, its right edge at the button's (the button sits at the right of the
+// sticky status bar; the panel is at most 92 % of the window wide, so it stays inside)
+function placePanel() {
+  const panel = $("dlpanel");
+  const r = $("dlopen").getBoundingClientRect(), width = document.documentElement.clientWidth;
+  const top = Math.max(4, r.bottom + 6);
+  panel.style.top = top + "px";
+  panel.style.left = "auto";
+  panel.style.right = Math.max(4, width - r.right) + "px";
+  panel.style.maxHeight = Math.max(160, window.innerHeight - top - 8) + "px";
+}
+
+async function startDownload() {
+  if (busy || !ready) return;
+  const kind = radio("dlformat"), scope = radio("dlscope");
+  if (scope === "shown") return download(kind);
+  return downloadMany(kind, scope === "all" ? runRows().map((tr) => Number(tr.dataset.index)) : tickedIds());
+}
+
+function status(text, error) {
+  $("status").textContent = text;
+  $("statusbar").className = error ? "error" : "";
+  // an error interrupts a screen reader, other messages wait their turn
+  $("status").setAttribute("role", error ? "alert" : "status");
+}
+
+// let the page draw the status line before a job starts (on the page, Python blocks drawing)
+const breathe = () => new Promise((r) => setTimeout(r, 30));
+
+// -- the engine (Python): a web worker, or the page itself where a worker can't start ---------------
+// call(job, args) -> the job's result. One job at a time (`busy`). Cancel asks the engine to stop
+// before its next step; "Stop now" ends the worker and starts a new one, which reads the files in
+// the list again (same files, same order: same rows).
+const ENGINE = $("engine").textContent;
+let worker = null, local = null, pending = null, jobCount = 0;
+let cancelAsked = false, restarting = false, jobLine = "";
+let kept = [];  // the File of every file read, in order: the list again after a restart
+let adding = null, replay = null;  // the add job in progress; the rows of a restart's re-read
+class Stopped extends Error {}
+
+// type "module": Pyodide 314 wants a module worker (it loads its parts with import()). A page
+// opened as a file (origin null) can't start one; there a classic worker does, with importScripts
+// hidden: Pyodide checks for it only to refuse classic workers, and loads with import() either way.
+let workerType = "module";
+function newWorker(type) {
+  const glue = (type === "classic" ? "\nself.importScripts = undefined;" : "") + `
+const engine = makeEngine((m) => postMessage(m));
+self.onmessage = async (e) => {
+  const m = e.data;
+  if (m.type === "cancel") { engine.cancel(); return; }
+  try {
+    const result = await engine.run(m.job, m.args);
+    postMessage({ id: m.id, result }, result && result.bytes ? [result.bytes] : []);
+  } catch (err) { postMessage({ id: m.id, error: (err && err.msg) || String((err && err.message) || err) }); }
+};`;
+  const url = URL.createObjectURL(new Blob([ENGINE, glue], { type: "text/javascript" }));
+  const w = new Worker(url, { type });
+  w.onmessage = (e) => { if (worker === w) onEngine(e.data); };
+  w.onerror = (e) => {
+    e.preventDefault();
+    if (worker === w && pending) onEngine({ id: pending.id, error: e.message || message("shell.worker_failed", {}, "the web worker failed") });
+  };
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return w;
+}
+
+// the same engine on the page: the page waits while Python works, Cancel acts between steps
+function newLocal() {
+  const make = (0, eval)(ENGINE + "\n;makeEngine");
+  return make((m) => onEngine(m));
+}
+
+function onEngine(m) {
+  if (m.type === "progress") return progress(m);
+  if (m.type === "added") return onAdded(m);
+  if (!pending || m.id !== pending.id) return;
+  const p = pending;
+  pending = null;
+  if (m.error !== undefined) p.reject(failure(m.error)); else p.resolve(m.result);
+}
+
+function call(job, args, transfer) {
+  return new Promise((resolve, reject) => {
+    const id = ++jobCount;
+    pending = { id, resolve, reject };
+    if (worker) worker.postMessage({ id, job, args }, transfer || []);
+    else local.run(job, args).then((result) => onEngine({ id, result }), (e) => onEngine({ id, error: e.msg || e.message }));
+  });
+}
+
+// the status line: the job's line ("Writing run 3 of 12..."), a step of it in brackets; the format
+// name and Pyodide's own lines ("Loading numpy") in the page's language
+function progress(m) {
+  if (cancelAsked) return;
+  const vars = { ...m.vars };
+  if (vars.kind) vars.kind = kindName(vars.kind);
+  const extra = m.extra ? pyodideLine(m.extra) : "";
+  const text = i18n(m.key, vars) + (extra ? " " + extra : "");
+  if (m.level === "job") { jobLine = text; status(text); } else status(jobLine ? jobLine + " (" + text + ")" : text);
+}
+// Pyodide's progress ("Loading numpy, pandas", "Loaded ..."); its other lines are left out
+function pyodideLine(text) {
+  const loading = /^Loading (.+)$/.exec(text), loaded = /^Loaded (.+)$/.exec(text);
+  if (loading) return i18n("shell.pyodide_loading", { packages: loading[1] });
+  if (loaded) return i18n("shell.pyodide_loaded", { packages: loaded[1] });
+  return "";
+}
+
+// a file read by the add job: its rows go into the list at once
+function onAdded(m) {
+  if (replay) { replay.push(...m.runs); return; }
+  if (!adding) return;
+  kept.push(adding.files[m.file]);
+  adding.count += m.runs.length;
+  adding.notRead.push(...m.not_read);
+  for (const run of m.runs) {
+    addRow(run);
+    if (adding.first === null) adding.first = run.index;
+  }
+  listShown();
+}
+
+// with runs listed: the list, the Download button and a one-line drop bar; without (start, Clear):
+// the large drop zone and the sample. A filter box is worth its space once the list is long.
+function listShown() {
+  const n = $("runs").tBodies[0].rows.length;
+  $("list").hidden = !n;
+  $("runfilter").hidden = n < 6;
+  $("drop").classList.toggle("compact", n > 0);
+  $("samplehint").hidden = n > 0;
+  $("dlopen").hidden = !n;
+  if (!n && $("dlpanel").matches(":popover-open")) $("dlpanel").hidePopover();
+  updateTickAll();
+}
+
+// -- the view: key information vs "More details" (W6) ----------------------------------------------
+// Key, always shown: run name, summary, plot and these tables (open; Injections stays folded,
+// owner 2026-11-11). Everything else sits in the
+// "More details" group: collapsed by default, open or closed kept in this browser (settings only).
+// Its tables are drawn only when seen: closing the group closes its open sections (remembered),
+// opening it opens them again, and a section's own toggle draws its table (drawWhenOpened).
+const KEY_TABLES = ["phases", "fractions", "pools"];
+const VIEW_PICK = "pycorn.view";
+function loadViewSettings() {
+  for (const id of KEY_TABLES) $(id).closest("details").open = true;
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(VIEW_PICK) || "null"); } catch (e) { /* blocked or unreadable: collapsed */ }
+  $("more").open = !!(s && s.more === true);
+}
+function moreToggled() {
+  const more = $("more");
+  for (const d of more.querySelectorAll("details")) {
+    if (more.open && d.dataset.reopen) { delete d.dataset.reopen; d.open = true; }
+    else if (!more.open && d.open) { d.dataset.reopen = "1"; d.open = false; }
+  }
+  try { localStorage.setItem(VIEW_PICK, JSON.stringify({ more: more.open })); } catch (e) { /* storage blocked: kept for this page */ }
+}
+// the warnings count on the group's title, so a closed group still shows there is something to check
+function moreCount() {
+  const n = current && current.warnings ? current.warnings.rows.length : 0;
+  $("morecount").textContent = n ? i18n("view.more_warnings", { count: n }) : "";
+}
+
+// the footer's versions; without a worker, that the page waits while Python works
+function showVersion() {
+  if (versions) $("version").textContent = i18n("version", versions) + (local ? " " + i18n("version.no_worker") : "");
+}
+
+// starts a job's status line; the job's own text until the engine says more
+function begin(line) { jobLine = line; status(line); }
+
+function cancelJob() {
+  if (!busy || restarting) return;
+  if (!cancelAsked) {
+    cancelAsked = true;
+    if (worker) worker.postMessage({ type: "cancel" }); else local.cancel();
+    status(worker ? i18n("status.cancelling") : i18n("status.cancelling_page"));
+    $("cancel").textContent = i18n("cancel.stop_now");
+    $("cancel").hidden = !worker;
+  } else if (worker) {
+    stopNow();
+  }
+}
+
+// "Stop now": the running step can't be interrupted, so the worker goes and a new one comes
+async function stopNow() {
+  restarting = true;
+  worker.terminate();
+  worker = null;
+  if (pending) { const p = pending; pending = null; p.reject(new Stopped()); }
+  setBusy(true);
+  status(i18n("status.restarting"));
+  try {
+    worker = newWorker(workerType);
+    await call("start", { wheels: $("wheels").textContent });
+    replay = [];
+    if (kept.length) {
+      const data = await Promise.all(kept.map(async (f) => ({ name: f.name, data: await f.arrayBuffer() })));
+      await call("add", { files: data }, data.map((d) => d.data));
+    }
+    // same files, same rows; if not (it should not happen), the list as read now
+    const body = $("runs").tBodies[0];
+    if (replay.length !== body.rows.length) {
+      body.innerHTML = "";
+      for (const run of replay) addRow(run);
+      shown = null;
+      current = null;
+      anchorIndex = null;
+      $("view").hidden = true;
+      listShown();
+    }
+    status(i18n("status.restarted", { count: replay.length }));
+  } catch (e) {
+    ready = false;
+    status(i18n("status.python_failed", { error: errText(e) }), true);
+    $("retry").hidden = false;
+  } finally {
+    replay = null;
+    restarting = false;
+    setBusy(false);
+  }
+}
+
+async function start() {
+  try {
+    if (typeof WebAssembly !== "object") throw failure(message("shell.no_wasm", {}, "this browser has no WebAssembly"));
+    const wheels = $("wheels").textContent;
+    let info = null;
+    for (const type of ["module", "classic"]) {
+      try {
+        worker = newWorker(type);
+        info = await call("start", { wheels });
+        workerType = type;
+        break;
+      } catch (e) {
+        console.warn("PyCORN: no " + type + " web worker (" + e.message + ")");
+        if (worker) worker.terminate();
+        worker = null;
+      }
+    }
+    if (!info) {
+      // no web worker here (a locked-down or old browser): Python on the page, as before
+      local = newLocal();
+      info = await call("start", { wheels });
+    }
+    names = JSON.parse(info.names);
+    buildGroups();
+    for (const s of document.querySelectorAll("summary[data-table]")) {
+      label(s, s.dataset.table, "");
+      // the table's name for screen readers is its section title
+      s.id = "h-" + s.dataset.table;
+      s.parentElement.querySelector("table").setAttribute("aria-labelledby", s.id);
+      s.parentElement.addEventListener("toggle", () => drawWhenOpened(s.parentElement));
+    }
+    versions = { pycorn: names.version, python: info.python, pyodide: info.pyodide };
+    showVersion();
+    ready = true;
+    $("drop").classList.remove("disabled");
+    setBusy(false);
+    status(i18n("status.ready"));
+    probeSample();
+  } catch (e) {
+    status(i18n("status.python_failed", { error: errText(e) }), true);
+    $("retry").hidden = false;
+  }
+}
+
+// "Try a sample" needs a sample.zip next to the page (the GitHub Pages build has one; a file or a
+// shared drive does not, and then the button stays hidden)
+async function probeSample() {
+  try {
+    const r = await fetch("sample.zip", { method: "HEAD" });
+    $("trysample").hidden = !r.ok;
+  } catch (e) { /* no network or file://: no button */ }
+}
+
+async function trySample() {
+  if (!ready || busy) return;
+  try {
+    const r = await fetch("sample.zip");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    await addFiles([new File([await r.blob()], "sample.zip")]);
+  } catch (e) {
+    status(i18n("sample.failed", { error: errText(e) }), true);
+  }
+}
+
+// the files are read one by one; each one's runs join the list as soon as it is read (onAdded)
+async function addFiles(files) {
+  if (!ready || busy || !files.length) return;
+  setBusy(true);
+  begin(i18n("status.reading", { count: files.length }));
+  await breathe();
+  adding = { files, count: 0, notRead: [], first: null };
+  try {
+    const data = await Promise.all(files.map(async (f) => ({ name: f.name, data: await f.arrayBuffer() })));
+    const r = await call("add", { files: data }, data.map((d) => d.data));
+    const nr = $("notread");
+    nr.hidden = !adding.notRead.length;
+    nr.innerHTML = "";
+    if (adding.notRead.length) {
+      nr.append(i18n("notread.head"));
+      const ul = document.createElement("ul");
+      ul.className = "notes";
+      for (const [name, why, msg] of adding.notRead) li(ul, name + ": " + msgText(msg || why));
+      nr.append(ul);
+    }
+    if (r.cancelled || cancelAsked) { status(i18n("status.cancelled_added", { count: adding.count })); return; }
+    status(i18n("status.added", { count: adding.count }));
+    if (adding.first !== null && shown === null) await show(adding.first, true);
+  } catch (e) {
+    if (!(e instanceof Stopped)) status(i18n("status.files_failed", { error: errText(e) }), true);
+  } finally {
+    adding = null;
+    setBusy(false);
+  }
+}
+
+function li(ul, text) {
+  const item = document.createElement("li");
+  item.textContent = text;
+  ul.append(item);
+}
+
+function addRow(run) {
+  const tr = $("runs").tBodies[0].insertRow();
+  tr.dataset.index = run.index;
+  const file = run.member ? run.file + " / " + run.member : run.file;
+  // the tick: the runs overlaid and downloaded as "Ticked runs"; a click on it ticks or unticks
+  // only its row, keeps the others and does not show the run (a selection built by hand)
+  const cell = tr.insertCell();
+  cell.className = "tick";
+  const tick = document.createElement("input");
+  tick.type = "checkbox";
+  tick.setAttribute("aria-label", i18n("dl.tick_run"));
+  tick.addEventListener("click", (e) => e.stopPropagation());
+  tick.addEventListener("change", () => ticksChanged());
+  cell.append(tick);
+  for (const v of [run.name, file, run.folder_path, (run.run_start_local || "").replace("T", " "), run.system, run.n_chromatograms]) {
+    tr.insertCell().textContent = v === null || v === undefined ? "" : v;
+  }
+  if ((run.chromatograms || []).length > 1) chromPicker(tr.cells[tr.cells.length - 1], run);
+  // a row is reachable by Tab; a click (or Enter) ticks it alone and shows it, Ctrl / Shift tick
+  // several (pickRow, rowKey)
+  tr.tabIndex = 0;
+  tr.setAttribute("aria-selected", "false");
+  tr.addEventListener("click", (e) => pickRow(tr, e.metaKey || e.ctrlKey ? "toggle" : "one", e.shiftKey));
+  tr.addEventListener("keydown", (e) => rowKey(tr, e));
+}
+
+// -- picking runs in the list (owner, 2026-11-11) --------------------------------------------------
+// The ticks are the selection, as in a file explorer: a click ticks only its row and shows that run;
+// Ctrl-click (Cmd on a Mac) ticks or unticks one row and keeps the others; Shift-click ticks the rows
+// from the anchor (the row last clicked without Shift) to the clicked one, in the list's order and
+// skipping rows the filter hides (Ctrl+Shift adds them to the ticks, Shift alone replaces them).
+// A row ticked by a click becomes the shown run (tables, run details, chromatogram picker); a row
+// unticked by Ctrl-click stays shown when it was. Keys on a focused row: Enter as a click, Space as a
+// Ctrl-click, Up / Down move, Shift+Up / Down tick the range as Shift-click does.
+let anchorIndex = null;   // list index of the range's start (Shift)
+let showWanted = null;    // the run a click asked for while Python was busy (the last click wins)
+const rowTick = (tr) => tr.querySelector("td.tick input");
+const visibleRows = () => runRows().filter((tr) => !tr.hidden);
+function pickRow(tr, mode, range) {
+  const index = Number(tr.dataset.index);
+  let showIt = true;
+  if (range) {
+    const rows = visibleRows();
+    let from = rows.findIndex((r) => Number(r.dataset.index) === anchorIndex);
+    if (from < 0) { from = rows.indexOf(tr); anchorIndex = index; }
+    const to = rows.indexOf(tr), lo = Math.min(from, to), hi = Math.max(from, to);
+    if (mode !== "toggle") for (const r of runRows()) rowTick(r).checked = false;
+    rows.slice(lo, hi + 1).forEach((r) => { rowTick(r).checked = true; });
+  } else if (mode === "toggle") {
+    rowTick(tr).checked = !rowTick(tr).checked;
+    showIt = rowTick(tr).checked;  // unticked: the shown run stays as it is
+    anchorIndex = index;
+  } else {
+    for (const r of runRows()) rowTick(r).checked = r === tr;
+    anchorIndex = index;
+  }
+  showIt = showIt && shown !== index;
+  ticksChanged(!showIt);  // a run about to be shown draws the plot itself
+  // Ctrl / Shift build a selection: the page stays at the list (a plain click scrolls to the run)
+  if (showIt) showWhenIdle(index, mode === "toggle" || range);
+  else if (mode === "one" && !range && shown === index && !$("view").hidden) scrollToRun();
+}
+// show a run now, or once Python is free (the last asked for)
+async function showWhenIdle(index, stay) {
+  showWanted = index;
+  await whenIdle();
+  if (showWanted !== index) return;
+  showWanted = null;
+  if (shown !== index || !current) await show(index, false, stay);
+}
+function rowKey(tr, e) {
+  if (e.target !== tr) return;  // Space on the tick ticks it, keys in the chromatogram picker stay there
+  if (e.key === "Enter") { e.preventDefault(); pickRow(tr, "one", false); return; }
+  if (e.key === " ") { e.preventDefault(); pickRow(tr, "toggle", false); return; }
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  e.preventDefault();
+  const rows = visibleRows(), next = rows[rows.indexOf(tr) + (e.key === "ArrowUp" ? -1 : 1)];
+  if (!next) return;
+  next.focus();
+  if (e.shiftKey) {
+    if (anchorIndex === null || !rows.some((r) => Number(r.dataset.index) === anchorIndex)) anchorIndex = Number(tr.dataset.index);
+    pickRow(next, e.ctrlKey || e.metaKey ? "toggle" : "one", true);
+  }
+}
+
+// -- chromatograms of a result (W17, owner 2026-11-11) -------------------------------------------
+// A result can hold several chromatograms: the run's own (original) and others imported from
+// another result or derived in UNICORN's Evaluation. A row with several gets a folded picker in its
+// Chromatograms cell, the original ticked; the plot, tables, downloads and the overlay follow the
+// ticks. Rows with one chromatogram have none (Python then takes the original one).
+const chromLists = new Map();  // list index -> [{name, kind, source_result_name, copy_of_run}]
+const chromTicks = new Map();  // list index -> Set of ticked names
+function kindText(c) {
+  if (c.kind === "imported") {
+    const source = c.source_result_name || c.source_result_id || "?";
+    return c.copy_of_run ? i18n("chrom.imported_copy", { source }) : i18n("chrom.imported", { source });
+  }
+  return c.kind === "derived" ? i18n("chrom.derived") : i18n("chrom.original");
+}
+// the ticked chromatograms of a row, in stored order (null: a row without a picker)
+function tickedChroms(index) {
+  const list = chromLists.get(index), on = chromTicks.get(index);
+  return list && on ? list.map((c) => c.name).filter((n) => on.has(n)) : null;
+}
+function chromSummary(index) {
+  return i18n("chrom.count", { ticked: tickedChroms(index).length, count: chromLists.get(index).length });
+}
+function chromPicker(cell, run) {
+  const index = run.index;
+  chromLists.set(index, run.chromatograms);
+  chromTicks.set(index, new Set(run.chromatograms.filter((c) => c.kind === "original").map((c) => c.name)));
+  if (!chromTicks.get(index).size) chromTicks.get(index).add(run.chromatograms[0].name);
+  cell.textContent = "";
+  const box = document.createElement("details");  // folded by default
+  box.className = "chroms";
+  const head = document.createElement("summary");
+  box.append(head);
+  const hint = document.createElement("p");
+  hint.className = "muted";
+  box.append(hint);
+  const boxes = [];
+  for (const c of run.chromatograms) {
+    const label = document.createElement("label");
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.checked = chromTicks.get(index).has(c.name);
+    tick.addEventListener("change", () => {
+      const on = chromTicks.get(index);
+      if (tick.checked) on.add(c.name); else on.delete(c.name);
+      if (!on.size) { tick.checked = true; on.add(c.name); }  // one at least
+      chromsChanged(index);
+    });
+    const kind = document.createElement("span");
+    kind.className = "muted";
+    label.append(tick, " " + c.name + " ", kind);
+    box.append(label);
+    boxes.push([c, kind]);
+  }
+  // the texts again in the page's language (applyLanguage calls this through chromTexts)
+  box.texts = () => {
+    head.textContent = chromSummary(index);
+    hint.textContent = i18n("chrom.hint");
+    for (const [c, kind] of boxes) kind.textContent = "(" + kindText(c) + ")";
+  };
+  box.texts();
+  // a click in the picker neither shows the run nor folds anything else
+  box.addEventListener("click", (e) => e.stopPropagation());
+  box.addEventListener("keydown", (e) => e.stopPropagation());
+  cell.append(box);
+}
+function chromTexts() { for (const box of document.querySelectorAll("#runs details.chroms")) box.texts(); }
+// ticks changed: the summary, the shown run again (when it is this one), the panel and the overlay
+async function chromsChanged(index) {
+  chromTexts();
+  updatePanel();
+  overlayTicked();
+  winChanged();
+  if (shown === index) { await whenIdle(); if (shown === index) show(index, false, true); }
+}
+
+// the head's tick: on when every row shown (filter) is ticked, half when some are; the rows' shading
+// and the panel and plot as the ticks stand. `redraw` false: a run about to be shown draws the plot
+function updateTickAll(redraw = true) {
+  for (const tr of runRows()) {
+    tr.classList.toggle("ticked", rowTick(tr).checked);
+    tr.setAttribute("aria-selected", String(rowTick(tr).checked));
+  }
+  const rows = visibleRows(), on = rows.filter((tr) => rowTick(tr).checked).length;
+  $("tickall").checked = rows.length > 0 && on === rows.length;
+  $("tickall").indeterminate = on > 0 && on < rows.length;
+  updatePanel();
+  overlayTicked(redraw);
+  winChanged();
+}
+// the ticks changed (click, tick box, head box): the plot follows them again ("This run" picked on
+// the plot bar lasts until then: sourcePick)
+function ticksChanged(redraw = true) {
+  sourcePick = null;
+  updateTickAll(redraw);
+}
+// tick (or untick) every row the filter shows; hidden rows keep their ticks
+function tickAllShown() {
+  const on = $("tickall").checked;
+  for (const tr of runRows()) if (!tr.hidden) rowTick(tr).checked = on;
+  ticksChanged();
+}
+
+// filter the run list by any text in a row
+function filterRuns() {
+  const q = $("runfilter").value.trim().toLowerCase();
+  for (const tr of $("runs").tBodies[0].rows) tr.hidden = q !== "" && !tr.textContent.toLowerCase().includes(q);
+  updateTickAll();
+}
+
+// sort the run list by a column (again: the other way round); numbers as numbers
+function sortRuns(th) {
+  const col = th.cellIndex, down = th.getAttribute("aria-sort") === "ascending";
+  for (const other of th.parentElement.cells) other.removeAttribute("aria-sort");
+  th.setAttribute("aria-sort", down ? "descending" : "ascending");
+  const body = $("runs").tBodies[0];
+  const rows = [...body.rows].sort((a, b) =>
+    a.cells[col].textContent.localeCompare(b.cells[col].textContent, undefined, { numeric: true }) * (down ? -1 : 1));
+  for (const tr of rows) body.append(tr);
+}
+
+// `inner`: called by addFiles, which holds `busy` itself; `stay`: no scroll (the chromatogram picker, W17)
+async function show(index, inner, stay) {
+  if (busy && !inner) return;
+  setBusy(true);
+  begin(i18n("status.loading_run"));
+  await breathe();
+  try {
+    const v = JSON.parse(await call("view", { index, chromatograms: tickedChroms(index) }));
+    if (cancelAsked) { status(i18n("status.cancelled")); return; }
+    if (v.error) { status(i18n("status.run_error", { error: errorOf(v) }), true); return; }
+    shown = index;
+    current = v;
+    for (const tr of $("runs").tBodies[0].rows) {
+      const on = Number(tr.dataset.index) === index;
+      tr.classList.toggle("shown", on);
+      if (on) tr.setAttribute("aria-current", "true"); else tr.removeAttribute("aria-current");
+    }
+    $("runname").textContent = v.name;
+    overlayOn = overlayWanted();  // the plot as the ticks stand (drawn by showChrom)
+    tablesOf();
+    const pick = $("chrom");
+    pick.innerHTML = "";
+    // the ticked chromatograms (W17), each with what it is when not the run's own
+    v.chromatograms.forEach((c, i) => pick.add(new Option(c.kind && c.kind !== "original" ? c.name + " (" + kindText(c) + ")" : c.name, i)));
+    $("chrompick").hidden = v.chromatograms.length < 2;
+    setTable($("variables"), v.variables);
+    for (const t of DETAILS) setTable($(t), v.details[t]);
+    setTable($("warnings"), v.warnings);
+    label(document.querySelector('summary[data-table="warnings"]'), "warnings", " (" + v.warnings.rows.length + ")");
+    moreCount();
+    $("dlnotes").innerHTML = "";
+    $("view").hidden = false;
+    showChrom(0);
+    status(i18n("status.showing", { name: v.name }));
+    winChanged();
+    // bring the run into view: the list above can be long
+    if (!stay) scrollToRun();
+  } catch (e) {
+    if (!(e instanceof Stopped)) status(i18n("status.run_show_error", { error: errText(e) }), true);
+  } finally {
+    if (!inner) setBusy(false);
+  }
+}
+
+const scrollToRun = () => $("runname").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+
+function showChrom(i) {
+  const c = current.chromatograms[i];
+  const sum = $("summary");
+  sum.innerHTML = "";
+  for (const [label, value] of c.summary) {
+    const tr = sum.insertRow();
+    const th = document.createElement("th");
+    th.textContent = label;
+    th.scope = "row";
+    tr.append(th);
+    tr.insertCell().textContent = fmt(value);
+  }
+  for (const t of ["phases", "injections", "fractions", "pools", "peaks", "peak_summary", "hint_blocks", "hint_injections"]) setTable($(t), c[t]);
+  $("poolsbox").hidden = !(c.pools && c.pools.rows.length);
+  drawPlot(c);
+}
+
+// a Plotly (d3) number format: `d` decimals when UNICORN specifies them, else 4 significant digits
+function numberFormat(d) {
+  return Number.isInteger(d) ? "." + d + "f" : ".4~g";
+}
+// the decimals cell `row` of column `i` is shown with: per column, or per row when the rows'
+// units differ (pycorn/display_precision.py); null: no specification
+function places(t, i, row) {
+  const d = t.decimals ? t.decimals[i] : null;
+  return Array.isArray(d) ? d[row] : d;
+}
+// a value as text; numbers with `d` decimals when UNICORN specifies them (display only)
+function fmt(v, d) {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number" && Number.isInteger(d)) {
+    const s = v.toFixed(d);
+    return /^-0(\.0*)?$/.test(s) ? s.slice(1) : s;
+  }
+  if (typeof v === "number" && !Number.isInteger(v)) return String(Number(v.toPrecision(6)));
+  if (typeof v === "string" && /^\d{4}-\d\d-\d\dT/.test(v)) return v.replace("T", " ");
+  return String(v);
+}
+
+// a section title as the downloads name the table, with its origin (pycorn/export_tables.py)
+function label(summary, key, extra) {
+  const t = names && names.tables[key];
+  if (!t) return;
+  summary.textContent = t.title + extra;
+  const tag = document.createElement("span");
+  tag.className = "tag " + ({ "UNICORN": "u", "User input": "y", "PyCORN calculated": "c", "UNICORN + PyCORN": "m" }[t.origin] || "p");
+  tag.textContent = t.origin;
+  const hint = names.origins[t.origin] + ". " + t.note;
+  tag.title = hint;
+  summary.append(tag);
+  // the table's origin as text, in its open section (a closed one just opens)
+  const details = summary.parentElement;
+  tag.classList.add("hint");
+  tag.tabIndex = 0;
+  const open = (e) => {
+    if (!details.open) return;
+    e.preventDefault();
+    e.stopPropagation();
+    showHint(details, details.querySelector(":scope > .scroll, :scope > p, :scope > .cols") || summary.nextSibling, t.title, hint);
+  };
+  tag.addEventListener("click", open);
+  tag.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") open(e); });
+}
+
+// column i's origin underline and hover text (meaning, how to check it)
+function originClass(t, i) {
+  return { "PyCORN calculated": "pc", "PyCORN analysis": "pa", "User input": "py" }[(t.origins || [])[i]] || "";
+}
+function columnHint(t, i) {
+  const origin = (t.origins || [])[i];
+  if (!origin) return "";
+  const check = (t.checks || [])[i];
+  return origin + (t.meanings[i] ? ": " + t.meanings[i] : "") + (check ? "\n" + i18n("table.check", { check }) : "");
+}
+
+// the columns a wide table shows: the user's pick (kept in this browser), else its default set
+// (`shown` in pycorn/export_tables.py), else all. Downloads always hold every column.
+const PICKS = "pycorn.columns.";
+function savedPick(key) {
+  try { return JSON.parse(localStorage.getItem(PICKS + key) || "null"); } catch (e) { return null; }
+}
+function savePick(key, columns) {
+  try {
+    if (columns) localStorage.setItem(PICKS + key, JSON.stringify(columns));
+    else localStorage.removeItem(PICKS + key);
+  } catch (e) { /* storage blocked: the pick lasts until the table is drawn again */ }
+}
+function defaultColumns(key) { return (names && names.tables[key] && names.tables[key].shown) || []; }
+// in the pick's order (the default set is listed in the order it reads best)
+function visibleColumns(key, columns) {
+  for (const want of [savedPick(key), defaultColumns(key)]) {
+    const found = (want || []).map((c) => columns.indexOf(c)).filter((i) => i >= 0);
+    if (found.length) return found;
+  }
+  return columns.map((c, i) => i);
+}
+
+// the "Columns (n of m)" button above a table that has a default set; it opens a menu of the
+// columns (popover). A redraw of the same table keeps the menu open, its filter and the focus.
+let menuCount = 0;
+function columnPicker(el, t, show) {
+  const p = tableBar(el);
+  if (!p) return;
+  if (!p.querySelector(".colbtn")) {
+    if (!defaultColumns(el.id).length) return;
+    const open = document.createElement("button");
+    open.className = "colbtn";
+    const menu = document.createElement("div");
+    menu.className = "menu";
+    menu.id = "colmenu" + ++menuCount;
+    menu.popover = "auto";
+    open.setAttribute("popovertarget", menu.id);
+    // a popover sits in the top layer: put it under its button (page coordinates, so it scrolls along)
+    menu.addEventListener("toggle", (e) => {
+      if (e.newState !== "open") return;
+      const r = open.getBoundingClientRect();
+      menu.style.top = r.bottom + window.scrollY + "px";
+      menu.style.left = Math.max(4, Math.min(r.left, document.documentElement.clientWidth - menu.offsetWidth - 4)) + window.scrollX + "px";
+      (menu.querySelector("input[type=search]") || menu.querySelector("input")).focus();
+    });
+    p.prepend(open, menu);
+  }
+  const open = p.querySelector(".colbtn"), menu = p.querySelector(".menu");
+  if (p.hidden) { if (menu.matches(":popover-open")) menu.hidePopover(); return; }
+  open.textContent = i18n("columns.summary", { shown: show.length, total: t.columns.length });
+  if (menu.table === t && menu.lang === lang) {
+    menu.querySelectorAll(".list input").forEach((tick, i) => { tick.checked = show.includes(i); });
+    return;
+  }
+  menu.table = t;
+  menu.lang = lang;
+  menu.innerHTML = "";
+  const list = document.createElement("div");
+  list.className = "list";
+  t.columns.forEach((c, i) => {
+    const lab = document.createElement("label");
+    lab.title = columnHint(t, i);
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.checked = show.includes(i);
+    tick.addEventListener("change", () => {
+      // keep the order shown; a ticked column goes after the shown column before it in the table
+      const picked = visibleColumns(el.id, t.columns).map((j) => t.columns[j]).filter((x) => x !== c);
+      if (tick.checked) {
+        const before = t.columns.slice(0, i).filter((x) => picked.includes(x)).pop();
+        picked.splice(before === undefined ? 0 : picked.indexOf(before) + 1, 0, c);
+      }
+      if (!picked.length) { tick.checked = true; return; }
+      savePick(el.id, picked);
+      fillTable(el, t);
+    });
+    const name = document.createElement("span");
+    name.textContent = c;
+    name.className = originClass(t, i);
+    lab.append(tick, name);
+    list.append(lab);
+  });
+  // a filter box for a long list
+  if (t.columns.length > 10) {
+    const filter = document.createElement("input");
+    filter.type = "search";
+    filter.placeholder = i18n("columns.filter");
+    filter.setAttribute("aria-label", i18n("columns.filter"));
+    filter.addEventListener("input", () => {
+      const q = filter.value.trim().toLowerCase();
+      list.querySelectorAll("label").forEach((lab, i) => { lab.hidden = !!q && !t.columns[i].toLowerCase().includes(q); });
+    });
+    menu.append(filter);
+  }
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  for (const [text, columns] of [[i18n("columns.defaults"), null], [i18n("columns.all"), t.columns]]) {
+    const b = document.createElement("button");
+    b.className = "small";
+    b.textContent = text;
+    b.addEventListener("click", () => { savePick(el.id, columns); fillTable(el, t); });
+    foot.append(b);
+  }
+  menu.append(list, foot);
+}
+
+// Tables are drawn when their section is open (a run has thirteen, some with thousands of rows):
+// setTable keeps the data, fillTable draws it. A long table shows its first ROW_CAP rows until
+// "Show all". Sort and filter (W13) run on every row, then the first ROW_CAP of the result are
+// drawn; Copy and CSV take every row of that result (what you see), with full values.
+const ROW_CAP = 500;
+const tableData = {}, drawn = new Set(), expanded = new Set();
+function setTable(el, t) {
+  tableData[el.id] = t;
+  drawn.delete(el.id);
+  expanded.delete(el.id);
+  const d = el.closest("details");
+  if (!d || d.open) { fillTable(el, t); return; }
+  el.innerHTML = "";
+  d.querySelectorAll(":scope > .colhint").forEach((h) => h.remove());
+  const bar = el.parentElement.previousElementSibling;
+  if (bar && bar.classList.contains("cols")) {
+    bar.hidden = true;
+    const menu = bar.querySelector(".menu");
+    if (menu && menu.matches(":popover-open")) menu.hidePopover();
+  }
+}
+function drawWhenOpened(d) {
+  const el = d.querySelector("table");
+  if (d.open && el && el.id in tableData && !drawn.has(el.id)) fillTable(el, tableData[el.id]);
+}
+
+// ---- table tools (W13) ----
+// Per table: the sort (column and direction 1 / -1 / 0 = off), the filter text and the selection,
+// kept while the same data is shown (another run's table starts clean). `view` is every row left
+// after the filter, in sort order (original row numbers); `rows` the part drawn (ROW_CAP);
+// `show` the columns drawn (built order), `frozen` how many of them from the left are frozen.
+const tableState = {};
+function stateOf(el, t) {
+  let s = tableState[el.id];
+  if (!s || s.t !== t) s = tableState[el.id] = { t, el, col: -1, dir: 0, filter: "", sel: null, view: [], rows: [], show: [] };
+  return s;
+}
+const isGrid = (el) => el.parentElement.classList.contains("scroll");
+
+// Frozen columns: the columns keep their order; those from the left up to and including the
+// table's `freeze_through` column (pycorn/export_tables.py) stay in view while the table scrolls.
+// Hidden columns are skipped (the shown ones at or before its place are frozen); no such column
+// named: the first shown one only.
+function frozenCount(el, t, show) {
+  const info = names && names.tables[el.id];
+  const at = info && info.freeze_through ? t.columns.indexOf(info.freeze_through) : -1;
+  return at < 0 ? 1 : Math.max(1, show.filter((i) => i <= at).length);
+}
+// Sticky offsets (cumulative `left`), measured after layout: once drawn, and again when the table
+// or its box changes size (a column toggle, Show all, a resize). A block wider than FREEZE_MAX of
+// the box freezes nothing, so a narrow window stays usable.
+const FREEZE_MAX = 0.4;
+function layoutFrozen(s) {
+  const el = s.el, box = el.parentElement, head = el.tHead && el.tHead.rows[0];
+  if (!head || !el.isConnected || !box.clientWidth) return;
+  const n = Math.min(s.frozen, head.cells.length);
+  const widths = [...head.cells].slice(0, n).map((c) => c.getBoundingClientRect().width);
+  const fits = widths.reduce((a, b) => a + b, 0) <= FREEZE_MAX * box.clientWidth;
+  s.frozenOn = fits;
+  for (const row of el.rows) {
+    if (row.cells.length !== head.cells.length) continue;  // "none" and "Show all" rows
+    let left = 0;
+    for (let c = 0; c < n; c++) {
+      const cell = row.cells[c];
+      cell.classList.toggle("key", fits);
+      cell.classList.toggle("keyend", fits && c === n - 1);
+      cell.style.left = fits ? left + "px" : "";
+      left += widths[c];
+    }
+  }
+}
+const frozenWatch = new ResizeObserver((list) => {
+  for (const e of list) { const s = tableState[e.target.dataset.watch]; if (s) layoutFrozen(s); }
+});
+
+// a value as Copy and CSV write it: the full value, never rounded to the shown decimals
+const rawText = (v) => (typeof v === "number" ? String(v) : fmt(v));
+
+// every row that matches the filter (in the shown columns, as shown or in full), then sorted: a
+// column of numbers by value, anything else as text with numbers inside it in order; empty last
+const collator = new Intl.Collator(undefined, { numeric: true });
+function viewRows(t, s, show) {
+  let rows = t.rows.map((r, n) => n);
+  const q = s.filter.trim().toLowerCase();
+  if (q) {
+    rows = rows.filter((n) => show.some((i) => {
+      const v = t.rows[n][i];
+      return fmt(v, places(t, i, n)).toLowerCase().includes(q) || rawText(v).toLowerCase().includes(q);
+    }));
+  }
+  if (s.dir && s.col >= 0) {
+    const i = s.col, blank = (v) => v === null || v === undefined || v === "";
+    const numeric = t.rows.every((r) => blank(r[i]) || typeof r[i] === "number");
+    rows.sort((p, r) => {
+      const a = t.rows[p][i], b = t.rows[r][i];
+      if (blank(a) || blank(b)) return blank(a) && blank(b) ? p - r : blank(a) ? 1 : -1;
+      return (numeric ? a - b : collator.compare(String(a), String(b))) * s.dir || p - r;
+    });
+  }
+  return rows;
+}
+
+const tableText = (t, rows, cols) => [cols.map((i) => t.columns[i]), ...rows.map((n) => cols.map((i) => rawText(t.rows[n][i])))];
+// the selected cells (a rectangle of what is drawn; a row selection takes every shown column)
+function selectedRange(s) {
+  const { r0, c0, r1, c1, rows } = s.sel;
+  return { ra: Math.min(r0, r1), rb: Math.max(r0, r1), ca: rows ? 0 : Math.min(c0, c1), cb: rows ? s.show.length - 1 : Math.max(c0, c1) };
+}
+function selectedText(s) {
+  const { ra, rb, ca, cb } = selectedRange(s);
+  const out = [];
+  for (let r = ra; r <= rb; r++) out.push(s.show.slice(ca, cb + 1).map((i) => rawText(s.t.rows[s.rows[r]][i])));
+  return out;
+}
+const tabbed = (rows) => rows.map((r) => r.map((c) => c.replace(/[\t\r\n]+/g, " ")).join("\t")).join("\n");
+
+async function copyTable(s) {
+  const text = tabbed(s.sel ? selectedText(s) : tableText(s.t, s.view, s.show));
+  try { await navigator.clipboard.writeText(text); status(s.sel ? i18n("tbl.copied_selection") : i18n("table.copied")); }
+  catch (e) { status(i18n("table.copy_failed", { error: e.message }), true); }
+}
+function csvTable(s) {
+  const quote = (c) => (/[",\r\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c);
+  const text = tableText(s.t, s.view, s.show).map((r) => r.map(quote).join(",")).join("\r\n") + "\r\n";
+  saveBlob(new Blob([String.fromCharCode(0xFEFF) + text], { type: "text/csv" }), fileSafe(current.name + "_" + s.el.id) + ".csv");
+}
+
+function paintSelection(s) {
+  const body = s.el.tBodies[0];
+  if (!body) return;
+  const r = s.sel ? selectedRange(s) : null;
+  for (const td of body.querySelectorAll("td")) {
+    if (td._r === undefined) continue;
+    td.classList.toggle("sel", !!r && td._r >= r.ra && td._r <= r.rb && td._c >= r.ca && td._c <= r.cb);
+  }
+}
+// click, shift-click and drag select cells; any frozen cell selects the whole row
+let dragging = null;
+function selectionEvents(body, s) {
+  const cell = (e) => { const td = e.target.closest("td"); return td && td._r !== undefined ? td : null; };
+  body.addEventListener("mousedown", (e) => {
+    const td = cell(e);
+    if (!td || e.button !== 0) return;
+    e.preventDefault();
+    if (e.shiftKey && s.sel) {
+      s.sel.r1 = td._r;
+      if (!s.sel.rows) s.sel.c1 = td._c;
+    } else {
+      s.sel = { r0: td._r, c0: td._c, r1: td._r, c1: td._c, rows: td.classList.contains("key") };
+    }
+    dragging = s;
+    paintSelection(s);
+  });
+  body.addEventListener("mouseover", (e) => {
+    const td = cell(e);
+    if (dragging !== s || !td || !s.sel) return;
+    s.sel.r1 = td._r;
+    if (!s.sel.rows) s.sel.c1 = td._c;
+    paintSelection(s);
+  });
+}
+document.addEventListener("mouseup", () => { dragging = null; });
+// a click outside the table (and its bar) drops its selection; Ctrl+C copies it
+document.addEventListener("mousedown", (e) => {
+  for (const s of Object.values(tableState)) {
+    if (!s.sel) continue;
+    const box = s.el.parentElement;
+    if (box.contains(e.target) || (box.previousElementSibling && box.previousElementSibling.contains(e.target))) continue;
+    s.sel = null;
+    paintSelection(s);
+  }
+});
+document.addEventListener("copy", (e) => {
+  const on = document.activeElement && document.activeElement.matches("input, textarea, select");
+  const s = Object.values(tableState).find((x) => x.sel && x.el.isConnected);
+  if (on || String(getSelection()) || !s) return;
+  e.clipboardData.setData("text/plain", tabbed(selectedText(s)));
+  e.preventDefault();
+});
+
+// the bar above a table: Columns (columnPicker), the filter, and Copy / CSV icons at the right
+function tableBar(el) {
+  const box = el.parentElement;
+  if (!box.classList.contains("scroll")) return null;
+  let bar = box.previousElementSibling;
+  if (!bar || !bar.classList.contains("cols")) {
+    bar = document.createElement("div");
+    bar.className = "cols";
+    bar.hidden = true;
+    box.before(bar);
+  }
+  return bar;
+}
+const ICONS = {
+  copy: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  csv: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+function barTools(el, bar, s) {
+  if (!bar.querySelector(".tfilter")) {
+    const filter = document.createElement("input");
+    filter.type = "search";
+    filter.className = "tfilter";
+    filter.addEventListener("input", () => {
+      const st = tableState[el.id];
+      st.filter = filter.value;
+      st.sel = null;
+      fillTable(el, st.t);
+    });
+    const count = document.createElement("span");
+    count.className = "count";
+    const acts = document.createElement("span");
+    acts.className = "acts";
+    for (const [id, run] of [["copy", copyTable], ["csv", csvTable]]) {
+      const b = document.createElement("button");
+      b.className = "icon " + id;
+      b.innerHTML = ICONS[id];
+      b.addEventListener("click", () => run(tableState[el.id]));
+      acts.append(b);
+    }
+    bar.append(filter, count, acts);
+  }
+  const filter = bar.querySelector(".tfilter");
+  if (filter.value !== s.filter) filter.value = s.filter;
+  filter.placeholder = i18n("tbl.filter");
+  filter.setAttribute("aria-label", i18n("tbl.filter"));
+  bar.querySelector(".count").textContent = s.filter.trim() ? i18n("tbl.count", { shown: s.view.length, total: s.t.rows.length }) : "";
+  for (const [id, text] of [["copy", i18n("table.copy")], ["csv", i18n("table.csv")]]) {
+    const b = bar.querySelector("button." + id);
+    b.title = text;
+    b.setAttribute("aria-label", text);
+  }
+}
+
+// A column's or table's hint as text under the title: tap, click or Enter on the name (the hover
+// text does not exist on a touch screen). The same name again hides it; redrawing a table does too.
+function showHint(host, anchor, who, text) {
+  let h = host.querySelector(":scope > .colhint");
+  if (h && h.dataset.who === who && !h.hidden) { h.remove(); return; }
+  if (!h) {
+    h = document.createElement("div");
+    h.className = "colhint";
+    h.setAttribute("role", "status");
+  }
+  h.dataset.who = who;
+  h.textContent = who + ": " + text;
+  anchor.before(h);
+}
+function hintable(node, host, anchor, who, text) {
+  node.classList.add("hint");
+  node.tabIndex = 0;
+  const open = (e) => { e.stopPropagation(); showHint(host, anchor(), who, text); };
+  node.addEventListener("click", open);
+  node.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(e); } });
+}
+
+function fillTable(el, t) {
+  drawn.add(el.id);
+  el.parentElement.parentElement.querySelectorAll(":scope > .colhint").forEach((h) => h.remove());
+  el.innerHTML = "";
+  const grid = isGrid(el), bar = grid ? tableBar(el) : null;
+  el.classList.toggle("grid", grid);
+  if (!t || !t.columns.length) {
+    if (bar) {
+      bar.hidden = true;
+      const menu = bar.querySelector(".menu");
+      if (menu && menu.matches(":popover-open")) menu.hidePopover();
+    }
+    el.insertRow().insertCell().textContent = i18n("table.none");
+    return;
+  }
+  const s = stateOf(el, t);
+  const show = visibleColumns(el.id, t.columns);
+  s.show = show;
+  s.frozen = grid ? frozenCount(el, t, show) : 0;
+  s.view = viewRows(t, s, show);
+  s.rows = expanded.has(el.id) ? s.view : s.view.slice(0, ROW_CAP);
+  if (s.sel && (Math.max(s.sel.r0, s.sel.r1) >= s.rows.length || Math.max(s.sel.c0, s.sel.c1) >= show.length)) s.sel = null;
+  if (bar) {
+    bar.hidden = false;
+    columnPicker(el, t, show);
+    barTools(el, bar, s);
+  }
+  const head = el.createTHead().insertRow();
+  show.forEach((i, pos) => {
+    const th = document.createElement("th");
+    th.className = originClass(t, i);
+    const name = document.createElement("span");
+    name.className = "nm";
+    name.textContent = t.columns[i];
+    th.append(name);
+    const hint = columnHint(t, i);
+    th.title = hint;
+    if (grid) {
+      // a header click sorts: ascending, descending, off; the hint is behind the small "?"
+      th.tabIndex = 0;
+      th.setAttribute("aria-sort", s.col === i && s.dir ? (s.dir > 0 ? "ascending" : "descending") : "none");
+      const sortBy = () => {
+        const st = tableState[el.id];
+        if (st.col === i) st.dir = st.dir === 1 ? -1 : st.dir === -1 ? 0 : 1;
+        else { st.col = i; st.dir = 1; }
+        st.sel = null;
+        fillTable(el, st.t);
+      };
+      th.addEventListener("click", sortBy);
+      th.addEventListener("keydown", (e) => {
+        if (e.target !== th || (e.key !== "Enter" && e.key !== " ")) return;
+        e.preventDefault();
+        sortBy();
+        el.tHead.rows[0].cells[pos].focus();
+      });
+      if (hint) {
+        const q = document.createElement("span");
+        q.className = "q";
+        q.textContent = "?";
+        hintable(q, el.parentElement.parentElement, () => el.parentElement, t.columns[i], hint);
+        th.append(q);
+      }
+    }
+    head.append(th);
+  });
+  const body = el.createTBody();
+  s.rows.forEach((n, r) => {
+    const row = t.rows[n], tr = body.insertRow();
+    show.forEach((i, c) => {
+      const td = tr.insertCell();
+      td.textContent = fmt(row[i], places(t, i, n));
+      if (grid) {
+        td._r = r;
+        td._c = c;
+      }
+      if (el.id === "method_steps" && t.columns[i] === "line") indentLine(td);
+      if (el.id === "method_steps" && (t.columns[i] === "phase" || t.columns[i] === "block")) td.classList.add("nowrap");
+    });
+  });
+  if (!t.rows.length) body.insertRow().insertCell().textContent = i18n("table.none");
+  else if (!s.view.length) body.insertRow().insertCell().textContent = i18n("tbl.no_match");
+  if (s.rows.length < s.view.length) {
+    const cell = body.insertRow().insertCell();
+    cell.colSpan = show.length;
+    const more = document.createElement("button");
+    more.textContent = i18n("table.more", { count: s.view.length });
+    more.addEventListener("click", () => { expanded.add(el.id); fillTable(el, t); });
+    cell.append(more);
+  }
+  if (grid) {
+    selectionEvents(body, s);
+    paintSelection(s);
+    const box = el.parentElement;
+    if (!el.dataset.watch) { el.dataset.watch = box.dataset.watch = el.id; frozenWatch.observe(el); frozenWatch.observe(box); }
+    layoutFrozen(s);
+  }
+}
+
+// a method text line ('    0.00 Base: ...', 4 spaces a level): the spaces become padding, so the
+// indent shows in any font and a wrapped line keeps it; Copy and CSV keep the spaces
+function indentLine(td) {
+  const text = td.textContent;
+  const lead = text.length - text.trimStart().length;
+  if (!lead) return;
+  td.textContent = text.trimStart();
+  td.classList.add("indent");
+  td.style.setProperty("--depth", lead / 4);
+}
+
+// a file name from text: letters, digits, dot, dash, underscore
+function fileSafe(text) { return String(text).replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "pycorn"; }
+
+
+// the x axis the user picked (kept in this browser) when the run has it, else the run's default
+const AXIS_PICK = "pycorn.xaxis";
+let axisChoice = null;  // this page's pick, for when storage is blocked
+function plotAxis(p) {
+  let key = axisChoice;
+  try { key = localStorage.getItem(AXIS_PICK) || key; } catch (e) { /* storage blocked: this page's pick */ }
+  return p.axes.some((a) => a.key === key) ? key : p.axis;
+}
+// an x axis's name in the page's language (Python's English name for an axis this page doesn't know)
+const AXIS_NAMES = { clock: () => i18n("axis.clock"), time: () => i18n("axis.time"),
+                     volume: () => i18n("axis.volume"), cv: () => i18n("axis.cv") };
+const axisName = (a) => (AXIS_NAMES[a.key] ? AXIS_NAMES[a.key]() : a.label);
+
+// [x, value] pairs of one series on an axis, without the points that have no x there
+function pairs(xs, values) {
+  const keep = xs.map((x, i) => i).filter((i) => xs[i] !== null);
+  return [keep.map((i) => xs[i]), keep.map((i) => values[i])];
+}
+
+// one color per curve by its place in the run's list, so it stays the same when others are switched off
+const CURVE_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#ff7f0e", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+const curveColor = (i) => CURVE_COLORS[i % CURVE_COLORS.length];
+
+// The plot's colors come from the page's CSS variables (light or dark with the system); an image
+// of the plot is always drawn with the light set, as it goes into documents.
+let lightPlot = false;
+const LIGHT = { fg: "#222", card: "#fff", grid: "#e0e0e0", spike: "#555", inj: "#c0392b", pause: "#8a1f11", fill: "rgba(138, 31, 17, 0.08)" };
+function theme() {
+  if (lightPlot) return LIGHT;
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  return { fg: css("--fg"), card: css("--card"), grid: css("--grid"), spike: css("--spike"), inj: css("--inj"),
+           pause: css("--pause"), fill: css("--pause-fill") };
+}
+
+// The y axis of each curve. Left: the Excel chart's left curves (UV). Right: one axis per unit for
+// the first three units switched on, side by side; a fourth unit or more shares one axis on which
+// each curve is drawn in % of its own range (the cursor label keeps the values). One shared right
+// axis drew a pressure of 0.007 MPa as a flat line next to a flow of 700 CV/h. (y3: injection
+// marks, y4: tracks.)
+// On a small screen (a phone) two y axes at most: with a left curve, one unit on the right gets its
+// own axis and two or more share the % axis; without, two units get their own, three or more
+// the first one's own and the % axis.
+const RIGHT_AXES = ["y2", "y5", "y6"], SCALED_AXIS = "y7";
+const SMALL = matchMedia("(max-width: 600px)");
+let rightOrder = [], rightPlot = null;  // the right side's units in the order they were switched on
+const unitKey = (k) => k.unit || k.name;  // a curve without a unit (pH) is its own group
+function curveAxes(p) {
+  if (rightPlot !== p) { rightOrder = []; rightPlot = p; }
+  const on = p.curves.filter((k) => k.right && curveOn(k)).map(unitKey);
+  rightOrder = rightOrder.filter((u) => on.includes(u));
+  for (const u of on) if (!rightOrder.includes(u)) rightOrder.push(u);
+  let own = RIGHT_AXES.length;  // the right units with their own axis, the others on the % axis
+  if (SMALL.matches) {
+    const room = p.curves.some((k) => !k.right && curveOn(k)) ? 1 : 2;
+    own = rightOrder.length <= room ? room : room - 1;
+  }
+  return p.curves.map((k) => {
+    if (!k.right) return "y";
+    const at = rightOrder.indexOf(unitKey(k));
+    return at < 0 ? "y2" : at < own ? RIGHT_AXES[at] : SCALED_AXIS;
+  });
+}
+
+// Stacked layout (W10): one panel per unit group (the curves switched on, a unit's curves
+// together), top down in the order the curves are listed, on the shared x axis; no right axes
+// and no "% of range" axis. The choice is a setting kept in this browser.
+const LAYOUT_PICK = "pycorn.plotlayout";
+let layoutChoice = "overlay";  // this page's pick, for when storage is blocked
+function stackedOn() {
+  let v = layoutChoice;
+  try { v = localStorage.getItem(LAYOUT_PICK) || v; } catch (e) { /* storage blocked: this page's pick */ }
+  return v === "stacked";
+}
+// the panels' y axes: the first is "y", the others "y8", "y9", ... (y2, y5-y7 are the overlay's, y3 marks, y4 tracks)
+const stackedId = (n) => (n === 0 ? "y" : "y" + (7 + n));
+function stackedUnits(p) {
+  const units = [...new Set(p.curves.filter(curveOn).map(unitKey))];
+  return units.length ? units : [null];  // nothing switched on: one empty panel
+}
+function stackedAxes(p) {
+  const units = stackedUnits(p);
+  return p.curves.map((k) => stackedId(Math.max(0, units.indexOf(unitKey(k)))));
+}
+
+// an axis's title and color from the curves shown on it: one curve gives its color
+function axisStyle(p, axes, axis) {
+  const on = p.curves.filter((k, i) => axes[i] === axis && curveOn(k));
+  const color = on.length === 1 ? curveColor(p.curves.indexOf(on[0])) : theme().fg;
+  const text = axis === SCALED_AXIS ? i18n("plot.scaled") : [...new Set(on.map(unitKey))].join(", ");
+  return { title: { text, font: { color } }, tickfont: { color } };
+}
+
+// a curve's values in % of its own range, for the shared axis
+function scaled(values) {
+  const v = values.filter((x) => x !== null && isFinite(x));
+  const lo = Math.min(...v), span = Math.max(...v) - lo || 1;
+  return values.map((x) => (x === null ? null : (100 * (x - lo)) / span));
+}
+
+// Plotly puts the cursor label at the mean height of every point it lists, and the tracks' points
+// (above the curves, on their own axis) pull it up or off the plot: put it at the mouse's height,
+// inside the curves' area (a label taller than that: inside the whole plot)
+function placeHoverLabel(gd, e) {
+  const g = gd.querySelector(".hoverlayer g.legend");
+  const at = g && /translate\(\s*([-\d.e]+)[ ,]+([-\d.e]+)\s*\)/.exec(g.getAttribute("transform") || "");
+  if (!at || !e || e.clientY === undefined) return;
+  const fl = gd._fullLayout, h = g.getBBox().height;
+  const fits = h <= fl.yaxis._length;
+  const top = fits ? fl.yaxis._offset : 0, bottom = fits ? fl.yaxis._offset + fl.yaxis._length : fl.height;
+  const mouse = e.clientY - gd.getBoundingClientRect().top;
+  const y = Math.max(top, Math.min(mouse - h / 2, bottom - h));
+  g.setAttribute("transform", "translate(" + at[1] + "," + Math.max(0, y) + ")");
+}
+
+// "Curves (n of m)": which curves the plot draws (also what a click on the legend does). The
+// Excel and CSV downloads take the curves switched on here (tickedCurves).
+function curveSummary(p) {
+  return i18n("curves.summary", { shown: p.curves.filter(curveOn).length, total: p.curves.length });
+}
+function curvePicker(p) {
+  const d = $("curvepick");
+  d.hidden = p.curves.length < 2;
+  d.innerHTML = "";
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = curveSummary(p);
+  d.setAttribute("aria-label", count.textContent);
+  d.append(count);
+  p.curves.forEach((k, i) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.style.setProperty("--c", curveColor(i));
+    chip.setAttribute("aria-pressed", String(curveOn(k)));
+    chip.textContent = k.unit ? k.name + " (" + k.unit + ")" : k.name;
+    chip.addEventListener("click", () => setCurves(p, [k.name], !curveOn(k)));
+    d.append(chip);
+  });
+  for (const [text, all] of [[i18n("columns.all"), true], [i18n("curves.none"), false]]) {
+    const b = document.createElement("button");
+    b.className = "small";
+    b.textContent = text;
+    b.addEventListener("click", () => setCurves(p, p.curves.map((k) => k.name), all));
+    d.append(b);
+  }
+}
+
+// switch curves on or off: the axes are laid out again, the x zoom stays, and so does the keyboard
+// focus (the chips are updated, not made again)
+function setCurves(p, curveNames, on) {
+  for (const n of curveNames) curveChoice.set(n, on);
+  const c = current.chromatograms[Number($("chrom").value) || 0];
+  const keep = plotRanges();
+  // stacked: the panels change with the curves, so only the x zoom stays
+  drawPlot(c, stackedOn() ? { xaxis: keep.xaxis } : { xaxis: keep.xaxis, yaxis: keep.yaxis }, true);
+  const d = $("curvepick");
+  d.querySelectorAll("button.chip").forEach((chip, i) => { chip.setAttribute("aria-pressed", String(curveOn(p.curves[i]))); });
+  d.querySelector(".count").textContent = curveSummary(p);
+  d.setAttribute("aria-label", curveSummary(p));
+}
+
+// the zoom the user set, for a redraw ({xaxis, yaxis, yaxis2, ...}; an axis still on autorange stays on it)
+function plotRanges() {
+  const gd = $("plot"), keep = {};
+  // the overlay's right axes and the stacked panels' axes (stackedId) too; y3 (marks) and y4 (tracks) never zoom
+  const axes = Object.keys(gd.layout || {}).filter((k) => /^[xy]axis\d*$/.test(k) && k !== "yaxis3" && k !== "yaxis4");
+  for (const axis of axes) {
+    const a = gd.layout && gd.layout[axis];
+    // zoomed: autorange off, or a range that a redraw gave without turning autorange off
+    if (a && a.autorange !== true && a.range) keep[axis] = [...a.range];
+  }
+  return keep;
+}
+
+// the plot as an image: PNG at twice the size, or SVG for a document
+async function saveImage(format) {
+  if (!current) return;
+  const c = current.chromatograms[Number($("chrom").value) || 0];
+  if (!c || !c.plot || !c.plot.curves.length) return;
+  const plot = $("plot"), keep = plotRanges();
+  // an image goes into documents: light colors, also from a dark page
+  const dark = theme().card !== LIGHT.card;
+  try {
+    if (dark) { lightPlot = true; await drawPlot(c, keep); }
+    await Plotly.downloadImage("plot", {
+      format, filename: fileSafe(overlayOn ? "overlay" : current.name + "_" + c.name), width: Math.max(plot.clientWidth, 900),
+      height: plot.clientHeight, scale: format === "png" ? 2 : 1,
+    });
+    status(i18n("status.image_saved"));
+  } catch (e) {
+    status(i18n("status.not_written", { error: e.message }), true);
+  } finally {
+    if (dark) { lightPlot = false; await drawPlot(c, keep); }
+  }
+}
+
+// `keep`: axis ranges to draw with ({xaxis, yaxis, ...}), for a redraw that must not undo a zoom;
+// `chipsKept`: the curve chips stay as they are (setCurves updates them)
+function drawPlot(c, keep, chipsKept) {
+  if (overlayOn) return drawOverlay(keep);
+  keep = keep || {};
+  const th = theme();
+  const p = c.plot;
+  $("axispick").hidden = true;
+  $("plotbar").hidden = true;
+  if (!chipsKept) $("curvepick").hidden = true;
+  $("plot").removeAttribute("role");
+  $("plot").removeAttribute("aria-label");
+  if (!p || !p.curves.length) { Plotly.purge("plot"); $("plot").textContent = i18n("plot.empty"); return Promise.resolve(); }
+  $("plot").textContent = "";
+  $("plot").setAttribute("role", "img");
+  $("plot").setAttribute("aria-label", i18n("plot.label", { name: current.name + ": " + c.name }));
+  $("plotbar").hidden = false;
+  sourceButtons();
+  const key = plotAxis(p), ax = p.axes.find((a) => a.key === key), clock = key === "clock";
+  const xname = axisName(ax), small = SMALL.matches;
+  // a small screen: the margins as wide as the axes need. Elsewhere Plotly's own (an explicit
+  // automargin: false also keeps the shifted right axes from widening the margin: they overlap)
+  const fit = small ? { automargin: true } : {};
+  const pick = $("xaxis");
+  pick.innerHTML = "";
+  for (const a of p.axes) pick.add(new Option(axisName(a), a.key));
+  pick.value = key;
+  $("axispick").hidden = p.axes.length < 2;
+  if (!chipsKept) curvePicker(p);
+  const stacked = stackedOn();
+  const panels = stacked ? stackedUnits(p).length : 1;
+  for (const [id, text, on] of [["lay-overlay", i18n("plot.overlay"), !stacked], ["lay-stacked", i18n("plot.stacked"), stacked]]) {
+    $(id).textContent = text;
+    $(id).setAttribute("aria-pressed", String(on));
+  }
+  $("layoutpick").setAttribute("aria-label", i18n("plot.layout"));
+  const axes = stacked ? stackedAxes(p) : curveAxes(p);
+  const traces = p.curves.map((k, i) => {
+    const pct = axes[i] === SCALED_AXIS;
+    return {
+      x: k.x[key], y: pct ? scaled(k.y) : k.y, customdata: pct ? k.y : undefined,
+      name: k.unit ? k.name + " (" + k.unit + ")" : k.name, type: "scatter", mode: "lines",
+      line: { width: 1.25, color: curveColor(i) }, yaxis: axes[i], visible: curveOn(k),
+      hovertemplate: (pct ? "%{customdata:" : "%{y:") + numberFormat(k.decimals) + "}" + (k.unit ? " " + k.unit : ""),
+    };
+  });
+  // marks (injections): a thin line over the full plot height at each x, like the pause marks,
+  // with the label at the top (the line is a shape, so it is the same on every x axis; the
+  // trace carries the label and the hover text, and has no legend entry that would not hide the line)
+  const style = { injections: [th.inj, 0.97] };
+  const markShapes = [];
+  for (const m of p.marks) {
+    const [color, y] = style[m.kind];
+    const [x, labels] = pairs(m.x[key], m.labels);
+    for (const v of x) {
+      markShapes.push({ type: "line", xref: "x", yref: "paper", x0: v, x1: v, y0: 0, y1: 1,
+                        line: { color, width: 1 }, layer: "below" });
+    }
+    traces.push({
+      x, y: x.map(() => y), text: labels, name: names.tables[m.kind].title, yaxis: "y3", type: "scatter",
+      mode: x.length <= 60 ? "markers+text" : "markers", textposition: "middle right", textfont: { size: 9, color },
+      marker: { symbol: "line-ns-open", color, size: 10, line: { width: 1, color } }, showlegend: false,
+      hovertemplate: "%{text}",
+    });
+  }
+  const tracks = trackTraces(p, key, th);
+  traces.push(...tracks.traces);
+  // 480 px, less on a short window (never under 360)
+  const base = Math.max(360, Math.min(480, Math.round(window.innerHeight * 0.6)));
+  const height = base + TRACK_PX * tracks.lanes.length + STACK_PX * (panels - 1);
+  $("plot").style.height = height + "px";
+  // the tracks' share of the plot area (the base height less the margins, legend and x axis title;
+  // a small screen has no legend and no title)
+  const share = tracks.lanes.length ? (TRACK_PX * tracks.lanes.length) / (height - (small ? 80 : 150)) : 0;
+  const top = share ? 1 - share - 0.03 : 1;
+  const unit = ax.unit ? " (" + ax.unit + ")" : "";
+  // the right axes in use: the first beside the plot, the others shifted out beside it. y2 is
+  // always laid out (curves switched off sit on it), drawn when in use, or with nothing on at all
+  const used = new Set(axes.filter((a, i) => curveOn(p.curves[i])));
+  const left = used.has("y");
+  const drawn = [...RIGHT_AXES, SCALED_AXIS].filter((a) => used.has(a));
+  if (!drawn.length && !left) drawn.push("y2");
+  const right = {};
+  // stacked: the panels' axes instead (each its own domain, all on the shared x axis; the lowest
+  // panel carries the x axis), the injection marks' axis (y3) overlaying the top panel
+  const gap = 0.05, panelH = (top - gap * (panels - 1)) / panels;
+  const stack = {};
+  for (let n = 0; stacked && n < panels; n++) {
+    const id = stackedId(n), hi = top - n * (panelH + gap);
+    stack["yaxis" + id.slice(1)] = { ...axisStyle(p, axes, id), domain: [Math.max(0, hi - panelH), hi], anchor: "x",
+                                     range: keep["yaxis" + id.slice(1)], gridcolor: th.grid, zerolinecolor: th.spike, ...fit };
+  }
+  for (const a of stacked ? [] : new Set(["y2", ...drawn])) {
+    const n = drawn.indexOf(a);
+    right["yaxis" + a.slice(1)] = {
+      ...axisStyle(p, axes, a), overlaying: "y", side: "right", zeroline: false, range: keep["yaxis" + a.slice(1)],
+      visible: n >= 0, ...fit,
+      // with no left curve, the first right axis draws the grid
+      showgrid: n === 0 && !left, gridcolor: th.grid,
+      ...(n > 0 ? { anchor: "free", autoshift: true, shift: 8 } : {}),
+    };
+  }
+  return Plotly.newPlot("plot", traces, {
+    font: { family: 'system-ui, "Segoe UI", Arial, sans-serif', size: small ? 10 : 12, color: th.fg },
+    paper_bgcolor: th.card, plot_bgcolor: th.card,
+    // a small screen: the run's name is above the plot already, the curve chips are the legend
+    title: small ? undefined : { text: current.name + ": " + c.name, font: { size: 15 } },
+    showlegend: !small,
+    // cursor: a vertical line across the plot, x and every curve's y at it in one label
+    hovermode: "x unified", hoverlabel: { font: { size: small ? 10 : 13 } },
+    hoversubplots: "axis",  // the tracks' lines too: they share the x axis but sit on yaxis4
+    // clock values are ms on the instrument's local clock: a date axis shows them as they are
+    xaxis: { anchor: stacked ? stackedId(panels - 1) : undefined,
+             title: { text: xname + unit }, type: clock ? "date" : "linear", gridcolor: th.grid, zerolinecolor: th.spike, range: keep.xaxis,
+             showspikes: true, spikemode: "across", spikethickness: 1, spikedash: "solid", spikecolor: th.spike,
+             hoverformat: clock ? "%H:%M:%S" : numberFormat(ax.decimals), ...fit,
+             // the cursor label's header: what x is, and its unit (Plotly 3.1+)
+             unifiedhovertitle: { text: clock ? xname + ": %{x|%Y-%m-%d %H:%M:%S}" + unit
+                                              : xname + ": %{x:" + numberFormat(ax.decimals) + "}" + (ax.unit ? " " + ax.unit : "") } },
+    // with no left curve, no left axis (its ticks would belong to nothing shown)
+    yaxis: { ...axisStyle(p, axes, "y"), domain: [0, top], range: keep.yaxis, visible: left,
+             gridcolor: th.grid, zerolinecolor: th.spike, ...fit },
+    ...right,
+    ...stack,
+    yaxis3: { overlaying: "y", range: [0, 1], visible: false, fixedrange: true },
+    // the tracks: one row each, phases on top
+    yaxis4: { domain: [Math.min(top + 0.03, 1), 1], type: "category", categoryorder: "array",
+              categoryarray: [...tracks.lanes].reverse(), fixedrange: true, showgrid: false, zeroline: false,
+              visible: tracks.lanes.length > 0, ...fit },
+    barmode: "overlay",
+    shapes: [...markShapes, ...tracks.shapes],
+    // l: room for the track names also when there is no left axis (a small screen: as much as the
+    // names and ticks need, t: room for Plotly's buttons)
+    legend: { orientation: "h", y: -0.2 },
+    margin: small ? { t: 28, r: 8, l: 8, b: 8 } : { t: 40, r: 60, l: 90 },
+  }, { responsive: true, displaylogo: false,
+       // no camera button: "Image (PNG)" and "Image (SVG)" above the plot save it (always light)
+       modeBarButtonsToRemove: ["toImage"] })
+    .then((gd) => {
+      // a click on a curve's legend entry goes through the curve selector, so the two never disagree
+      // (the other entries, injection marks, keep Plotly's own behavior)
+      gd.removeAllListeners("plotly_legendclick");
+      gd.on("plotly_legendclick", (ev) => {
+        if (ev.curveNumber >= p.curves.length) return true;
+        setCurves(p, [p.curves[ev.curveNumber].name], !curveOn(p.curves[ev.curveNumber]));
+        return false;
+      });
+      gd.removeAllListeners("plotly_hover");
+      gd.on("plotly_hover", (ev) => placeHoverLabel(gd, ev.event));
+      // after every draw (zoom, resize, curves on or off) the track labels are fitted to the bars
+      gd.removeAllListeners("plotly_afterplot");
+      gd.on("plotly_afterplot", () => fitBarLabels(gd));
+      fitBarLabels(gd);
+    });
+}
+
+// A track's label is the bar's name when it fits, the name cut short when it doesn't, and at
+// least its first letter however narrow the bar is (Plotly alone hides what needs a font under
+// a minimum, which emptied the tracks when many curves narrowed the plot). Fits: measured in the
+// track font, not counted in characters (a guess per character cut short names that fit).
+let measurer = null;
+function textWidth(s) {
+  if (!measurer) {
+    measurer = document.createElement("canvas").getContext("2d");
+    measurer.font = '11px system-ui, "Segoe UI", Arial, sans-serif';  // the track font (trackTraces, drawPlot)
+  }
+  return measurer.measureText(s).width;
+}
+function fitBarLabels(gd) {
+  const xa = gd._fullLayout && gd._fullLayout.xaxis;
+  if (!xa || !xa._length) return;
+  const lo = xa.r2l(xa.range[0]), hi = xa.r2l(xa.range[1]);
+  if (!(hi > lo)) return;
+  const idx = [], texts = [];
+  gd.data.forEach((tr, i) => {
+    if (tr.type !== "bar" || !tr.meta || !tr.meta.barNames) return;
+    const text = tr.meta.barNames.map((name, j) => {
+      const seen = Math.min(tr.base[j] + tr.x[j], hi) - Math.max(tr.base[j], lo);
+      const room = seen / (hi - lo) * xa._length - 6;  // Plotly keeps 3 px inside each end
+      const chars = Array.from(name);
+      if (!chars.length) return "";
+      if (textWidth(name) <= room) return name;
+      let n = chars.length - 1;
+      while (n > 1 && textWidth(chars.slice(0, n).join("") + "…") > room) n--;
+      return n > 1 ? chars.slice(0, n).join("") + "…" : chars[0];
+    });
+    if (text.some((s, j) => s !== tr.text[j])) { idx.push(i); texts.push(text); }
+  });
+  if (idx.length) Plotly.restyle(gd, { text: texts }, idx);
+}
+
+// Phase, fraction and pause tracks above the curves, as the figures in docs/RUN_STRUCTURE_GUIDE.md:
+// each table row a bar from start to end. A pause has no method time, volume or CV (the clock
+// and the pumps stop): there it is a mark with a dotted line down through the curves; on the
+// clock it is a bar as long as the pause, shaded through the curves. An invisible trace per
+// track puts "what ran here" into the cursor label at every x.
+const TRACK_PX = 26;
+const STACK_PX = 150;  // each stacked panel after the first adds this much height
+const PHASE_COLORS = ["#c6dbef", "#fdd0a2", "#c7e9c0", "#dadaeb", "#fcbba1", "#fde0ef", "#d9f0d3", "#ffffcc"];
+const FRACTION_COLORS = ["#c9c9c9", "#e3e3e3"];
+const INLET_COLORS = ["#d8e8e4", "#f1e4c8", "#e0d9ee", "#e8dcd0", "#d3e5cf", "#efd7dc"];
+
+function trackTraces(p, key, th) {
+  const lanes = [], traces = [], shapes = [];
+  const pauseLane = names.tables.pauses.title;
+  const grid = [].concat(...p.curves.map((k) => k.x[key])).filter((x) => x !== null);
+  const tracks = (p.tracks || []).map((t) => ({
+    // a track made from a table is named as the table; the inlets track names itself
+    kind: t.kind, lane: t.title || names.tables[t.kind].title,
+    bars: t.bars.filter((b) => key in b.start).map((b) => ({ name: b.name, pseudo: b.pseudo, start: b.start[key], end: b.end[key],
+                                                             percentB: (b.percent_b || {})[key] || [] })),
+  }));
+  const ramps = [];  // the inlets bars' %B program: [lane, [[x, %B], ...]], drawn once the lanes are known
+  const pauses = p.pauses || [];
+  if (key === "clock") {
+    tracks.push({ kind: "pauses", lane: pauseLane,
+                  bars: pauses.filter((q) => q.start !== undefined).map((q) => ({ name: q.label, start: q.start, end: q.end })) });
+  }
+  for (const t of tracks) {
+    if (!t.bars.length) continue;
+    lanes.push(t.lane);
+    const byName = {};
+    const colors = t.bars.map((b, i) => {
+      if (t.kind === "pauses") return "#f2c4bd";
+      if (t.kind !== "phases" && t.kind !== "inlets") return b.pseudo ? "#f4f4f4" : FRACTION_COLORS[i % 2];
+      const palette = t.kind === "inlets" ? INLET_COLORS : PHASE_COLORS;
+      if (!(b.name in byName)) byName[b.name] = palette[Object.keys(byName).length % palette.length];
+      return byName[b.name];  // a phase (or an inlet set) that comes back keeps its color
+    });
+    traces.push({
+      type: "bar", orientation: "h", yaxis: "y4", y: t.bars.map(() => t.lane), base: t.bars.map((b) => b.start),
+      x: t.bars.map((b) => b.end - b.start), text: t.bars.map((b) => b.name), textposition: "inside",
+      insidetextanchor: "middle", textangle: 0, textfont: { size: 11, color: "#222" }, width: 0.8, cliponaxis: true,
+      constraintext: "none", meta: { barNames: t.bars.map((b) => b.name) },  // fitBarLabels() shortens the text to the bar
+      marker: { color: colors, line: { color: th.card, width: 1 } }, hoverinfo: "skip", showlegend: false,
+    });
+    if (t.kind === "inlets") for (const b of t.bars) if (b.percentB.length > 1) ramps.push([t.lane, b.percentB]);
+    if (t.kind === "pauses") {
+      for (const b of t.bars) {
+        shapes.push({ type: "rect", xref: "x", yref: "paper", x0: b.start, x1: b.end, y0: 0, y1: 1, layer: "below",
+                      fillcolor: th.fill, line: { width: 0 } });
+      }
+    }
+    // the bar at each x of the curves (bars are in start order): the cursor label's line for this
+    // track; bar starts and middles too, for stretches with no curve points (a pause on the clock)
+    const ends = [].concat(...t.bars.map((b) => [b.start, (b.start + b.end) / 2]));
+    const xs = [...new Set(grid.concat(ends))].sort((a, b) => a - b);
+    const text = [];
+    let i = 0;
+    for (const x of xs) {
+      while (i < t.bars.length && t.bars[i].end < x) i++;
+      const b = t.bars[i];
+      text.push(b && b.start <= x ? b.name : i18n("table.none"));
+    }
+    // an invisible line, not invisible markers: one SVG path instead of an element per point (tens
+    // of thousands with every curve's x), which made each redraw take a second
+    traces.push({
+      type: "scatter", mode: "lines", yaxis: "y4", x: xs, y: xs.map(() => t.lane), text, name: t.lane,
+      line: { width: 0 }, showlegend: false, hovertemplate: t.lane + ": %{text}<extra></extra>",
+    });
+  }
+  const points = key === "clock" ? [] : pauses.filter((q) => key in q.at);
+  if (points.length) {
+    lanes.push(pauseLane);
+    traces.push({
+      type: "scatter", mode: "markers", yaxis: "y4", x: points.map((q) => q.at[key]), y: points.map(() => pauseLane),
+      text: points.map((q) => q.label), name: pauseLane, showlegend: false, hovertemplate: "%{text}<extra></extra>",
+      marker: { symbol: "line-ns-open", size: 16, color: th.pause, line: { width: 2, color: th.pause } },
+    });
+    for (const q of points) {
+      shapes.push({ type: "line", xref: "x", yref: "paper", x0: q.at[key], x1: q.at[key], y0: 0, y1: 1,
+                    line: { color: th.pause, width: 1, dash: "dot" }, layer: "below" });
+    }
+  }
+  // %B across an inlets bar: bottom of the bar 0 %B, top 100 %B (bars are 0.8 of a lane high;
+  // the lanes are listed top down, the category axis counts bottom up)
+  for (const [lane, points] of ramps) {
+    const row = lanes.length - 1 - lanes.indexOf(lane);
+    const y = (pct) => row - 0.4 + 0.8 * pct / 100;
+    for (let i = 1; i < points.length; i++) {
+      shapes.push({ type: "line", xref: "x", yref: "y4", x0: points[i - 1][0], x1: points[i][0],
+                    y0: y(points[i - 1][1]), y1: y(points[i][1]), line: { color: "#555", width: 1.5 } });
+    }
+  }
+  return { lanes, traces, shapes };
+}
+
+// -- overlaid runs (W11) ---------------------------------------------------------------------------
+// The plot of the shown run, or of the runs ticked in the list (2 or more ticked, or "Ticked runs"
+// picked on the plot bar: sourcePick), OVERLAY_MAX at most (owner, 2026-11-11; more ticked: the first ones, said in a
+// note). By curve role (pycorn/curve_roles.py), never by curve name: "Curves as panels" (one panel
+// per role, a color per run, a line style per curve of the role) or "Runs as panels" (one panel per
+// run, its curves overlaid); the choice is kept in this browser, as W10's. Python reads each run once
+// into a cache of thinned curves (Session.overlay_run) and gives the plot data on the x axis picked
+// with the picker (Session.overlay); a run without that axis is left out with a note.
+const OVERLAY_MAX = 10;
+const OVERLAY_PICK = "pycorn.overlaylayout";
+let overlayOn = false;  // the plot shows the ticked runs
+let overlayData = null, overlayKey = null;  // Python's last answer, and for which runs, roles and axis
+let overlayRoles = null;  // the roles drawn (null: Python's default, the Excel chart's roles)
+let overlayDraws = 0, overlayTimer = null, overlayLayoutChoice = "roles";
+function overlayByRuns() {
+  let v = overlayLayoutChoice;
+  try { v = localStorage.getItem(OVERLAY_PICK) || v; } catch (e) { /* storage blocked: this page's pick */ }
+  return v === "runs";
+}
+// a role's name in the page's language (the role's key for one this page doesn't know)
+const ROLE_NAMES = { uv: () => i18n("plot.role.uv"), conductivity: () => i18n("plot.role.conductivity"),
+                     conductivity_percent: () => i18n("plot.role.conductivity_percent"), ph: () => i18n("plot.role.ph"),
+                     pressure: () => i18n("plot.role.pressure"), temperature: () => i18n("plot.role.temperature"),
+                     conc_b: () => i18n("plot.role.conc_b"), conc_q: () => i18n("plot.role.conc_q"),
+                     flow: () => i18n("plot.role.flow"), sample_flow: () => i18n("plot.role.sample_flow") };
+const roleName = (r) => (ROLE_NAMES[r] ? ROLE_NAMES[r]() : r);
+const DASHES = ["solid", "dash", "dot", "dashdot", "longdash"];
+// names go into Plotly's labels, which read a little HTML
+const plain = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const shownChrom = () => current.chromatograms[Number($("chrom").value) || 0];
+// wait until Python is free (one job at a time)
+const whenIdle = () => new Promise((r) => { const t = () => (busy ? setTimeout(t, 100) : r()); t(); });
+
+// what the overlay draws (W17): [run index, chromatogram] per ticked chromatogram of each ticked run
+// (two chromatograms of one run are two), [index, null] for a run without a picker (its original one);
+// each counts towards OVERLAY_MAX
+function overlayIds() {
+  const out = [];
+  for (const i of tickedIds()) {
+    const chroms = tickedChroms(i);
+    if (chroms) for (const c of chroms) out.push([i, c]); else out.push([i, null]);
+  }
+  return out;
+}
+const pickKey = (pick) => JSON.stringify(pick);
+
+// the plot bar's two toggles as the page stands
+function sourceButtons() {
+  const n = tickedIds().length;
+  $("src-one").textContent = i18n("plot.this_run");
+  $("src-ticked").textContent = i18n("plot.ticked_runs", { count: n });
+  $("src-ticked").title = i18n("plot.tick_hint", { max: OVERLAY_MAX });
+  $("src-ticked").disabled = !overlayOn && overlayIds().length < 2;
+  $("src-one").setAttribute("aria-pressed", String(!overlayOn));
+  $("src-ticked").setAttribute("aria-pressed", String(overlayOn));
+  $("sourcepick").setAttribute("aria-label", i18n("plot.source"));
+  $("layoutpick").hidden = overlayOn;
+  $("overlaypick").hidden = !overlayOn;
+  if (!overlayOn) $("overlaynote").hidden = true;
+  const runs = overlayByRuns();
+  for (const [id, text, on] of [["lay-roles", i18n("plot.by_role"), !runs], ["lay-runs", i18n("plot.by_run"), runs]]) {
+    $(id).textContent = text;
+    $(id).setAttribute("aria-pressed", String(on));
+  }
+  $("overlaypick").setAttribute("aria-label", i18n("plot.overlay_layout"));
+}
+
+// The plot follows the ticks (owner, 2026-11-11): 0 or 1 run ticked, the shown run; 2 or more, the
+// ticked runs overlaid. "This run" / "Ticked runs" on the plot bar override that (sourcePick) until
+// the ticks change (ticksChanged); a chromatogram ticked in a row's picker keeps the override.
+let sourcePick = null;  // null: follow the ticks; false: the shown run; true: the ticked runs
+function overlayWanted() {
+  if (sourcePick === false) return false;
+  if (sourcePick === true) return overlayIds().length > 0;
+  return tickedIds().length >= 2;
+}
+function setSource(on) {
+  if (!current) return;
+  sourcePick = on;
+  const was = overlayOn;
+  overlayOn = overlayWanted();
+  if (was !== overlayOn) drawPlot(shownChrom()); else sourceButtons();
+}
+
+// several runs ticked: one line naming the run the tables below are of
+function tablesOf() {
+  const line = $("tablesof"), several = !!current && shown !== null && tickedIds().length >= 2;
+  line.hidden = !several;
+  if (!several) { line.textContent = ""; return; }
+  // as the overlay's legend names it (with the file when ticked runs share its name)
+  const ids = [...new Set([...tickedIds(), shown])].map((i) => [i, null]);
+  line.textContent = i18n("view.tables_of", { name: runLabels(ids).get(pickKey([shown, null])) || current.name });
+}
+
+// a tick changed in the list: overlay or not, the button's count, and the overlay drawn again (after
+// a moment, so ticking several runs in a row asks Python once). `redraw` false: show() draws it
+function overlayTicked(redraw = true) {
+  if (!runRows().length) { sourcePick = null; overlayData = null; overlayKey = null; overlayRoles = null; }
+  const was = overlayOn;
+  overlayOn = !!current && runRows().length > 0 && overlayWanted();
+  tablesOf();
+  if (!current || $("view").hidden) return;
+  sourceButtons();
+  clearTimeout(overlayTimer);
+  if (!redraw) return;
+  if (!overlayOn) { if (was) drawPlot(shownChrom()); return; }
+  overlayTimer = setTimeout(() => { if (overlayOn && current) drawOverlay(); }, 400);
+}
+
+// a label per drawn [run, chromatogram] (pickKey) that tells them apart: the run name, with the file
+// when two runs share a name, and "run - chromatogram" for a chromatogram picked in the list (W17)
+function runLabels(ids) {
+  const rows = new Map(runRows().map((tr) => [Number(tr.dataset.index), tr]));
+  const name = (i) => (rows.has(i) ? rows.get(i).cells[1].textContent : "#" + i);
+  const file = (i) => (rows.has(i) ? rows.get(i).cells[2].textContent : "");
+  const runs = [...new Set(ids.map(([i]) => i))], count = {};
+  for (const i of runs) count[name(i)] = (count[name(i)] || 0) + 1;
+  const run = (i) => (count[name(i)] > 1 && file(i) ? name(i) + " (" + file(i) + ")" : name(i));
+  return new Map(ids.map(([i, c]) => [pickKey([i, c]), c === null ? run(i) : i18n("chrom.legend", { run: run(i), chromatogram: c })]));
+}
+
+// the plot area with a sentence instead of a plot (the bar, chips and notes stay)
+function overlayEmpty(text) {
+  Plotly.purge("plot");
+  $("plot").style.height = "";
+  $("plot").removeAttribute("role");
+  $("plot").removeAttribute("aria-label");
+  $("plot").textContent = text;
+}
+
+// the overlay: Python asked only when the runs, roles or axis changed
+async function drawOverlay(keep) {
+  const draw = ++overlayDraws;
+  const ticked = overlayIds(), ids = ticked.slice(0, OVERLAY_MAX);
+  $("plotbar").hidden = false;
+  sourceButtons();
+  if (!ids.length) {
+    $("curvepick").hidden = true;
+    $("overlaynote").hidden = true;
+    $("axispick").hidden = true;
+    return overlayEmpty(i18n("plot.tick_hint", { max: OVERLAY_MAX }));
+  }
+  let axis = axisChoice;
+  try { axis = localStorage.getItem(AXIS_PICK) || axis; } catch (e) { /* storage blocked: this page's pick */ }
+  if (overlayKey !== JSON.stringify([ids, overlayRoles, axis || null])) {
+    await whenIdle();
+    if (draw !== overlayDraws || !overlayOn) return;
+    setBusy(true);
+    begin(i18n("plot.overlay_loading", { count: ids.length }));
+    await breathe();
+    try {
+      const r = await call("overlay", { ids, roles: overlayRoles, axis: axis || null });
+      if (r.cancelled || cancelAsked) { status(i18n("status.cancelled")); return; }
+      if (r.error) { status(i18n("plot.overlay_error", { error: errorOf(r) }), true); return; }
+      if (draw !== overlayDraws || !overlayOn) return;
+      overlayData = r;
+      overlayRoles = r.shown_roles;
+      overlayKey = JSON.stringify([ids, overlayRoles, axis || null]);
+      status(i18n("plot.overlay_shown", { count: r.runs.filter((x) => x.curves.length).length }));
+    } catch (e) {
+      if (!(e instanceof Stopped)) status(i18n("plot.overlay_error", { error: errText(e) }), true);
+      return;
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (draw !== overlayDraws) return;
+  return renderOverlay(overlayData, ids, ticked.length, keep || {});
+}
+
+// the role chips: which roles are drawn (the Excel chart's at first)
+function rolePicker(d) {
+  const box = $("curvepick");
+  box.hidden = !d.roles.length;
+  box.innerHTML = "";
+  const on = new Set(overlayRoles || d.shown_roles);
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = i18n("plot.signals", { shown: d.roles.filter((r) => on.has(r.role)).length, total: d.roles.length });
+  box.setAttribute("aria-label", count.textContent);
+  box.append(count);
+  const set = (roles) => {
+    overlayRoles = d.roles.map((r) => r.role).filter((r) => roles.has(r));
+    drawOverlay({ xaxis: plotRanges().xaxis });
+  };
+  for (const r of d.roles) {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.setAttribute("aria-pressed", String(on.has(r.role)));
+    chip.textContent = roleName(r.role);
+    chip.title = r.curves.join(", ");  // the curves of this role in the runs, by their names
+    chip.addEventListener("click", () => {
+      const next = new Set(on);
+      if (next.has(r.role)) next.delete(r.role); else next.add(r.role);
+      set(next);
+    });
+    box.append(chip);
+  }
+  for (const [text, all] of [[i18n("columns.all"), true], [i18n("curves.none"), false]]) {
+    const b = document.createElement("button");
+    b.className = "small";
+    b.textContent = text;
+    b.addEventListener("click", () => set(new Set(all ? d.roles.map((r) => r.role) : [])));
+    box.append(b);
+  }
+}
+
+// what is not drawn, and why
+function overlayNotes(d, ids, tickedCount, labels) {
+  const lines = [];
+  if (tickedCount > OVERLAY_MAX) {
+    // W17: with chromatograms picked in the list, the cap counts run x chromatogram
+    const runsOnly = tickedCount === tickedIds().length;
+    const vars = { max: OVERLAY_MAX, count: tickedCount };
+    lines.push(runsOnly ? i18n("plot.overlay_max", vars) : i18n("chrom.overlay_max", vars));
+  }
+  const ax = d.axes.find((a) => a.key === d.axis);
+  const named = (r) => labels.get(pickKey(r.pick)) || "#" + r.index;
+  if (d.no_axis.length && ax) {
+    lines.push(i18n("plot.no_axis", { axis: axisName(ax), runs: d.no_axis.map(named).join(", ") }));
+  }
+  const empty = d.runs.filter((r) => !r.curves.length);
+  if (empty.length && (overlayRoles || []).length) {
+    lines.push(i18n("plot.no_signals", { runs: empty.map(named).join(", ") }));
+  }
+  if (d.failed.length) {
+    lines.push(i18n("plot.overlay_failed", { runs: d.failed.map((f) => named(f) + ": " + msgText(f.message)).join("; ") }));
+  }
+  const el = $("overlaynote");
+  el.innerHTML = "";
+  for (const text of lines) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    el.append(p);
+  }
+  el.hidden = !lines.length;
+}
+
+// the panels' domains, top down, with room between them for a panel's title
+function panelDomains(n, height) {
+  const gap = n > 1 ? Math.min(0.1, 38 / Math.max(200, height - 150)) : 0;
+  const h = (1 - gap * (n - 1)) / n;
+  return [...Array(n)].map((_, i) => { const hi = 1 - i * (h + gap); return [Math.max(0, hi - h), hi]; });
+}
+
+function renderOverlay(d, ids, tickedCount, keep) {
+  const th = theme(), small = SMALL.matches, byRuns = overlayByRuns();
+  const labels = runLabels(ids);
+  const pick = $("xaxis");
+  pick.innerHTML = "";
+  for (const a of d.axes) pick.add(new Option(axisName(a), a.key));
+  if (d.axis) pick.value = d.axis;
+  $("axispick").hidden = d.axes.length < 2;
+  rolePicker(d);
+  overlayNotes(d, ids, tickedCount, labels);
+  const runs = d.runs.filter((r) => r.curves.length);
+  const ax = d.axes.find((a) => a.key === d.axis);
+  if (!runs.length || !ax) return overlayEmpty(i18n("plot.overlay_empty"));
+  const keys = ids.map(pickKey), runKey = (r) => pickKey(r.pick);  // W17: a run's chromatogram
+  const runColor = (r) => curveColor(keys.indexOf(runKey(r)));
+  const hover = (k) => plain(k.name) + ": %{y:" + numberFormat(k.decimals) + "}" + (k.unit ? " " + plain(k.unit) : "");
+  const traces = [], axes = {}, notes = [], curveNames = curveNamesOf(runs);
+  let panels;
+  if (!byRuns) {
+    // a panel per role (and unit: a curve whose unit doesn't convert gets a panel of its own), a
+    // color per run, a line style per curve of the role within the run
+    panels = [];
+    for (const r of d.roles) {
+      for (const run of runs) for (const k of run.curves) {
+        if (k.role === r.role && !panels.some((p) => p.role === k.role && p.unit === k.unit)) panels.push({ role: k.role, unit: k.unit });
+      }
+    }
+    const legend = new Set();
+    for (const run of runs) {
+      const nth = {};
+      for (const k of run.curves) {
+        const at = panels.findIndex((p) => p.role === k.role && p.unit === k.unit);
+        nth[k.role] = (nth[k.role] || 0) + 1;
+        traces.push({ x: k.x, y: k.y, type: "scatter", mode: "lines", name: plain(labels.get(runKey(run))),
+                      legendgroup: "run" + runKey(run), showlegend: !legend.has(runKey(run)), yaxis: at ? "y" + (at + 1) : "y",
+                      line: { width: 1.25, color: runColor(run), dash: DASHES[(nth[k.role] - 1) % DASHES.length] },
+                      hovertemplate: hover(k) });
+        legend.add(runKey(run));
+      }
+    }
+  } else {
+    // a panel per run, its curves overlaid: the first unit on the left axis, the second on the
+    // right, any further one in % of its range on a third (the cursor label keeps the values);
+    // a color per curve name, the same in every panel
+    panels = runs.map((run) => ({ run }));
+    const legend = new Set();
+    runs.forEach((run, i) => {
+      const units = [...new Set(run.curves.map((k) => k.unit || k.name))];
+      const id = (j) => "y" + (3 * i + j + 1 === 1 ? "" : 3 * i + j + 1);
+      for (const k of run.curves) {
+        const j = Math.min(units.indexOf(k.unit || k.name), 2), pct = j === 2;
+        traces.push({ x: k.x, y: pct ? scaled(k.y) : k.y, customdata: pct ? k.y : undefined, type: "scatter", mode: "lines",
+                      name: plain(k.name), legendgroup: "curve" + k.name, showlegend: !legend.has(k.name), yaxis: id(j),
+                      line: { width: 1.25, color: curveColor(curveNames.indexOf(k.name)) },
+                      hovertemplate: pct ? hover(k).replace("%{y:", "%{customdata:") : hover(k) });
+        legend.add(k.name);
+      }
+      panels[i].units = units;
+      panels[i].id = id;
+    });
+  }
+  // 480 px for the first panel (less on a short window, never under 360), STACK_PX for each more
+  const base = Math.max(360, Math.min(480, Math.round(window.innerHeight * 0.6)));
+  const legendRows = byRuns ? 1 : Math.ceil(runs.length / (small ? 1 : 3));
+  const height = base + STACK_PX * (panels.length - 1) + 20 * legendRows;
+  const domains = panelDomains(panels.length, height);
+  const fit = small ? { automargin: true } : {};
+  const grid = { gridcolor: th.grid, zerolinecolor: th.spike, ...fit };
+  panels.forEach((p, i) => {
+    if (!byRuns) {
+      axes["yaxis" + (i ? i + 1 : "")] = { domain: domains[i], anchor: "x", ...grid,
+                                            title: { text: roleName(p.role) + (p.unit ? " (" + p.unit + ")" : "") } };
+      return;
+    }
+    const color = (unit) => {
+      const on = p.run.curves.filter((k) => (k.unit || k.name) === unit);
+      return on.length === 1 ? curveColor(curveNames.indexOf(on[0].name)) : th.fg;
+    };
+    const style = (unit) => ({ title: { text: unit, font: { color: color(unit) } }, tickfont: { color: color(unit) } });
+    const left = p.id(0).slice(1), right = p.id(1).slice(1), rest = p.id(2).slice(1);
+    axes["yaxis" + left] = { domain: domains[i], anchor: "x", ...grid, ...(p.units[0] !== undefined ? style(p.units[0]) : {}) };
+    axes["yaxis" + right] = { overlaying: p.id(0), side: "right", anchor: "x", showgrid: false, zeroline: false, ...fit,
+                              visible: p.units.length > 1, ...(p.units[1] !== undefined ? style(p.units[1]) : {}) };
+    axes["yaxis" + rest] = { overlaying: p.id(0), side: "right", visible: false, range: [-5, 105], fixedrange: true };
+    // the run's name over its panel, in its color (the color the run has with "Curves as panels")
+    notes.push({ xref: "paper", yref: "paper", x: 0, y: domains[i][1], xanchor: "left", yanchor: "bottom", showarrow: false,
+                 text: "<b>" + plain(labels.get(runKey(p.run))) + "</b>" + (p.units.length > 2 ? "  " + plain(i18n("plot.scaled_rest")) : ""),
+                 font: { size: 12, color: runColor(p.run) } });
+  });
+  const lowest = byRuns ? panels[panels.length - 1].id(0) : (panels.length > 1 ? "y" + panels.length : "y");
+  const clock = d.axis === "clock", xname = axisName(ax), unit = ax.unit ? " (" + ax.unit + ")" : "";
+  const title = i18n("plot.overlay_title", { count: runs.length });
+  $("plot").textContent = "";
+  $("plot").style.height = height + "px";
+  $("plot").setAttribute("role", "img");
+  $("plot").setAttribute("aria-label", i18n("plot.label", { name: title }));
+  return Plotly.newPlot("plot", traces, {
+    font: { family: 'system-ui, "Segoe UI", Arial, sans-serif', size: small ? 10 : 12, color: th.fg },
+    paper_bgcolor: th.card, plot_bgcolor: th.card,
+    title: small ? undefined : { text: plain(title), font: { size: 15 } },
+    // the legend names the runs (Curves as panels) or the curves (Runs as panels); a click on an
+    // entry hides that run or curve in every panel
+    showlegend: true, legend: { orientation: "h", x: 0, xanchor: "left", y: 0, yref: "container", yanchor: "bottom" },
+    hovermode: "x unified", hoverlabel: { font: { size: small ? 10 : 13 } }, hoversubplots: "axis",
+    xaxis: { anchor: lowest, title: { text: xname + unit }, type: clock ? "date" : "linear", range: keep.xaxis, ...grid,
+             showspikes: true, spikemode: "across", spikethickness: 1, spikedash: "solid", spikecolor: th.spike,
+             hoverformat: clock ? "%H:%M:%S" : numberFormat(ax.decimals),
+             unifiedhovertitle: { text: clock ? xname + ": %{x|%Y-%m-%d %H:%M:%S}" + unit
+                                              : xname + ": %{x:" + numberFormat(ax.decimals) + "}" + (ax.unit ? " " + ax.unit : "") } },
+    ...axes,
+    annotations: notes,
+    margin: small ? { t: 28, r: 8, l: 8, b: 40 + 20 * legendRows } : { t: 50, r: byRuns ? 70 : 30, l: 90, b: 70 + 20 * legendRows },
+  }, { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["toImage"] })
+    .then((gd) => {
+      // the single run's handlers (curve chips, track labels) are not for this plot
+      gd.removeAllListeners("plotly_legendclick");
+      gd.removeAllListeners("plotly_afterplot");
+      gd.removeAllListeners("plotly_hover");
+      gd.on("plotly_hover", (ev) => placeHoverLabel(gd, ev.event));
+    });
+}
+// every curve name of the runs, in order: a curve's color with "Runs as panels"
+function curveNamesOf(runs) {
+  const out = [];
+  for (const run of runs) for (const k of run.curves) if (!out.includes(k.name)) out.push(k.name);
+  return out;
+}
+
+async function coreOptions() {
+  const num = (id, unit) => ($(id).value === "" ? null : [Number($(id).value), unit]);
+  const opts = { version: $("coreversion").value, bed_height: num("bed", "cm"), diameter: num("diam", "cm"),
+                 particle_diameter: num("part", "um") };
+  const file = $("overrides").files[0];
+  if (file) {
+    try { opts.overrides = JSON.parse(await file.text()); }
+    catch (e) { throw new Error(i18n("core.invalid_json", { file: file.name, error: e.message })); }
+  }
+  return opts;
+}
+
+// -- phase window statistics (M22, owner 2026-11-12) ---------------------------------------------
+// Windows as pycorn export's --window texts ("NAME=PHASE:FROM:TO UNIT"), curves as roles and names
+// (--window-curves); none at first (D28). The picker writes the text; a text edited by hand fills the
+// picker once Python's parser reads it (Session.parse_window), else the parser's sentence shows. The
+// table is of the ticked runs (the shown one when 0-1 are ticked), each ticked chromatogram (W17),
+// drawn while the section is open. Kept in this browser (settings only), cleared by "Clear".
+const WIN_PICK = "pycorn.windows";
+const WIN_UNITS = ["min", "s", "h", "ml", "L", "ul", "CV"];  // pycorn/browser.py WINDOW_UNITS (Python's list replaces it)
+let winWindows = [], winRoles = new Set(), winCurveNames = [];
+let winInfo = null, winInfoKey = null, winKey = null;  // Python's phases and curves of the runs, the table's key
+let winDraws = 0, winTimer = null, winParseTimer = null, winParses = 0;
+function loadWindowSettings() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(WIN_PICK) || "null"); } catch (e) { /* blocked or unreadable: none */ }
+  if (!s || typeof s !== "object") return;
+  if (Array.isArray(s.windows)) winWindows = s.windows.map(String).filter((w) => w.trim());
+  if (Array.isArray(s.roles)) winRoles = new Set(s.roles.map(String).filter((r) => r in ROLE_NAMES));
+  if (Array.isArray(s.curves)) winCurveNames = s.curves.map(String).filter((c) => c.trim());
+}
+function saveWindowSettings() {
+  try {
+    if (!winWindows.length && !winRoles.size && !winCurveNames.length) localStorage.removeItem(WIN_PICK);
+    else localStorage.setItem(WIN_PICK, JSON.stringify({ windows: winWindows, roles: [...winRoles], curves: winCurveNames }));
+  } catch (e) { /* storage blocked: kept for this page */ }
+}
+// the curves for Python: the ticked roles (the page's role order), then the names added
+const winCurves = () => [...Object.keys(ROLE_NAMES).filter((r) => winRoles.has(r)), ...winCurveNames];
+// a window and a curve: the table, and the downloads hold it
+const winSet = () => winWindows.length > 0 && winCurves().length > 0;
+const winNameOf = (text) => String(text).split("=")[0].trim();
+function winIds() {
+  if (tickedIds().length >= 2) return overlayIds();
+  if (shown === null) return [];
+  const chroms = tickedChroms(shown);
+  return chroms ? chroms.map((c) => [shown, c]) : [[shown, null]];
+}
+// the run column as the overlay's legend names runs (with the file when two share a name)
+function winLabels(ids) {
+  const labels = runLabels(ids.map(([i]) => [i, null])), out = {};
+  for (const [i] of ids) out[i] = labels.get(pickKey([i, null]));
+  return out;
+}
+// a name for a window given none: w1, w2, ... (the CLI needs one)
+function winAuto() {
+  const used = new Set(winWindows.map(winNameOf));
+  let n = winWindows.length + 1;
+  while (used.has("w" + n)) n++;
+  return "w" + n;
+}
+const winFull = (text) => (text.includes("=") ? text : winAuto() + "=" + text);
+function winCompose() {
+  const phase = $("winphase").value;
+  if (!phase) return "";
+  const name = $("winname").value.trim();
+  const text = phase + ":" + ($("winfrom").value.trim() || "0") + ":" + ($("winto").value.trim() || "end") + " " + $("winunit").value;
+  return name ? name + "=" + text : text;
+}
+function winError(text) {
+  $("winerror").textContent = text || "";
+  $("winerror").hidden = !text;
+  $("wintext").setAttribute("aria-invalid", text ? "true" : "false");
+}
+// Python's parser (one job at a time: waits for Python); null where Python is not ready
+async function winParse(text) {
+  if (!ready) return null;
+  await whenIdle();
+  setBusy(true);
+  try { return await call("windowParse", { text }); } catch (e) { return { error: errText(e) }; } finally { setBusy(false); }
+}
+function setOption(select, value) {
+  if (![...select.options].some((o) => o.value === value)) select.add(new Option(value, value));
+  select.value = value;
+}
+// the text edited (or the picker changed: `fill` false, only the check): the picker follows when it parses
+async function winTextEdited(fill) {
+  const text = $("wintext").value.trim();
+  if (!text) { winError(""); return; }
+  const parse = ++winParses;
+  const r = await winParse(winFull(text));
+  if (!r || parse !== winParses) return;
+  if (r.error) { winError(r.message ? errorOf(r) : r.error); return; }
+  winError("");
+  if (!fill) return;
+  const w = r.window;
+  setOption($("winphase"), w.phase);
+  $("winfrom").value = w.from;
+  $("winto").value = w.to;
+  setOption($("winunit"), w.unit);
+  $("winname").value = text.includes("=") ? w.name : "";
+}
+function winPickerChanged() {
+  $("wintext").value = winCompose();
+  clearTimeout(winParseTimer);
+  winParseTimer = setTimeout(() => winTextEdited(false), 400);
+}
+async function winAdd() {
+  clearTimeout(winParseTimer);
+  const text = $("wintext").value.trim() || winCompose();
+  const parse = ++winParses;
+  const r = await winParse(winFull(text));
+  if (!r || parse !== winParses) return;
+  if (r.error) { winError(r.message ? errorOf(r) : r.error); $("wintext").focus(); return; }
+  if (winWindows.some((w) => winNameOf(w) === r.window.name)) {
+    winError(i18n("win.duplicate", { name: r.window.name }));
+    $("winname").focus();
+    return;
+  }
+  winWindows.push(r.window.text);
+  winError("");
+  $("winname").value = "";
+  $("wintext").value = winCompose();
+  winSaved();
+}
+function winAddCurve() {
+  const name = $("wincurve").value.trim();
+  if (name && !winCurveNames.includes(name)) winCurveNames.push(name);
+  $("wincurve").value = "";
+  winSaved();
+}
+// a removable item: the text and a Remove button (focus goes to the next one, else to `back`)
+function winItem(list, text, remove, back) {
+  const item = document.createElement("li");
+  const code = document.createElement("code");
+  code.textContent = text;
+  const b = document.createElement("button");
+  b.className = "small";
+  b.textContent = i18n("win.remove");
+  b.setAttribute("aria-label", i18n("win.remove_one", { name: text }));
+  b.addEventListener("click", () => {
+    const at = [...list.querySelectorAll("button")].indexOf(b);
+    remove();
+    const next = list.querySelectorAll("button")[at] || list.querySelectorAll("button")[at - 1];
+    (next || back).focus();
+  });
+  item.append(code, b);
+  list.append(item);
+}
+// the lists, the role boxes and the texts that depend on the language
+function winRender() {
+  const list = $("winlist");
+  list.innerHTML = "";
+  winWindows.forEach((w, i) => winItem(list, w, () => { winWindows.splice(i, 1); winSaved(); }, $("wintext")));
+  const roles = $("winroles");
+  roles.innerHTML = "";
+  for (const r of Object.keys(ROLE_NAMES)) {
+    const lab = document.createElement("label");
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.value = r;
+    tick.checked = winRoles.has(r);
+    tick.addEventListener("change", () => { if (tick.checked) winRoles.add(r); else winRoles.delete(r); winSaved(false); });
+    lab.append(tick, roleName(r));
+    roles.append(lab);
+  }
+  const names = $("winnamelist");
+  names.innerHTML = "";
+  winCurveNames.forEach((c, i) => winItem(names, c, () => { winCurveNames.splice(i, 1); winSaved(); }, $("wincurve")));
+  $("winclear").disabled = !winWindows.length && !winRoles.size && !winCurveNames.length;
+}
+// a window or curve added or removed: kept, drawn, the table again (or hidden), the panel's line
+function winSaved(render = true) {
+  saveWindowSettings();
+  if (render) winRender(); else $("winclear").disabled = !winWindows.length && !winRoles.size && !winCurveNames.length;
+  if (!winSet()) winHide();
+  updatePanel();
+  winChanged(true);
+}
+function winHide() {
+  $("wintable").hidden = true;
+  $("winnotes").innerHTML = "";
+  winKey = null;
+}
+function winClear() {
+  winWindows = [];
+  winRoles = new Set();
+  winCurveNames = [];
+  winError("");
+  $("winname").value = "";
+  $("winfrom").value = "0";
+  $("winto").value = "end";
+  $("wintext").value = winCompose();
+  winSaved();
+  $("wintext").focus();
+}
+// the phases, units and curve names Python found in the runs
+function winFillPickers() {
+  const phase = $("winphase"), keep = phase.value;
+  phase.innerHTML = "";
+  for (const p of (winInfo && winInfo.phases) || []) phase.add(new Option(p, p));
+  if (keep) setOption(phase, keep);
+  const unit = $("winunit"), u = unit.value || "min";
+  unit.innerHTML = "";
+  for (const x of (winInfo && winInfo.units) || WIN_UNITS) unit.add(new Option(x, x));
+  setOption(unit, u);
+  const names = $("wincurvenames");
+  names.innerHTML = "";
+  for (const c of (winInfo && winInfo.curves) || []) names.append(new Option(c, c));
+  if (!$("wintext").value.trim()) $("wintext").value = winCompose();
+}
+// the runs, their chromatograms, the windows or the curves changed: the section again (when open)
+function winChanged(now) {
+  clearTimeout(winTimer);
+  if (!current || !$("winbox").open) return;
+  winTimer = setTimeout(winRefresh, now ? 0 : 400);
+}
+async function winRefresh() {
+  const draw = ++winDraws, ids = winIds();
+  if (!ids.length) return;
+  const infoKey = JSON.stringify(ids);
+  if (winInfoKey !== infoKey) {
+    await whenIdle();
+    if (draw !== winDraws) return;
+    setBusy(true);
+    const before = [$("status").textContent, $("statusbar").className === "error"];
+    begin(i18n("win.loading"));
+    await breathe();
+    try {
+      const r = await call("windowInfo", { ids });
+      if (r.cancelled || cancelAsked) { status(i18n("status.cancelled")); return; }
+      if (r.error) { status(i18n("win.error", { error: errorOf(r) }), true); return; }
+      winInfo = r;
+      winInfoKey = infoKey;
+      winFillPickers();
+      status(...before);
+    } catch (e) {
+      if (!(e instanceof Stopped)) status(i18n("win.error", { error: errText(e) }), true);
+      return;
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (draw !== winDraws) return;
+  if (!winSet()) { winHide(); return; }
+  const curves = winCurves(), key = JSON.stringify([ids, winWindows, curves]);
+  if (winKey === key) return;
+  await whenIdle();
+  if (draw !== winDraws) return;
+  setBusy(true);
+  begin(i18n("win.computing"));
+  await breathe();
+  try {
+    const r = await call("windowStats", { ids, windows: winWindows, curves, labels: winLabels(ids) });
+    if (r.cancelled || cancelAsked) { status(i18n("status.cancelled")); return; }
+    if (r.error) { status(i18n("win.error", { error: errorOf(r) }), true); return; }
+    if (draw !== winDraws) return;
+    winKey = key;
+    $("wintable").hidden = false;
+    setTable($("phase_windows"), r.table);
+    noteList($("winnotes"), i18n("win.notes"), [...r.warnings, ...r.failed.map((f) => msgText(f.message))]);
+    status(i18n("win.shown", { rows: r.table.rows.length }));
+  } catch (e) {
+    if (!(e instanceof Stopped)) status(i18n("win.error", { error: errText(e) }), true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+// the Excel / CSV options: mask, size, the table groups and the phase windows (M22: both set, as
+// --window + --window-curves); the curves go separately (tickedCurves)
+const tableOptions = () => Object.assign({ mask: $("mask").checked, sample: sizeOptions(), groups: tickedGroups() },
+  winSet() ? { windows: [...winWindows], window_curves: winCurves() } : {});
+
+// the shown run: Excel (a small zip: workbook and README.txt, or the bare workbook from an older
+// Python), CSV (a zip) or CADET-Core (JSON, or a zip). Python takes the ticked curves as
+// options.curves.
+async function download(kind) {
+  if (shown === null || busy) return;
+  setBusy(true);
+  const notes = $("dlnotes");
+  notes.innerHTML = "";
+  begin(kind === "core" ? i18n("status.writing_core") : i18n("status.writing", { kind: kindName(kind) }));
+  await breathe();
+  try {
+    const opts = kind === "core" ? await coreOptions() : { ...tableOptions(), curves: tickedCurves() };
+    opts.chromatograms = tickedChroms(shown);  // W17: the ticked ones (null: the original one)
+    const r = await call("download", { index: shown, kind, options: opts });
+    if (cancelAsked) { status(i18n("status.cancelled")); return; }
+    if (r.error) { status(i18n("status.not_written", { error: errorOf(r) }), true); return; }
+    save(r);
+    status(i18n("status.saved", { name: r.name }));
+    noteList(notes, i18n("download.check_before"), (r.warnings || []).map(msgText));
+  } catch (e) {
+    if (!(e instanceof Stopped)) status(i18n("status.not_written", { error: errText(e) }), true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+// a file Python wrote (its bytes, from the engine), to the browser's downloads, typed by its name
+const MIME = { zip: "application/zip", json: "application/json", csv: "text/csv", txt: "text/plain",
+               xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+function save(r) {
+  const ext = String(r.name).split(".").pop().toLowerCase();
+  saveBlob(new Blob([r.bytes], MIME[ext] ? { type: MIME[ext] } : {}), r.name);
+}
+
+function saveBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+function noteList(el, head, items) {
+  el.innerHTML = "";
+  if (!items.length) return;
+  el.className = "warn";
+  el.append(head);
+  const ul = document.createElement("ul");
+  ul.className = "notes";
+  for (const w of items) li(ul, w);
+  el.append(ul);
+}
+
+// several runs (ticked, or all in the list) in one zip, one folder per run as `pycorn export`
+// writes them: Session.export_start(ids, curves=[names], ...), then one run per step
+async function downloadMany(kind, ids) {
+  if (!ready || busy || !ids.length) return;
+  setBusy(true);
+  const notes = $("dlnotes");
+  notes.innerHTML = "";
+  begin(i18n("status.writing", { kind: kindName(kind) }));
+  try {
+    // W17: per run, its ticked chromatograms (a run without a picker: its original one)
+    const chromatograms = {};
+    for (const i of ids) if (tickedChroms(i)) chromatograms[i] = tickedChroms(i);
+    const r = await call("all", { kind, ids, curves: tickedCurves(), options: { ...tableOptions(), chromatograms } });
+    if (r.cancelled || cancelAsked) { status(i18n("status.cancelled")); return; }
+    if (r.error) { status(i18n("status.not_written", { error: errorOf(r) }), true); return; }
+    save(r);
+    status(i18n("status.saved_all", { name: r.name, count: r.runs }));
+    noteList(notes, i18n("list.not_written_all"), (r.messages || r.warnings || []).map(msgText));
+  } catch (e) {
+    if (!(e instanceof Stopped)) status(i18n("status.not_written", { error: errText(e) }), true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+$("lang").addEventListener("change", (e) => {
+  lang = e.target.value;
+  try { localStorage.setItem(LANG_PICK, lang); } catch (err) { /* storage blocked: kept for this page */ }
+  applyLanguage();
+  showVersion();
+  if (busy && !cancelAsked) $("cancel").textContent = i18n("cancel");
+  // tables and pickers drawn with the old language's texts
+  if (current) showChrom(Number($("chrom").value) || 0);
+  for (const id of [...drawn]) fillTable($(id), tableData[id]);
+});
+$("files").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
+$("overrides").addEventListener("change", showOverridesName);
+// The cursor label: a touch screen has no mouse to move away, and on a phone the label can cover
+// the whole plot. A tap outside the plot, a second tap on it while the label shows, or Esc close it.
+const hoverShown = () => !!document.querySelector("#plot .hoverlayer > *");
+const unhover = () => { if (hoverShown()) Plotly.Fx.unhover("plot"); };
+let tapClears = null;  // where a tap began that is to close the label, not move it
+document.addEventListener("pointerdown", (e) => {
+  if (!$("plot").contains(e.target)) { unhover(); return; }
+  tapClears = e.pointerType !== "mouse" && hoverShown() ? [e.clientX, e.clientY] : null;
+}, true);
+document.addEventListener("pointerup", (e) => {
+  const at = tapClears;
+  tapClears = null;
+  // a drag (zoom or pan) is not a tap; the wait: Plotly draws its label after the tap
+  if (at && Math.hypot(e.clientX - at[0], e.clientY - at[1]) < 10) setTimeout(unhover, 150);
+}, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") unhover(); });
+// across the small-screen width (a phone turned, a window narrowed): the plot is laid out again
+SMALL.addEventListener("change", () => {
+  if (current) drawPlot(current.chromatograms[Number($("chrom").value) || 0], plotRanges());
+});
+// files dropped anywhere on the page are added: a drop that misses the box would otherwise make
+// the browser open the file and leave the page
+const drop = $("drop");
+const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) { e.preventDefault(); drop.classList.add("over"); } });
+window.addEventListener("dragleave", (e) => { if (!e.relatedTarget) drop.classList.remove("over"); });
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  drop.classList.remove("over");
+  addFiles([...e.dataTransfer.files]);
+});
+$("trysample").addEventListener("click", trySample);
+$("cancel").addEventListener("click", cancelJob);
+$("retry").addEventListener("click", () => location.reload());
+$("runfilter").addEventListener("input", filterRuns);
+for (const th of $("runs").tHead.rows[0].cells) {
+  if (th.classList.contains("tick")) continue;  // the tick-all box, not a sort
+  th.tabIndex = 0;
+  th.addEventListener("click", () => sortRuns(th));
+  th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sortRuns(th); } });
+}
+// the system's light/dark switch while the page is open: the plot follows (the zoom is kept)
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!current) return;
+  drawPlot(current.chromatograms[Number($("chrom").value) || 0], plotRanges());
+});
+$("img-png").addEventListener("click", () => saveImage("png"));
+$("img-svg").addEventListener("click", () => saveImage("svg"));
+$("chrom").addEventListener("change", (e) => showChrom(Number(e.target.value)));
+// Overlay / Stacked: kept in this browser (a setting); the x zoom stays, the y axes start over
+for (const [id, mode] of [["lay-overlay", "overlay"], ["lay-stacked", "stacked"]]) {
+  $(id).addEventListener("click", () => {
+    if ((mode === "stacked") === stackedOn()) return;
+    layoutChoice = mode;
+    try { localStorage.setItem(LAYOUT_PICK, mode); } catch (err) { /* storage blocked: kept for this page */ }
+    if (current) drawPlot(current.chromatograms[Number($("chrom").value) || 0], { xaxis: plotRanges().xaxis }, true);
+  });
+}
+// W11: this run or the ticked runs; Curves / Runs as panels, kept in this browser (the x zoom stays)
+$("src-one").addEventListener("click", () => setSource(false));
+$("src-ticked").addEventListener("click", () => setSource(true));
+for (const [id, mode] of [["lay-roles", "roles"], ["lay-runs", "runs"]]) {
+  $(id).addEventListener("click", () => {
+    if ((mode === "runs") === overlayByRuns()) return;
+    overlayLayoutChoice = mode;
+    try { localStorage.setItem(OVERLAY_PICK, mode); } catch (err) { /* storage blocked: kept for this page */ }
+    if (overlayOn && current) drawOverlay({ xaxis: plotRanges().xaxis });
+  });
+}
+$("xaxis").addEventListener("change", (e) => {
+  axisChoice = e.target.value;
+  try { localStorage.setItem(AXIS_PICK, axisChoice); } catch (err) { /* storage blocked: kept for this page */ }
+  drawPlot(current.chromatograms[Number($("chrom").value) || 0]);
+});
+$("tickall").addEventListener("change", tickAllShown);
+// Shift-click ticks a range: no text selected in the list by it
+$("runs").tBodies[0].addEventListener("mousedown", (e) => { if (e.shiftKey && !e.target.closest("input, details")) e.preventDefault(); });
+// the download panel: every change is kept (settings only) and the panel redrawn
+$("dlpanel").addEventListener("change", (e) => {
+  if (e.target.name === "dlscope") scopeWanted = e.target.value;
+  if (e.target.id === "sizemode") updateSize();
+  if (e.target.id !== "overrides") saveDownloadSettings();
+  updatePanel();
+});
+// placed before it shows (beforetoggle), so it never appears elsewhere first
+$("dlpanel").addEventListener("beforetoggle", (e) => {
+  if (e.newState !== "open") return;
+  updatePanel();
+  placePanel();
+});
+const placeOpenPanel = () => { if ($("dlpanel").matches(":popover-open")) placePanel(); };
+window.addEventListener("resize", placeOpenPanel);
+window.addEventListener("scroll", placeOpenPanel, { passive: true });
+$("dlgo").addEventListener("click", startDownload);
+$("clear").addEventListener("click", async () => {
+  if (busy || !ready) return;
+  setBusy(true);
+  try { await call("clear"); } catch (e) { /* the list is cleared here anyway; a restart reads `kept` only */ }
+  finally { setBusy(false); }
+  kept = [];
+  chromLists.clear();
+  chromTicks.clear();
+  $("runs").tBodies[0].innerHTML = "";
+  $("runfilter").value = "";
+  $("view").hidden = true;
+  $("notread").hidden = true;
+  $("dlnotes").innerHTML = "";
+  shown = null;
+  current = null;
+  anchorIndex = null;
+  winInfo = null;  // the runs' phases and curves (the windows and curves picked stay)
+  winInfoKey = null;
+  winHide();
+  listShown();
+  status(i18n("status.cleared"));
+});
+
+$("more").addEventListener("toggle", moreToggled);
+// M22: the window form
+$("winbox").addEventListener("toggle", () => winChanged(true));
+for (const id of ["winphase", "winunit"]) $(id).addEventListener("change", winPickerChanged);
+for (const id of ["winfrom", "winto", "winname"]) $(id).addEventListener("input", winPickerChanged);
+$("wintext").addEventListener("input", () => {
+  clearTimeout(winParseTimer);
+  winParseTimer = setTimeout(() => winTextEdited(true), 400);
+});
+for (const [id, run] of [["wintext", winAdd], ["winfrom", winAdd], ["winto", winAdd], ["winname", winAdd], ["wincurve", winAddCurve]]) {
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); run(); } });
+}
+$("winadd").addEventListener("click", winAdd);
+$("wincurveadd").addEventListener("click", winAddCurve);
+$("winclear").addEventListener("click", winClear);
+
+loadDownloadSettings();
+loadViewSettings();
+loadWindowSettings();
+winFillPickers();
+lang = chooseLanguage();
+applyLanguage();
+status(i18n("status.downloading"));
+start();
+</script>
+</body>
+</html>
