@@ -1,16 +1,26 @@
-# Run structure: one ISA-88 record, a view per audience (proposal)
+# Run structure: read a run once, describe it in ISA-88 terms (proposal)
 
-Draft, 2026-11-12, for the owner's review. It reframes [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md)
-(topics 3.1-3.12, Decide 1-26) around three things at once: the audiences, the decisions
-already made, and ISA-88. Nothing here is built. The ISA-88 notes follow the standard's
-concepts (procedural, physical and process models; states; batch records, Part 4); they were
-not checked against its text, and the BatchML names below should be checked against the
-published schemas before anything is written to them. Section 6 (2026-11-14) maps the record
-onto CADET-Process 0.13 and CADET-GUI.
+Draft, 2026-11-12, for the owner's review. Nothing here is built.
 
-## 1. Criteria
+**In short.** Today PyCORN reads a run's structure (phases, steps, flow, %B, pauses, feed)
+separately for each output: the phase tables, the CADET sections, the page's tracks, the
+window statistics. They can drift apart. The proposal: read the run **once** into a single
+description, and have every output take what it needs from it. The description uses the
+words of ISA-88, the batch-control standard that plant systems already use (section 1, "Why
+ISA-88"), next to UNICORN's own words. It keeps both what the method asked for and what the
+instrument actually did, so a modeler, a person reading Excel, and a script each get the
+version they need without re-deriving it.
 
-**Audiences.** The instrument is the evidence, not an audience.
+This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topics 3.1-3.12,
+Decide 1-26) around that idea. The ISA-88 notes follow the standard's concepts (procedural,
+physical and process models; states; batch records, Part 4); they were not checked against
+its text, and the BatchML names should be checked against the published schemas before
+anything is written to them. Section 6 (2026-11-14) compares it with CADET-Process 0.13 and
+CADET-GUI.
+
+## 1. Who it is for, and what must not change
+
+**Who reads a run's structure.** The instrument is the evidence, not a reader.
 
 | Audience | Gets | Wants |
 |---|---|---|
@@ -33,8 +43,9 @@ onto CADET-Process 0.13 and CADET-GUI.
 - Unknowns said in plain words, never guessed; masking rules (Track 9); full values in code,
   rounding at display only.
 
-**ISA-88** as the frame that already explains most of these: the procedure issues commands,
-the equipment carries them out, and a batch record keeps both, folding neither.
+**ISA-88** already explains most of these: the method (procedure) issues commands, the
+instrument (equipment) carries them out, and the batch record keeps both, without smoothing
+either one.
 
 **Why ISA-88.** Plant batch systems and historians already organize run data this way.
 Emerson DeltaV Batch is built on ISA-88 (procedures, unit procedures, operations, phases)
@@ -45,28 +56,30 @@ MESA's BatchML is its free XML form. A run record tagged with ISA-88 levels can 
 beside plant batch data without a new vocabulary. Neither product is known to exchange
 BatchML, so this is about structure, not a file format. Sources: "References" at the end.
 
-## 2. The idea: one record, three projections
+## 2. The idea: read once, then three views
 
 Today each output builds its own picture from the run log (phase tables, sections, CADET,
-page tracks, M22 windows). The proposal is one **run record**, tagged with ISA-88 terms,
-built once per result from its original chromatograms (section 3, "Chromatograms"), holding:
+page tracks, M22 windows). The proposal is one **run record**: a single description of the
+run, built once per result (from all its original chromatograms; section 3,
+"Chromatograms"). It holds:
 
-- the **procedural** structure (what the method did, as logged),
-- the **commanded** values (set-points from the run log) and the **actual** values (curves,
-  the volume axis) side by side,
-- every value's **source** and **quality**.
+- **what ran, in order**: phases, steps and pauses as the run log shows them;
+- **asked for vs. delivered**, side by side: the setting the method gave (e.g. flow
+  5 ml/min) and what the instrument did (from the curves and the volume axis);
+- **where each value came from**, and how sure it is (logged, measured, inferred, assumed).
 
-Each audience then gets a **projection** of that record, with its rules written down in one
-place (the `step_rules.py` block the review already decided on):
+Each reader then gets a **view** of the record: the same facts, chosen and worded for them.
+The rules for each view are written in one place (the `step_rules.py` block the review
+already decided on):
 
-| Projection | Rule |
+| View | What it shows |
 |---|---|
-| Model | actual values where measured, commanded otherwise; never folded; every section with its source |
-| Display | commanded (recipe) values per phase, folded by the 3.4 rule, with notes; UNICORN's words |
-| Scripts / agents | the record itself as JSON (schema-versioned, masked by default) |
+| Model (CADET) | what the instrument did where it was measured, else what was asked for; every change kept, nothing smoothed; each section says where its values came from |
+| Display (Excel, page) | the method's settings per phase, as the user wrote them; a short delay at a phase start is folded into the phase with a note (3.4 rule); UNICORN's words |
+| Scripts and agents | the whole record as JSON (versioned, masked by default) |
 
-Nothing in a projection is computed that the record doesn't hold, so the three can't
-disagree; where they differ, the record says why (`held_over`, `source`, `quality`).
+A view never computes anything the record doesn't hold, so the three can't disagree; where
+they show different numbers, the record says why (`held_over`, `source`, `quality`).
 
 ## 3. ISA-88 mapping
 
@@ -142,7 +155,7 @@ data. So:
 | What the user meant by the split | not inferred; the caller may map a chromatogram to an operation or `process_action`, as for phases |
 | Imported / derived chromatograms (W17) | not part of the procedure: an imported one links to its source result (`OriginalResultID`), a derived one is analysis; linked, never merged |
 
-Projections: display keeps one table set per chromatogram, as today, with operations cut at
+Views: display keeps one table set per chromatogram, as today, with operations cut at
 the boundary noted; the model picks a span by chromatogram or by operation on the one clock
 (e.g. a by-pass measurement and a column run as separate CADET inputs); agents get the record
 with its tags. Today each chromatogram is read from its own `Logbook` alone (inferred from
@@ -222,7 +235,7 @@ on 0.12 today. Their API may still change.
 **"Phase" has three meanings.** A UNICORN phase is an ISA-88 operation (section 3); a
 CADET-Process `Phase(duration, flow_rate, composition_start, composition_end)` is one stretch
 of constant flow and linear composition, i.e. an ISA-88 step (a PyCORN section). The record
-keeps its ISA-88 words; the model projection says `Phase` only in CADET objects. CADET-Process
+keeps its ISA-88 words; the model view says `Phase` only in CADET objects. CADET-Process
 asks in its forum whether its vocabulary (phase, valve event) fits how users see their
 instrument; the record's mapping is a ready answer.
 
@@ -239,7 +252,7 @@ instrument; the record's mapping is a ready answer.
 | `actual` curves | `ReferenceIO(time, solution, flow_rate)`, SI by convention, no unit field | `ExperimentalRun` / `Channel`, units dropped |
 | feed start (a setpoint with time) | - | `Comparison.injection_marker` (a text prefix) |
 
-**What the model projection would lose today** (gaps to raise with CADET, none to work
+**What the model view would lose today** (gaps to raise with CADET, none to work
 around in PyCORN by guessing):
 
 - One flow per `Phase`: UNICORN flow ramps are not representable (a flow at phase end would be).
@@ -307,14 +320,14 @@ Each step additive: today's outputs stay byte-identical until a step says otherw
    derived values with source and quality. Tests: today's phase table, sections and CADET
    inputs re-derived from the record equal today's outputs.
 2. **Rules** (`pycorn/step_rules.py`): the 3.4 block (decided) and the other display rules
-   as they're decided; one function per projection.
-3. **Display projection**: the decided 3.4 fold and 23 names in the phase table, Excel and the
+   as they're decided; one function per view.
+3. **Display view**: the decided 3.4 fold and 23 names in the phase table, Excel and the
    page, plus the M22 lead-in skip. A renamed or changed output: CHANGELOG entry.
 4. **Steps table** (Decide 1, 2) for modelers, from the record.
 5. **`pycorn record --json`** (and `inspect` gains the record's operation list): the
    standard-format JSON of section 5, masked by default.
-6. **Model projection** reads `actual` values once Decide 6 is settled by the survey.
-7. When CADET-Process 0.13.0 ships: the model projection as `PhasedProcess` steps on an
+6. **Model view** reads `actual` values once Decide 6 is settled by the survey.
+7. When CADET-Process 0.13.0 ships: the model view as `PhasedProcess` steps on an
    `LCFlowSheet` (section 6; needed for `characterization`, which takes an `LCProcess`),
    replacing PyCORN's own flow sheet and event compiler; the gaps raised with CADET first.
 8. Later, on request: BatchML XML, Allotrope ASM.
