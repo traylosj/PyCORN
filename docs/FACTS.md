@@ -98,6 +98,16 @@ On `samples/sample.zip` (F1-F15) and UNICORN 7.3 / 7.11 results (F16-F24).
 - Run-log sections rebuilt from what ran match the %B and Q1-Q4 curves; flow warnings that
   remain are real (pressure control in `PathSet` blocks, pump ramps). %B before the first
   `Gradient` comes from the curve; some runs have no Conc B curve and no early `Gradient`.
+- Method flow: the run log says which pump UNICORN counts, as a `(System)` entry `The method
+  flow is now calculated based on the system flow.` (at the start) or `... based on the sample
+  flow.` (e.g. while the injection valve is at Direct inject), logged again at every switch.
+  The volume axis is the integral of this method flow: in every section checked it follows the
+  named pump, never the other one, including runs whose system flow is 0 or 0.001 ml/min while
+  the sample pump runs. It is pump volume: it keeps counting in column by-pass and at waste.
+  Not every result logs the entry.
+- System and sample pump can run at the same time when UNICORN allows it; the valve positions
+  (injection valve, column position) say where each pump's flow goes. Runs seen set both to the
+  same flow; the volume axis then counts one pump's flow, not the sum.
 - Conc Q curves are sampled staggered every 2 s: checked 6 s from section edges.
 - The UTC start of U7.11 exports and imported database runs sits on a whole second (up to 1 s
   early); noted (review w), the parity test ignores it.
