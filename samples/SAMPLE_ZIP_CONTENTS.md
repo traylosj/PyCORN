@@ -226,8 +226,7 @@ so method start is at -13.57932 ml. Each curve links to its injection event curv
 
 ## Other Bundles: UNICORN 7.3 vs 7.11 (2026-11-07)
 
-Tested against a lab environment: results from 7.3.0.473 and 7.11.0.1097, some runs exported
-from both versions (the 7.11 copies are the same results re-saved and evaluated in 7.11).
+Compared: results from 7.3.0.473 and 7.11.0.1097, some runs exported from both versions (the 7.11 copies are the same results re-saved and evaluated in 7.11).
 
 - **Raw data is unchanged between versions.** For the paired runs, every original
   curve (volume, values, time), unit, precision and event is identical.
@@ -259,7 +258,7 @@ from both versions (the 7.11 copies are the same results re-saved and evaluated 
 
 ## Check Against UNICORN's Text Export (.asc, 2026-11-07)
 
-Tested against a lab environment on three `.asc` exports and their bundles (7.3 in min;
+Checked on three `.asc` exports and their bundles (7.3 in min;
 7.11 in ml; 7.11 in min). Tab-separated: row 1 chromatogram, row 2 curve names, row 3 x/y units,
 then one x/y column pair per curve, each with its own length. Values are printed with
 7 significant digits, x with 3 decimals. Tests: `test_asc_*` in `tests/test_zip_source.py`.
@@ -290,7 +289,7 @@ then one x/y column pair per curve, each with its own length. Values are printed
 
 ## Folder Exports (.UFol, 2026-11-07)
 
-UNICORN's folder export (7.11.0.1097, tested against a lab environment) is an **uncompressed POSIX tar**, not a zip. It holds the exported folder tree:
+UNICORN's folder export (7.11.0.1097) is an **uncompressed POSIX tar**, not a zip. It holds the exported folder tree:
 
 ```
 <Folder>/                                  directory entry (subfolders the same way)
@@ -323,8 +322,7 @@ length curve) is the way to tell it from absorbance.
 
 ## Samples for the run structure review (2026-11-09)
 
-Added for `docs/RUN_STRUCTURE_REVIEW.md` section 6, picked from a lab environment
-(UNICORN 7.11). Sanitized with `tools/anonymize_zip.py` (person names
+Added for `docs/RUN_STRUCTURE_REVIEW.md` section 6 (UNICORN 7.11). Sanitized with `tools/anonymize_zip.py` (person names
 as `--token`), then searched again in every nested member for names, logins and result names.
 `u711_column_test.zip` is the ColumnTest result that scan also picked (same 27 curves); it
 was already here.
@@ -464,7 +462,6 @@ members.
 
 Names depend on the instrument and its configuration, and the samples here (lab-scale AKTA)
 do not cover them all; process-scale systems use others (e.g. `UV_280` instead of `UV 1_280`).
-Tested against a lab environment:
 
 - **Curve numbers change between runs** (`System flow` is #7 or #8, `pH` #16 or #7). Use them
   only within one run (e.g. `InjectionEventCurve/CurveNumber`, peak table `DataCurve`).

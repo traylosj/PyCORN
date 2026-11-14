@@ -3,13 +3,13 @@
 Buffer conductivity and pH read where the column is by-passed (docs/ROADMAP.md, D22).
 
 Owner (rev 7e): by-pass windows with buffer only (no sample), before, between or after the
-feed, give the buffer's own conductivity and pH, without the column. Most runs tested
-against a lab environment have one (e.g. a `Purge` block before the run).
+feed, give the buffer's own conductivity and pH, without the column. Many runs have one (e.g. a
+`Purge` block before the run).
 
 - Reading: the median over the last third of the window's last steady piece (same inlets,
   constant %B and %Q); `steady` is False when the window ends in a ramp (then the last section
   is read). A piece shorter than `READ_MIN_S` gives no reading (it shows what was left in the
-  lines; tuned against a lab environment, where some windows last only seconds). Settled when the spread over that span is within `COND_SETTLED` (relative) for
+  lines; some windows last only seconds). Settled when the spread over that span is within `COND_SETTLED` (relative) for
   conductivity and `PH_SETTLED` (pH units) for pH; unsettled readings are listed, flagged.
 - Check: the column outlet in the nearest section run with the same inlets and %B (column in
   line, injection valve not at a sample position, at least `OUTLET_MIN_S`), read the same way;
@@ -31,7 +31,7 @@ COND_SETTLED = 0.02  # relative spread
 PH_SETTLED = 0.05  # pH units
 COND_MATCH = 0.02  # outlet vs by-pass, relative
 # outlet vs by-pass, pH units (owner, rev 7f): the outlet reads a little lower, typically 0.01-0.09
-# (tuned against a lab environment: a 0.05 limit warned too often), plausibly the column itself
+# (a 0.05 limit warned too often), plausibly the column itself
 PH_MATCH = 0.1
 READ_FRACTION = 1.0 / 3  # the last third of the steady piece
 OUTLET_MIN_S = 30.0

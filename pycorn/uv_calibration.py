@@ -19,9 +19,8 @@ injected amount the caller gives (e.g. a dedicated calibration run).
 A measured coefficient is an estimate too (`pycorn.concentration.ACCURACY_NOTE`, on every
 row). No absorbance limit is assumed: with the caller's `absorbance_limit`, readings above it
 give no coefficient. Signs of saturation (a flat top), a cut peak or baseline drift are warned.
-The limits below were tuned against a lab environment (2026-11-08), which showed both cases
-(plateaus, some near the top of the detector's linear range, and short pulses) and windows
-with no signal.
+The limits below cover both cases (plateaus, some near the top of the detector's linear
+range, and short pulses) and windows with no signal.
 """
 from collections import OrderedDict
 

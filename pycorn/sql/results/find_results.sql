@@ -11,8 +11,8 @@
 -- Don't write the markers or percent signs in comments: they would be replaced or read
 -- as parameters.
 --
--- Run start: ResultRunInformation 'RunStartDate', stored as 'MM/DD/YYYY hh:mm:ss +HH:MM'
--- (tested against a lab environment). Text in any other shape falls back to
+-- Run start: ResultRunInformation 'RunStartDate', stored as 'MM/DD/YYYY hh:mm:ss +HH:MM'.
+-- Text in any other shape falls back to
 -- the first Chromatogram.Created. No TRY_CONVERT: UNICORN databases can run at
 -- compatibility level 100, so the LIKE guard keeps CONVERT from failing.
 -- Column: the name in the run-time 'ColumnInformation' record (usedColumns), as stored

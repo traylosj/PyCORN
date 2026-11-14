@@ -113,7 +113,7 @@ PyCORN/
 |   |-- SAMPLE_ZIP_CONTENTS.md  Entry-by-entry contents; identifying curves
 |-- tests/                    pytest: parsers, ZIP/UFol/SQL readers, axes, search,
 |                             sources, variables, roles/geometry, run log, CADET
-|-- unicorn_test_files/       Lab exports (gitignored); tests use them when present
+|-- unicorn_test_files/       Optional extra exports (gitignored); tests use them when present
 |-- sql/                      Connector support files
     |-- .env.example          Credential template (real .env is gitignored)
     |-- requirements.txt      pymssql, pandas, xmltodict
@@ -135,7 +135,7 @@ PyCORN/
 |-------------|---------|
 | `open_run(path)` | `Run` with everything in a UNICORN 6+ bundle: curves, events, peak tables, result and run info, method/system metadata, audit log, every raw entry. `run.to_res3_dict()` gives the `PcUni6` dict. |
 | `open_folder(path)` | One `Run` per result in a `.UFol` folder export. |
-| `PyCORNDatabase().load_run(row_or_id)` | The same `Run` from the database, plus `run.tables` (every row tied to the result). Tested against a lab environment: equal to the same results exported to `.zip` and `.UFol` files (`tests/test_sql_source.py`, run only when `sql/.env` exists and the server answers). |
+| `PyCORNDatabase().load_run(row_or_id)` | The same `Run` from the database, plus `run.tables` (every row tied to the result). Equal to the same results exported to `.zip` and `.UFol` files (`tests/test_sql_source.py`, run only when `sql/.env` exists and the server answers). |
 | `PcRes3`, `PcUni6`, `utils.import_xml_as_df()` | Legacy dict / DataFrame output, unchanged. |
 
 Curve and event names differ between instruments: look curves up with

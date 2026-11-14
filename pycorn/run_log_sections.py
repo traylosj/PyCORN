@@ -29,8 +29,8 @@ Owner decisions (docs/ROADMAP.md, D13-D16, 2026-11-08):
   the pauses before), which is the exported time axis. Instructions at a pause's elapsed time
   take effect after the pause section; the pause keeps the state in force before it.
 - A manual `Hold` (dated 'Hold <date>' entry, not 'Hold until ...') keeps the flow running but
-  stops %-ramps, and %-instructions issued during it act at the `Continue` that ends it (tested
-  against a lab environment: the Conc B curve changes at the Continue). A `Pause` during a Hold resumes
+  stops %-ramps, and %-instructions issued during it act at the `Continue` that ends it (the
+  Conc B curve changes at the Continue). A `Pause` during a Hold resumes
   into the Hold: its `Continue` ends the pause only. A Hold issued during a Pause takes over
   from it, and the next `Continue` ends the Hold.
 - A setting with no instruction yet (e.g. flow before the first `System flow`) is taken from its

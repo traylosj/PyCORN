@@ -66,7 +66,7 @@ IMPLIED_KEYS = (
 )
 # Referenced rows of these tables are kept, but their own parents are not fetched. Above
 # InstrumentConfiguration are the instrument's firmware, VID configuration and libraries:
-# installed software, not result data (tens of MB when tested against a lab environment).
+# installed software, not result data (can be tens of MB).
 TERMINAL_TABLES = frozenset(["dbo.InstrumentConfiguration"])
 
 

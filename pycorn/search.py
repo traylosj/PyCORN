@@ -38,8 +38,7 @@ Filters (all optional; all given filters must match; a list means any of its val
   `Chromatogram.Created`.
 - `column`: the column name UNICORN wrote at run time (`ColumnInformation`, usedColumns;
   `Any` = no column type chosen). Limits: only that record is searched, not method
-  variables (use `variables=` for a variable such as 'Column type'); tested against a lab
-  environment, most runs say `Any`. A result with several columns matches if any name does.
+  variables (use `variables=` for a variable such as 'Column type'); many runs say `Any`. A result with several columns matches if any name does.
 - `variables`: `{name: spec}` on the method variables (search criteria; the value the run
   used, scouting value included). Names are the method author's: give them exactly.
   A spec is: None (the variable is present), text (wildcards on the stored text), a number

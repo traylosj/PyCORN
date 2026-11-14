@@ -26,8 +26,7 @@ stored last fraction gives a warning.
 `pool_rows(chrom)`: the rows, with start, end and length on every axis as the Fractions table
 has them, plus the pool's name (first and last fraction, 'first-last'), its members and the
 pooled curve. `fraction_pools(chrom, rows)`: the pool name of each Fractions table row (None
-when in no pool). Tested against a lab environment, on the database and on the .zip of the
-same result.
+when in no pool). The database and the .zip of the same result give the same pools.
 """
 import re
 from collections import OrderedDict

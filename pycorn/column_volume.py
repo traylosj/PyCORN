@@ -65,7 +65,7 @@ COLUMN_POSITION_PATTERNS = [
 BYPASS_POSITIONS = [re.compile(r"^by-?pass$", re.I)]
 COMPLETED = re.compile(r"\(Completed\)")
 # volume before the first column position entry that is worth a warning when the run later
-# goes to by-pass (owner, 2026-11-08); tuned against a lab environment, where the start-up volume is far smaller
+# goes to by-pass (owner, 2026-11-08); a typical start-up volume is far smaller
 PRE_SWITCH_WARN_ML = 0.1
 
 Candidate = namedtuple("Candidate", "source value unit location confidence")

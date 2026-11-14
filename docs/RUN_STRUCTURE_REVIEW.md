@@ -13,7 +13,7 @@ Each topic ends with **Decide**: the choices still open, with a proposal. Decide
 [`docs/RUN_STRUCTURE_GUIDE.md`](RUN_STRUCTURE_GUIDE.md) instead,
 which explains today's behaviour in plain terms, with the logic figures.
 
-The evidence run was tested against a lab environment. Figures use `samples/u73_blank.zip`,
+Figures use `samples/u73_blank.zip`,
 which runs the same method (same phases, blocks and instruction order) and can be shared;
 `samples/u711_proa_day12.zip` is the run itself, sanitized.
 
@@ -171,7 +171,7 @@ catch-up; both times stay, as in a batch record; the model takes the actuals.
    commands; if the volume axis is the equipment's actual delivered volume, the model's
    "actuals" are the volume axis.
 
-   Survey (2026-11-12, tested against a lab environment): the volume axis is the volume the
+   Survey (2026-11-12): the volume axis is the volume the
    pump delivered, from the instrument's own commanded flow including what its firmware does
    that the run log never records; the `System flow` curve is the same signal (not a
    measurement), about 1 s later. In steady state both equal the set flow. They differ from
@@ -455,8 +455,8 @@ mid-phase, a logged `Inlet B` or a sample-pump feed. A new shareable sample shou
 - `Inlet B` set in the method, and preferably a sample-pump or direct-inject feed
 - a column with a stored Vc, so the CV lengths can be checked
 
-Tested against a lab environment (2026-11-09): no run there has a linear ramp with a stored
-Vc, a hold or a second slope; `u711_proa_day12.zip` has only length-0 gradients, so they are
+No run found (2026-11-09) has a linear ramp with a stored Vc, a hold or a second slope;
+`u711_proa_day12.zip` has only length-0 gradients, so they are
 steps, not the "5 CV gradient" this section used to name. Added to `samples/`:
 `u711_manual_run.zip` (`Inlet B` logged, sample-pump feed, flow changes, pauses) and
 `u711_proa_day12.zip` (Vc stored); `u711_column_test.zip` already covers a flow change inside a phase with a

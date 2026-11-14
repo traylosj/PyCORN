@@ -260,7 +260,7 @@ def test_feed_through_a_pump_line_from_a_mark_after_an_inlet_switch():
 
 
 def test_mark_without_an_inlet_switch_is_not_feed():
-    # most such marks tested against a lab environment: the inlet in force since method start says nothing
+    # the common case: the inlet in force since method start says nothing
     run = _with_injection(_run(_line_load_events(inlet_at=4.0)), 2.0)
     exp = build_experiment(run)
     assert not any(s.feed for s in exp.sections)

@@ -1,7 +1,6 @@
 # Phase 0 Findings: UNICORN Database vs ZIP Exports
 
-Read-only spike, 2026-11-07, tested against a lab environment (UNICORN databases with
-`DB_Version` 1.7.4.0 and 1.8.6.0). Decisions and facts that came from it are in
+Read-only spike, 2026-11-07, on UNICORN databases with `DB_Version` 1.7.4.0 and 1.8.6.0. Decisions and facts that came from it are in
 [`docs/ROADMAP.md`](ROADMAP.md). This file keeps schema names, mappings, vocabularies and
 rules. Every query was a `SELECT`.
 

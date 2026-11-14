@@ -3,7 +3,7 @@
 Moved out of `docs/ROADMAP.md` on 2026-11-09: reference material (facts about the bundle,
 the database, the run log, the method and CADET, numbered F and X) and the closed review.
 Owner decisions stay in [`ROADMAP.md`](ROADMAP.md) ("Decisions"). Open review items i-m are
-tracked as M1-M6 in the roadmap's "Modeler input". Tested against a lab environment.
+tracked as M1-M6 in the roadmap's "Modeler input".
 
 ## Facts and gotchas
 

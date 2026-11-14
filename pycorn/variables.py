@@ -6,8 +6,8 @@ UNICORN stores one search-criteria row per variable (`ResultSearchCriteria`; `Re
 in a bundle): `Name` (kind), `Keyword1` (variable name), `Keyword2` (value as text) and
 `ExtraDisplayInformation` (unit, when stored). A scouted variable is stored only as a
 `ScoutingVariableValue` row, holding the scouting value; there is no `VariableValue` row for
-it. So every stored row is the value the run used (tested against a lab environment
-and confirmed by the run log). The method's programmed value is
+it. So every stored row is the value the run used (the run log
+confirms it). The method's programmed value is
 only in the `MethodData` blob and is not read here: search must stay on indexed tables.
 
 Variable names are the method author's and differ between methods: take them from the

@@ -5,7 +5,7 @@ Concentration (mg/ml) from a UV curve: c = A [AU] / (epsilon [ml mg^-1 cm^-1] * 
 A derived view: the stored curve is never changed, and `to_res3_dict()` never includes it.
 epsilon is the caller's (per curve: it depends on the wavelength), either a mass coefficient
 or a molar coefficient plus molecular weight. UNICORN's stored coefficients
-(Peak.ExtCoeff, Pool.ExtCoeff, ProteinInfo) were empty in every run tested against a lab environment and
+(Peak.ExtCoeff, Pool.ExtCoeff, ProteinInfo) are usually empty and
 apply only inside a peak or pool, so they are not read here. No default epsilon, path,
 absorbance limit or response factor is ever assumed.
 

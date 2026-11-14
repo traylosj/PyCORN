@@ -279,7 +279,7 @@ unicorn_data.csv
 unicorn_test_files/
 
 #############
-## Local notes: facts about this lab's databases, instruments, files and machine (AGENTS.md, "Local vs universal")
+## Local notes, never tracked (AGENTS.md, "Local vs universal")
 #############
 local/
 

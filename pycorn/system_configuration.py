@@ -44,8 +44,7 @@ LINE_ROLES = OrderedDict([("A", "inlet_valve_a"), ("B", "inlet_valve_b"), ("samp
 # the valve's first position as the run log names it ('Inlet B B1', 'Sample inlet Buffer')
 FIRST_POSITION = {"A": "A1", "B": "B1", "sample": "Buffer"}
 
-# component names per role, as results store them (two system families seen; tested against a
-# lab environment). Parents ('Inlet A') and sub-components ('Inlet V9-IA') both count.
+# component names per role, as results store them (two system families seen). Parents ('Inlet A') and sub-components ('Inlet V9-IA') both count.
 ROLE_NAMES = OrderedDict([
     ("inlet_valve_a", ("Inlet A", "Inlet V9-IA", "Inlet A V9-IAB", "Inlet valve A", "Inlet A GUI",
                        "2nd Inlet valve A")),

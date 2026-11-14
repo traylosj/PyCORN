@@ -8,7 +8,7 @@ bytes in `ResultAuditTrail.ColumnTypeData`, so ZIP, .UFol and database runs read
 column the run used is the one UNICORN named at run time in the 'ColumnInformation' run
 information (`usedColumns`). The name 'Any' means no column type was chosen: no geometry.
 
-Tested against a lab environment (2026-11-08): few results name a column; those that do hold
+Few results name a column; those that do hold
 its record, with BedHeight (cm), Hardware/Diameter (cm) and
 Media/AverageParticleDiameter (um), and pi*d^2/4*L agrees with the run's Vc within 0.5 %.
 Most results use 'Any' or name no column. The database's column library

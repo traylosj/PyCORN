@@ -28,9 +28,8 @@ A data point at a pause's elapsed time gets the pre-pause instant; run-log event
 resuming entry on get the post-pause instant.
 
 An imported chromatogram (W17) keeps the source run's start times and its run log
-('ImportedLogbook', `Chromatogram.run_log()`), on the same elapsed axis as its curves (tested
-against a lab environment: the copies match the source results' log, curves and start time
-exactly), so its UTC is the source run's wall clock.
+('ImportedLogbook', `Chromatogram.run_log()`), on the same elapsed axis as its curves (the
+copies match the source results' log, curves and start time exactly), so its UTC is the source run's wall clock.
 """
 import datetime as dt
 import re

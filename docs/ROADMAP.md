@@ -110,9 +110,8 @@ stated there and in the README. Item 7 (getting-started docs, PyPI) is open.
 - Database access is read-only (`SELECT` only). Don't commit matched ZIPs, data extracted from
   the database or fixtures built from them; the anonymized zips in `samples/` are the only
   committed run data. Don't modify, move or delete anything in `unicorn_test_files/`.
-- Local vs universal (AGENTS.md): no facts about the lab's databases, instruments, files or
-  machine (counts, result IDs, run names, paths) in tracked files; say "tested against a lab
-  environment".
+- Local vs universal (AGENTS.md): no local facts (counts, result IDs, run names, paths) in
+  tracked files, and no mention of where something was tested; that goes in `local/`.
 - SQL files: no `STRING_SPLIT`, `OPENJSON`, `STRING_AGG`, `TRY_CONVERT` or anything else that
   needs compatibility level 130+ (UNICORN databases can be at 100). New SQL the code reads
   goes under `pycorn/sql/`.
@@ -138,7 +137,7 @@ stated there and in the README. Item 7 (getting-started docs, PyPI) is open.
   or `export_cadet()` calls (`cadet_outputs`, `_file_stems`, `_geometry_vc`,
   `build_experiment`, `to_csv`, `to_core_input`, `write_json` / `write_hdf5`, `uv_wavelengths`).
 - Survey scripts are throwaway, outside the repo, and print counts only.
-- The code was tested against a lab environment; tests that need it skip elsewhere.
+- Tests that need a database or extra files skip when they are missing.
 - CADET sources for reading (never run): CADET-Core `v6.0.0a5` and `v5.1.2`, CADET-Process
   `v0.12.0` (`github.com/fau-advanced-separations/CADET-Process`; the `github.com/cadet/` copy
   has only an old `main`), CADET-Python `v1.3.0`.
@@ -171,7 +170,7 @@ any UNICORN SQL Server database through one API, with identical results.
 - `run.to_res3_dict()` equals `PcUni6.load_all_xml()`. `PcUni6` decodes arrays exactly (it used
   to drop the first 5 and last 12 points); `import_xml_as_df` zeroes at the injection UNICORN
   uses, returns NaN outside the data and has `axis="time"`.
-- Checked against a lab environment: exported results equal their database rows (curve
+- Checked: exported results equal their database rows (curve
   values and stored volumes bit-identical, the rest within the XML's 7 digits; database
   timestamps keep microseconds); every database result loads, with chromatogram, curve and
   event counts equal to direct `COUNT`s.
@@ -227,7 +226,7 @@ any UNICORN SQL Server database through one API, with identical results.
   `catalog_from_files(paths)` (light read), `db.match_files()` / `match_zip_to_db()`
   (`file_catalog.py`). Catalog: `source`, `database`, `result_id`, `match_key`, `n_copies`,
   `duplicate_group`, `modified_utc`, `tstamp`, ...
-- Timing (tested against a lab environment): a 500-row page under 0.5 s,
+- Timing: a 500-row page under 0.5 s,
   `count()` and variables of a page well under 0.2 s; a discover walk over two databases
   under 3 s; loads under 1 s per run.
 - Accepted limits: `column=` searches only the run-time `ColumnInformation` (it often says
@@ -249,7 +248,7 @@ any UNICORN SQL Server database through one API, with identical results.
   `_injections`, `_fractions`, `_sections`, `_pauses`; per run `variables.csv`,
   `run_info.csv` (with `export_stamp`, `match_key`), `warnings.csv`; `index.csv` in `--out`.
   CSVs are UTF-8 with BOM (`run_export.CSV_ENCODING`). Opt-in flags: see "Flag decisions".
-- Checked against a lab environment (database and file runs) with every flag; re-export,
+- Checked on database and file runs with every flag; re-export,
   `--update` and a faked `tstamp` change.
 - Accepted limits (owner): a database run is compared by the search CSV's `tstamp` (run `find`
   again for fresh changes); a database or CSV without `tstamp` is re-exported by every
@@ -286,7 +285,7 @@ concentration and calibration is here; "Modeler input" and "Open, by goal" point
 - CLI: `pycorn bypass-uv`; `export --bypass-uv --sample-conc --loop-volume --absorbance-limit
   --uv-response`. Python: `response_factor=` on `concentration()` and `build_experiment()`,
   `uv_response` / `absorbance_limit` in `export_cadet()`. No defaults for any of them.
-- Tested against a lab environment: some runs send sample to the by-pass, as plateaus (can
+- Some runs send sample to the by-pass, as plateaus (can
   sit near the linear limit) or short pulses (much narrower than their valve periods).
 
 #### Owner decisions (2026-11-08)
@@ -640,7 +639,7 @@ CSTR -> outlet; 'feed' inlet -> column for valve feed while the mixer holds (Q =
 file units: `unit_000` buffer inlet, `unit_001` column, `unit_002` outlet, then feed, mixer,
 tubing as present (`/meta/UNIT_NAMES`).
 
-Results (tested against a lab environment): both Cores keep sample and salt mass at 99.99 %,
+Results: both Cores keep sample and salt mass at 99.99 %,
 the sample lags the feed by about the accessible volume (placeholder porosities), v5 FV = v6
 FV exactly, v6 DG within 0.7 %; the C2 `Process` on 5.1.2 matches the Core-file outlet to
 1.6e-6. Runs simulated on Core 5 JSON, Core 6 JSON and HDF5: sample balance 1.0000, section
@@ -677,8 +676,8 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
   - gradient length in min, ml and CV
   - one carry-over configuration block and one helper used by every output
 - **Built in 0.35.0: inlets from the system configuration** (owner, 2026-11-11; Decide 22,
-  D27 (4); `pycorn/system_configuration.py`, `run.system_configuration()`; tested against a
-  lab environment, two system families and results with no sample pump and with a feed
+  D27 (4); `pycorn/system_configuration.py`, `run.system_configuration()`; checked on two
+  system families and results with no sample pump and with a feed
   through line A). Each result stores its system's components (`SystemData`
   `EnabledComponents`, `StrategyData` `ComponentStructure`, the same from zip, `.UFol` and
   database), which say per line whether it has a valve, and whether there is a sample inlet
@@ -871,7 +870,7 @@ the open lines before building (owner rule).
 - **W17 Chromatograms selectable everywhere** (owner, 2026-11-11; Track 8). A result can hold
   several chromatograms: the run's own and others imported or derived in Evaluation (imported
   ones store `OriginalResultID` / `OriginalResultName`, every curve non-original, an
-  `ImportedLogbook`; tested against a lab environment). Integration and other analysis may sit
+  `ImportedLogbook`). Integration and other analysis may sit
   on them, so every chromatogram is selectable in Python, the CLI, Excel / CSV and the page,
   each labelled original / imported (with its source result) / derived. Default for export and
   visuals: the original chromatogram only. Page: a folded chromatogram picker under each
@@ -917,9 +916,9 @@ input; no track)
   in the code, used the way `concentration.ACCURACY_NOTE` is.
 
 **UNICORN report comparison, remaining sections.** 0.31.0 laid the method information out
-as UNICORN's report prints it, checked value by value against a lab environment for the
-method text, variables, peaks, column, calibration and evaluation log. Round 2
-(2026-11-10, against a lab environment, every result read from the database) also checked
+as UNICORN's report prints it, checked value by value for the method text, variables,
+peaks, column, calibration and evaluation log. Round 2 (2026-11-10, every result read from
+the database) also checked
 scouting; method, start, run and evaluation notes and start-protocol questions; evaluation
 procedures; Watch and condition parameters beyond `Hold until`; gradients with length > 0;
 peak tables integrated in time; pressure-sensor calibrations; results with no column
@@ -1043,7 +1042,7 @@ Every owner decision, grouped by track. IDs where they exist; dates are 2026-11-
 | Run identity | ZIP exports and database rows are matched exactly; run selection narrows the database |
 | Axes | Elapsed time, volume, CV and UTC for every curve and event |
 | Column volume | `ColumnVolume` isn't always stored: Vc also from the run log and other sources |
-| Units | Check every axis. Only the Phase 0 units were tested against a lab environment; build table-driven so units and instruments can be added, tested synthetically |
+| Units | Check every axis. Only the Phase 0 units were checked on real results; build table-driven so units and instruments can be added, tested synthetically |
 | UTC | Stored time excludes pauses; rebuild UTC from log anchors and pauses |
 | Database versions | Any database with valid UNICORN entries; detect the schema at runtime, never hardcode 7.11 / 7.3 |
 | Legacy output | Don't change `PcUni6` / `PcRes3`, their dict shape, `pycorn-bin`, `utils.import_xml_as_df`, `query()` / `query_raw()` / `execute_custom_query()`, `execute_cte_query()`'s signature, `unicorn_cte.sql` output or the exports in `pycorn/__init__.py`. New data goes into the new model only |
@@ -1090,7 +1089,7 @@ Rules (owner, 2026-11-08 unless noted):
 - More than one non-by-pass position: a warning naming them; CV is not split per column.
 - Before the first `Column position` text the column is taken as in line; warn when that
   volume is above 0.1 ml and the run goes to by-pass (the start-up volume is usually far
-  smaller; tuned against a lab environment).
+  smaller).
 - CV counts from method start only; no injection-adjusted CV. Zero offsets come from the event
   tables (`chrom.zero_offsets`).
 - Several distinct `Base CV, Vc=` values: record all with time/volume, use the first, warn.
@@ -1147,7 +1146,7 @@ Rules (owner, 2026-11-08 unless noted):
   epsilon belongs to one curve, picked by the caller (never parsed from a name). Sources:
   caller (mass, or molar plus MW: epsilon_mass = epsilon_molar / MW); then stored
   (`Peak.ExtCoeff`, `Pool.ExtCoeff`, `ProteinInfo.ExtinctionCoefficient`, only inside that
-  peak or pool; empty in the lab environment, built synthetically); else no curve and a
+  peak or pool; usually empty, built synthetically); else no curve and a
   warning, never a default. A plain curve with no `CurveUVInfo` gets no curve (no guessed
   path) unless the caller gives a fallback path. Optional caller absorbance limit masks
   points; never a built-in limit. Results record epsilon, unit, source, path and basis.
@@ -1167,7 +1166,7 @@ Rules (owner, 2026-11-08 unless noted):
   `inlets`, `column_position`, `injection_valve`, `sample_use` (D16, D18, D21) and
   `set_marks` (`run_log_sections.span_details`). Values in time order, repeats dropped, pauses
   give none (D7); nothing new is inferred. The CADET export is left as it was (owner: modelers
-  may not need these). Checked against a lab environment on a run with a %B ramp: the
+  may not need these). Checked on a run with a %B ramp: the
   elution phase reads `0 -> ramp 0 to 100 -> 100`. Known: the run log writes a phase's start about a
   second before its own settings, so most phases begin with the previous value (`1 -> 5`);
   see "Run structure (active)" under "Open, by goal".
@@ -1407,11 +1406,11 @@ built:
 | D20 | Superloop | The logged valve period is the feed (a Superloop can't run on once empty). The planned volume (the Inject block's `End_Block` `BreakPointValue`, not the stale dialog `mSampleVolumeForSuperloop`) is only a check |
 | D21 | Sample inlet `Buffer` | Direct inject with the sample inlet at `Buffer` the whole period: sample-pump buffer, not feed, warned (column flow counts). A switch to `Buffer` partway is a chase: with a caller `sample_path_volume` the feed runs that volume past the switch (and starts that much later after a buffer wash); without it the feed ends at the switch, warned. From the AKTA avant help. Being revisited as M4 |
 | D22 | By-pass windows | Every by-pass window (buffer or sample) flags UV and conductivity as not column outlet. Buffer-only windows give buffer conductivity and pH: median over the last third of the last steady piece (same inlets, constant %B/%Q, >= 30 s, `READ_MIN_S`); settled when the spread is <= 2 % (conductivity) and <= 0.05 (pH); compared with the outlet in the nearest matching section, warned on a difference, never corrected. **Rev 7g: pH outlet-match tolerance 0.1** (`PH_MATCH`; shifts of 0.01-0.09 are plausibly the column); settled stays 0.05 (`PH_SETTLED`), conductivity 2 % both. `buffer_salt=` + `salt_calibration_points()` give (mS/cm, mol/m^3) points; quaternary windows get no salt |
-| D23 | Method hints as built | (1) Planned-vs-executed: one row per executed block with a fixed length (planned with the run's variable values), report only, no warnings except injections; blocks never run listed by name. (2) Injection check: allowance = the measured pre-switch gap (the owner first chose previous flow x 1.5 s; tested against a lab environment that warned on most injections, so changed); short beyond gap + 2 % (min 0.005 ml) or over by more than 2 % warns. (3) A planned 0 is checked like the rest. (4) BufferPro parsed to the documented fields, tested synthetically (off in the lab environment), raw kept, layout warned. (5) Every variable value, scouting flags, documentation, phase texts, start-protocol items as labels. Direct-inject rows reported, not checked |
+| D23 | Method hints as built | (1) Planned-vs-executed: one row per executed block with a fixed length (planned with the run's variable values), report only, no warnings except injections; blocks never run listed by name. (2) Injection check: allowance = the measured pre-switch gap (the owner first chose previous flow x 1.5 s; that warned on most injections, so changed); short beyond gap + 2 % (min 0.005 ml) or over by more than 2 % warns. (3) A planned 0 is checked like the rest. (4) BufferPro parsed to the documented fields, tested synthetically, raw kept, layout warned. (5) Every variable value, scouting flags, documentation, phase texts, start-protocol items as labels. Direct-inject rows reported, not checked |
 | D24 | CADET-Process output | (1) One inlet (**replaced by D27**). (2) No caller concentrations: placeholder components, 'salt' following %B (0-100 mol/m^3) and 'sample' = 1 in feed, so it simulates as a tracer; caller values are all or nothing. (3) By-pass windows stay in the references as measured, listed, warned. (4) The Process needs `time_zero='method_start'` |
 | D25 | Core input | (1) `placeholders=True` fills transport from CADET-Core's GRM benchmark (bed porosity 0.37, particle porosity 0.75, axial dispersion 5.75e-8 m^2/s, film 6.9e-6 m/s, pore diffusion 6.07e-11 m^2/s, particle radius 45 um only without a linked column; LRM total porosity 0.8425), each in `/meta/placeholders` with a warning; binding `NONE`; geometry never gets a placeholder. **Rev 11b: caller values only through `overrides=` (D28); `parameters=` / `binding=` removed (TypeError pointing to `overrides`).** (2) Core 6 DG by default (16 elements, degree 4; particle 1 element, degree 4); FV on request; Core 5 FV (`NCOL` 100, `NPAR` 5, WENO 3). (3) Hand-checked expected files for `samples/u711_cadet_reference.zip` are committed (names and version left out; solution times as count, first, last) |
 | D26 | Caller geometry | Asked via the CLI session. (1) Caller bed height, diameter, particle diameter are a fallback per value; a stored value wins. (2) An unused caller value is always noted, equal or not. (3) `override=True` / `--override-geometry` makes the caller win (an AKTA set up wrong). (4) **Amends D11:** caller geometry gives Vc as a last resort (some database results have no Vc); stored record geometry never does. Particle radius order: override > stored > caller fallback > D25 placeholder |
-| D27 | System volumes | (1) A CSTR before (mixer) and after (column -> UV tubing) the column by default. (2) Mixer volume from `SystemData` `MixerInformation`; the caller wins. The mixer by-pass valve (V9-M) is taken as always in line (never switched in the lab environment). (3) The mixer is before the injection valve: valve injections skip it; two inlets, the mixer holds (Q = 0) during valve feed. (4) Feed through an A/B pump line goes through the mixer: found from an injection mark with no valve switch (rare), only when an A or B inlet switched within 60 s of the mark (owner, after the data); feed runs while that position stays selected, its share by %B; else a warning. `sample_inlets=` wins. (5) Tubing volume from the caller only (the stored delay volumes are after the UV: hints only); without it no tubing CSTR and a warning. `system_volumes=False` leaves the CSTRs out |
+| D27 | System volumes | (1) A CSTR before (mixer) and after (column -> UV tubing) the column by default. (2) Mixer volume from `SystemData` `MixerInformation`; the caller wins. The mixer by-pass valve (V9-M) is taken as always in line (no switch seen). (3) The mixer is before the injection valve: valve injections skip it; two inlets, the mixer holds (Q = 0) during valve feed. (4) Feed through an A/B pump line goes through the mixer: found from an injection mark with no valve switch (rare), only when an A or B inlet switched within 60 s of the mark (owner, after the data); feed runs while that position stays selected, its share by %B; else a warning. `sample_inlets=` wins. (5) Tubing volume from the caller only (the stored delay volumes are after the UV: hints only); without it no tubing CSTR and a warning. `system_volumes=False` leaves the CSTRs out |
 | D28 | On top of CADET, never a copy | CADET keeps adding models; mirroring them means maintaining both. (1) pycorn builds what the run gives and nothing of the model. (2) Model values in CADET's own terms: `core_overrides` is a nested dict in CADET-Core's input layout (`{'input': ...}`), merged unchanged just before writing (no translation, no check, no name list); for CADET-Process, its own API on the returned `Process`. (3) Don't mirror CADET's model and parameter permutations; one marked example block in the docs is fine. (4) Placeholders fill what isn't given; one the overrides replace leaves `/meta/placeholders`; `/meta/OVERRIDES` lists the paths set. (5) `parameters=` / `binding=` removed (rev 11b). (6) A run with one chromatogram is exported. **Amended rev 11b: "warn on multiple chromatograms until we have a clear choice from the user community"**: without `chromatogram=` both paths export them all with a warning (the rev 11 rule, an error asking for one, is replaced). (7) **Amended 2026-11-08 (owner: "I like your params block argument; maybe we implement that everywhere for now and don't make any assumptions about what it should contain, to keep it very generic")**: one block per target on every route. Core: `core_overrides=` (`export_cadet`, `to_core_input(overrides=)`) and `pycorn export --core-overrides FILE.json`. CADET-Process: `process_overrides=` in its own parameter layout (what `process.parameters` shows); `to_process` / `to_cadet_process` set it last with `process.parameters = ...` (a copy: CADET-Process empties the dict it gets; it rejects unknown names itself), `export_cadet` / `to_csv` / `pycorn export --cadet --process-overrides FILE.json` store it unchanged in `experiment.json`. pycorn reads nothing inside either block |
 | D29 | `--mw` with a mass epsilon | "We might want a molecular weight flag." (1) `--mw` / `molecular_weight=` also applies with a mass coefficient, so the CADET files get the `<UV> mol/m^3` reference; no second flag. (2) A `cadet` warning when there is a coefficient but no MW. (3) **Rev 11b:** an unused `--mw` is a note in `warnings.csv`, not an error |
 | D30 | Offline assays, walkthrough | (1) Document only: no new options; [`docs/CADET_GUIDE.md`](CADET_GUIDE.md) "Your offline assays" shows `build_experiment(components=, fraction_masses=)`, the CSV template and the g/L -> mol/m^3 arithmetic. (2) A walkthrough on `samples/sample.zip` (`examplescripts/cadet_walkthrough.py`, opt-in tests on both Cores). (3) Overlay, no fitting; comparing and fitting go through CADET-Process (`Comparator`, `OptimizationProblem`). **Open:** whether `export_cadet()` / `pycorn export` should take the assays (D28 doesn't decide it: measured items aren't model inputs) |
@@ -1449,8 +1448,8 @@ adds its warnings as 'method: ...', and changes no section or feed. Sources:
 raw kept; an unknown layout warns.
 
 - The method is a template: every breakpoint variable takes the run's value
-  (`pycorn.variables`), never `BreakPointValue` (about half of the variable `End_Block` breakpoints
-  tested against a lab environment ran with another value).
+  (`pycorn.variables`), never `BreakPointValue` (variable `End_Block` breakpoints
+  often ran with another value).
 - A breakpoint variable belongs to its position: instructions at one breakpoint move together.
 - Planned injection = from the breakpoint that turns the valve to Inject / Direct inject to the
   next valve instruction in the block (most), else to `End_Block`; compared per
@@ -1811,7 +1810,7 @@ until the owner settles it, with the SME's view.
   mixer with `output_states` events. So the simulated outlet in a by-pass is what the UV and
   conductivity saw. Checked: Core 5, 6 DG and 6 FV and CADET-Process give outlet salt 99 % of
   the new buffer 85 s after a %B step inside a 2 ml/min by-pass; walkthrough salt balance
-  0.79 -> 0.92. Tested against a lab environment: by-pass windows are common, usually
+  0.79 -> 0.92. By-pass windows are common, usually
   followed by the column again, often with a %B or inlet change inside the window. Sample sent to the by-pass stays buffer in the model (D18).
 - **M8 Flow path differs by system** (owner, 2026-11-08: "other types of process skids might
   have all inputs including load going through a bubble trap mixer, so there can be
@@ -1829,19 +1828,19 @@ until the owner settles it, with the SME's view.
 - **M3 Loop volume on the export path** (review j). `build_experiment(loop_volume=)` ends loop
   feed after the loop volume (D19), but `export_cadet()` and `pycorn export --cadet` don't take
   it (`--loop-volume` reaches the by-pass UV only), so a valve held at Inject counts as feed
-  the whole time (over an hour on a run tested against a lab environment). Question: one loop volume per export command, per run
+  the whole time (over an hour on one run). Question: one loop volume per export command, per run
   (CSV column), or both; and Superloop runs.
 - **M4 Sample pump inlet named 'Buffer'** (review k). Owner: running sample through the sample
   pump's Buffer inlet is possible, so it must be handled. Today a direct injection drawing only
-  from that inlet is 'buffer only, not feed' (D21). Tested against a lab environment, such
+  from that inlet is 'buffer only, not feed' (D21). Such
   injections can show a clear UV signal in each window. Options: (a) a caller option naming it as sample (as
   `sample_inlets` does for A/B lines); (b) infer from a UV rise in the window; (c) per run in a
   CSV column.
 - **M5 Paused sections inside an Inject period** (review l). They are marked feed with Q = 0
-  (no mass enters). Tested against a lab environment: they occur, from under a second to
+  (no mass enters). They occur, from under a second to
   hours, valve at Inject or Direct inject. The owner is reviewing the data before deciding;
   also whether `exp.fractions` should drop the pseudo 'Waste' rows.
-- **M6 Core 5 vs Core 6** (review m). One run tested against a lab environment differs by 8.2 % at the peak (step
+- **M6 Core 5 vs Core 6** (review m). One run differs by 8.2 % at the peak (step
   feed, made-up 2.5 x 0.5 cm column at 10 ml/min); others 0.1-0.7 %. Likely discretization; a
   modeler should say what discretization defaults are acceptable before it is called a bug.
 - **M7 A check with real model values** (CADET open item 3): needs a run with known

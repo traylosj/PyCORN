@@ -38,8 +38,7 @@ A11, run list ticks, M22's page table.** Decisions in [`ROADMAP.md`](ROADMAP.md)
   original chromatogram; CLI human output and existing files byte-identical with A5; the
   built page in headless Edge from `file://` (load, multi-chromatogram fixture, ticks and
   overlay, Download all's `index.csv` and `options.json`, the M22 form and table, every
-  language); imported chromatograms' tables and sections match their source results',
-  tested against a lab environment.
+  language); imported chromatograms' tables and sections match their source results'.
 - **Not checked:** the run list ticks in Firefox, Safari, at phone width and in dark mode;
   the overlay note past 10 ticked runs; a derived chromatogram from a real result;
   `pycorn-setup --from-env` against a live server from a deployment script.
@@ -87,7 +86,7 @@ export and visuals the run's original chromatogram only.
   (`tests/multichrom_fixture.py`: sample.zip plus an imported, a copied-in and a derived chromatogram).
 - Checked: full suite; the built page in headless Edge from `file://` with the fixture (picker,
   view, csv and Download all, overlay of two chromatograms of one run, every language, offline
-  after Ready, no console errors); checked against a lab environment.
+  after Ready, no console errors).
 - **Not checked:** a derived chromatogram from a real result (the rule is
   "every curve and event non-original, no original result"); a zip export of a result with
   imported chromatograms (the copy of the run is then found by name, a zip stores no ResultID).
@@ -112,7 +111,7 @@ export and visuals the run's original chromatogram only.
   `DEFAULT_SAMPLE_INLET`; labels and `inlets_source` as in the ROADMAP entry; CADET sections
   and hints carry the states.
 - Checked: 18 tests in `tests/test_system_configuration.py` (every `samples/*.zip`); results
-  with no sample pump and one with a feed through line A, tested against a lab environment: no `B1` label, line B `B` in every section, one line-feed section with the
+  with no sample pump and one with a feed through line A: no `B1` label, line B `B` in every section, one line-feed section with the
   no-sample-pump wording. CADET reference JSON unchanged.
 - **Not checked:** other system families, BufferPro, a quaternary valve in use, a shared
   A/B valve (no result has them).
@@ -195,8 +194,7 @@ for non-programmers").
   `tests/test_cli.py`.
 - Checked: full suite green; the three samples exported to xlsx; charts rendered
   through LibreOffice (`soffice --convert-to pdf` on a workbook cut down to the plotted
-  columns; a full one is 1000+ pages); `pycorn-setup --test-only --file sql/.env` against a
-  lab server: [OK].
+  columns; a full one is 1000+ pages); `pycorn-setup --test-only --file sql/.env`: [OK].
 - **Not checked:** the workbooks in real Excel (label rotation and data labels may look
   different; LibreOffice ignores the -45 degree rotation, so labels overlap there), and
   `pycorn-setup`'s question flow by a person at a real console (tests drive it with fake
@@ -226,7 +224,7 @@ details).
   command; `default=SUPPRESS` there keeps one given before the command). Tests:
   `tests/test_messages.py`, the "plain-language messages" block in `tests/test_cli.py`.
 - Checked: full suite green (507 passed, 21 skipped); failure cases run through the real
-  CLI before and after (the script was a temp file, not kept); `pycorn find` against a lab
+  CLI before and after (the script was a temp file, not kept); `pycorn find` against a
   server: exit 0, unchanged.
 - **Not checked:** connection sentences against a real wrong password / wrong database
   (patterns from pymssql's error codes 18456, 4060, 20003, 20009 and tested with fake driver
@@ -267,13 +265,13 @@ GitHub Actions); every push to master that touches `pycorn/`, `web/`, the build 
   to the repository and issues.
 - Checked: full suite green (517 passed, 21 skipped); the built page in headless Edge (Playwright from a temp venv,
   script not kept), from `file://` and over HTTP: Python ready in about 5 s (CDN cached),
-  runs from the samples and lab `.UFol` files listed in 0.5 s, plot drawn, other
+  runs from the samples and `.UFol` files listed in 0.5 s, plot drawn, other
   runs shown, xlsx (same sheets as `pycorn export`), csv zip and CADET-Core v5 JSON
   downloaded, a missing-geometry Core export worded, no console errors. The live page
   (traylosj.github.io/PyCORN) passes the same test; with the network cut after "Ready",
   dropping a file and the xlsx download still work and the page makes no request (the
   README's privacy section says so).
-- **Not checked:** Firefox and Safari; a first load on a slow network or behind a lab proxy
+- **Not checked:** Firefox and Safari; a first load on a slow network or behind a proxy
   that blocks jsDelivr / cdn.plot.ly; large `.UFol` folders against browser memory (the
   largest tried: 10 MB); runs with several chromatograms (the selector is untested: no
   sample has two); a person using the page.
