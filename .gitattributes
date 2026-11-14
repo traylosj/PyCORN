@@ -31,3 +31,6 @@ secrets.txt -text
 sql/.env.example -text
 AGENTS.md -text
 
+# UNICORN's own exports, kept byte for byte (CRLF) as UNICORN wrote them
+samples/*.csv -text
+

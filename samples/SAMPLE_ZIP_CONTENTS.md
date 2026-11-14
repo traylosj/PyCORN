@@ -346,6 +346,25 @@ hand-checked CADET-Core files `tests/data/core_input_reference_v5.json` / `_v6.j
 so the Core export needs no caller geometry; 28 sections with pauses, the feed starting at
 section 13.
 
+## UNICORN CSV export reference (2026-11-14)
+
+`u73_nonbinding_pulse.zip` (UNICORN 7.3, system type `NEXTAKTAchromatography`, 20 curves, 0.7 ml
+column, a non-binding pulse) comes from the CADET forum, sanitized with
+`tools/anonymize_zip.py`. `u73_nonbinding_pulse_unicorn.csv` is UNICORN's own CSV export of the
+same run (`UV 1_280`, `UV 2_295`, `Cond`, `pH`, `Run Log`). Its three Run Log cells that named
+people, paths or the run (`Method Run`, `Batch ID`, the run-name `Set mark`) hold the anonymized
+zip's text; every other byte is UNICORN's. `tests/test_unicorn_csv_export.py` checks PyCORN
+against it. What the export shows:
+
+- Curves are on injection-adjusted time, the Run Log on method time.
+- Each curve point is one of that curve's steps later than PyCORN's grid (`time_adjusted +
+  DistanceBetweenPoints`; 0.1 s for a 10 Hz UV, 1 s for pH), and the last stored point is left
+  out. Values agree to the 7 significant digits UNICORN writes. The likely cause is UNICORN's
+  adjustment to the injection, not the grid (`docs/FACTS.md`, F1): the Run Log, on method time,
+  matches PyCORN exactly.
+- Run Log texts are written between quotes with quotes and commas inside left unescaped, so a
+  standard CSV reader mangles them (`Set mark "0" ...`); split the line by hand.
+
 ## Identifying Curves (names are not a fixed set)
 
 Names depend on the instrument and its configuration, and the samples here (lab-scale AKTA)
