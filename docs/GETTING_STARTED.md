@@ -85,7 +85,7 @@ holds one folder per run (inside it, the run's UNICORN folder path). For Excel, 
 
 ![The Chart sheet: UV and conductivity against volume, with injection and fraction marks](images/excel_chart.png)
 
-These are from a sample run in this repository (`samples/u711_column_test.zip`), made as
+These are from an example result in this repository (`samples/u711_column_test.zip`), made as
 shown above.
 
 Running the command again skips runs already exported. Add `--update` to redo only the ones

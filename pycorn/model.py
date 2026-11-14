@@ -453,7 +453,7 @@ class DbTable:
 
 @dataclass
 class Run:
-    """Everything loaded from one result."""
+    """Everything loaded from one result: what one method run stored (the data, not the run itself)."""
     source: str  # 'zip', 'ufol' for a result read from a folder export, or 'sql' for the database
     locator: str  # file path ('<.UFol path>/<member path>' for a folder export; 'sql:ResultID=<id>')
     # Result.xml (typed values; for a database run, dbo.Result laid out the same way);

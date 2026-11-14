@@ -2,8 +2,9 @@
 
 This guide is for people who use PyCORN to read ÄKTA runs into Python. Every reader (a
 result `.zip`, a `.UFol` folder export, or the UNICORN database) gives you the same object:
-a `Run`. This guide shows what a `Run` holds, how its axes are worked out, and what to check
-before relying on the numbers.
+a `Run`. A `Run` holds what one method run stored (UNICORN's result): the data, not the run
+itself, and not the method that planned it. This guide shows what a `Run` holds, how its axes
+are worked out, and what to check before relying on the numbers.
 
 > PyCORN has been checked only against the UNICORN files and databases we had access to.
 > Other instruments, UNICORN versions and methods may behave differently. Read

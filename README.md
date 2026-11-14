@@ -136,7 +136,7 @@ placeholders (listed in its warnings). You set model values in CADET-Core's own 
 ### Sharing a result file
 
 A result `.zip` names people, computers, instruments and projects. Before a file leaves
-your lab (for example, as a sample here), sanitize it:
+your lab (for example, as an example result here), sanitize it:
 
 ```
 python tools/anonymize_zip.py IN.zip OUT.zip --token SURNAME
