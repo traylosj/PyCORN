@@ -24,8 +24,8 @@ log and the curves. Three groups read it, each with its own terms and expectatio
 - **modeling tools** (CADET) expect what the instrument did, to the second: every change of
   flow, composition and valve, the flow actually delivered.
 
-Translating UNICORN's terms into each group's terms takes choices. Made separately for each
-group, the choices don't agree (sections 3.5, 3.7 and 3.8 give examples).
+Translating UNICORN's terms into each group's terms takes choices, and the choices have to
+agree with each other (sections 3.5, 3.7 and 3.8 give examples).
 
 **The proposal.** Interpret each run **once**, consistently, into a single description, the
 **run record**, and give each group a view of it in its own terms. The record holds three
