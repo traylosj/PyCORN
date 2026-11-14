@@ -187,6 +187,22 @@ catch-up; both times stay, as in a batch record; the model takes the actuals.
    logged flow by more than 0.01 ml and 1 % of the section, with a warning, then apply D14's
    by-pass and waste zeroing. u73's feed becomes 0.389 ml.
 
+   **Decided (owner, 2026-11-14), not built.** The run log's `The method flow is now
+   calculated based on the system | sample flow` entry says which pump the volume axis counts
+   (docs/FACTS.md); both pumps can run at once, and the valve positions say where each flow
+   goes. CADET's flow per section:
+   - structure and timing (phases, sections, valves, feed, by-pass, set points): the run log
+   - which pump: the method-flow entry; results without it keep today's rule
+   - how much: the volume axis where it differs from the logged flow by more than 0.01 ml
+     **and** 1 % of the section, with a warning; feed too (no longer column flow x time)
+   - shape inside such a section: a fitted ramp model, stop, then a linear ramp, then the set
+     flow, each piece its own CADET section with a linear flow term; breakpoints and ramp rate
+     fitted from the axis (never a fixed rate: it differs by instrument), the section's volume
+     kept equal to the axis
+   - then D14's zeroing by valve position (column by-pass, waste)
+   ISA-88 reading: the logged flow is the setpoint, the fitted flow the actual (source: volume
+   axis, quality: fitted).
+
 ### 3.5 Pauses
 
 | View | |
@@ -445,4 +461,5 @@ steps, not the "5 CV gradient" this section used to name. Added to `samples/`:
 `u711_manual_run.zip` (`Inlet B` logged, sample-pump feed, flow changes, pauses) and
 `u711_proa_day12.zip` (Vc stored); `u711_column_test.zip` already covers a flow change inside a phase with a
 stored Vc (see `samples/SAMPLE_ZIP_CONTENTS.md`). Still missing: the ramp, the hold, the
-second slope and a direct inject, which need a new run on the instrument.
+second slope and a direct inject, which need a new run on the instrument. Every wanted case
+is listed in `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted samples".

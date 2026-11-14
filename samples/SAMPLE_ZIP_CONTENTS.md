@@ -336,7 +336,7 @@ was already here.
 | `u711_column_test.zip` | Column packing test, method run | Vc stored; flow changes at 117 s and 1025 s inside the one phase; loop inject. |
 
 Not covered yet: a linear %B ramp together with a stored Vc, a ramp with a hold or second
-slope, a direct inject. `RUN_STRUCTURE_REVIEW.md` section 6 still lists them.
+slope, a direct inject. The full list: "Coverage and wanted samples" below.
 
 ## CADET reference run (2026-11-09)
 
@@ -364,6 +364,101 @@ against it. What the export shows:
   matches PyCORN exactly.
 - Run Log texts are written between quotes with quotes and commas inside left unescaped, so a
   standard CSV reader mangles them (`Set mark "0" ...`); split the line by hand.
+
+## Coverage and wanted samples (2026-11-14)
+
+The one list of run features PyCORN needs examples of: which public sample here covers each,
+and what is still needed. Other documents link here instead of keeping their own lists.
+Coverage was checked on 2026-11-14 by reading each sample's run log, system configuration,
+stored column, chromatograms and pauses. Only the public samples and test fixtures count.
+
+**The samples**
+
+| Sample | UNICORN | Run |
+|---|---|---|
+| `sample.zip` | 7.3 | Non-binding pulse on a 0.7 ml column. The same run as `u73_nonbinding_pulse.zip` (all 20 curve entries byte-identical), sanitized separately |
+| `u73_nonbinding_pulse.zip` (+ `_unicorn.csv`) | 7.3 | The same run, with UNICORN's own CSV export |
+| `u73_blank.zip` | 7.3 | Protein A method, short (blank) injection |
+| `u711_proa_day12.zip` | 7.11 | The same method with a real load; evaluated (peak table, derived baseline) |
+| `u711_cadet_reference.zip` | 7.11 | The same method; the run behind the CADET-Core reference files |
+| `u711_column_test.zip` | 7.11 | Column test: loop inject, long isocratic run, ended by hand |
+| `u711_manual_run.zip` | 7.11 | Manual run, no method |
+
+**Coverage.** Status: covered / partly / needed.
+
+| Area | Case | Covered by | Status |
+|---|---|---|---|
+| Source | `.zip`, UNICORN 7.3 | `sample.zip`, `u73_*` | covered |
+| Source | `.zip`, UNICORN 7.11 | `u711_*` | covered |
+| Source | Other UNICORN versions (6.x, 7.0-7.2, 7.4 and later) | - | needed |
+| Source | `.UFol` folder export | tests build one from these samples (`tests/test_ufol_source.py`); no real export | partly |
+| Source | Database | no public database; the parity test runs only with `sql/.env` | partly |
+| Source | UNICORN CSV export | `u73_nonbinding_pulse_unicorn.csv` | covered |
+| Source | UNICORN text export (`.asc`) | - | needed |
+| System | Lab-scale AKTA: inlet valve A and sample pump, no inlet valve B or sample inlet valve | `sample.zip`, `u73_*`, `u711_proa_day12.zip`, `u711_cadet_reference.zip` | covered |
+| System | Lab-scale AKTA with inlet valve B, sample inlet valve and quaternary valve | `u711_column_test.zip`, `u711_manual_run.zip` | covered |
+| System | Process-scale and other system families (other curve names) | - | needed |
+| Method | Phases and blocks | every sample except `u711_manual_run.zip` | covered |
+| Method | A phase run twice (Equilibration) | `u73_blank.zip`, `u711_proa_day12.zip`, `u711_cadet_reference.zip` | covered |
+| Method | Manual run, no method | `u711_manual_run.zip` | covered |
+| Method | Run ended by hand | `u711_column_test.zip` | covered |
+| Method | Watch instructions | `sample.zip` (pressure); the Protein A runs (UV) | covered |
+| Method | A block called from two places | - | needed |
+| Method | Scouting | - | needed |
+| Method | BufferPro | - | needed |
+| States | Hold (`Hold until`, %B frozen) | the Protein A runs | covered |
+| States | Logged Pause / Continue | `u711_manual_run.zip` | covered |
+| States | Pause not logged (inferred from `Continue`) | the Protein A runs | covered |
+| Chromatograms | Several original chromatograms (New Chromatogram instruction): how the run log records it, how each `Logbook` holds its part, whether set-points carry across the cut (`docs/RUN_STRUCTURE_S88_PLAN.md` section 3) | - | needed |
+| Chromatograms | Imported and derived chromatograms | synthetic fixture (`tests/multichrom_fixture.py`, from `sample.zip`); no real one | partly |
+| Flow | Flow change inside a phase | `sample.zip`, `u711_column_test.zip` | covered |
+| Flow | Pressure-controlled flow | the Protein A runs | covered |
+| Flow | Column by-pass during a run | `sample.zip`, `u711_column_test.zip`, `u711_manual_run.zip` | covered |
+| Gradient | %B steps (gradient length 0) | every sample | covered |
+| Gradient | Linear %B ramp (length > 0) with a stored Vc | - | needed |
+| Gradient | Ramp with a hold or a second slope | - | needed |
+| Inlets | `Inlet B` logged | `u711_manual_run.zip` | covered |
+| Feed | Loop injection (Manual load, then Inject) | every method sample | covered |
+| Feed | Sample pump with a sample inlet | `u711_manual_run.zip` | covered |
+| Feed | Direct inject | - | needed |
+| Column | Vc stored | every sample except `u711_manual_run.zip` | covered |
+| Column | No Vc | `u711_manual_run.zip` | covered |
+| Column | Column type linked (bed height, diameter, particle size) | the Protein A runs | covered |
+| Column | Custom column | - | needed |
+| Curves | Two live UV wavelengths | `sample.zip`, `u73_nonbinding_pulse.zip`, `u711_column_test.zip` | covered |
+| Curves | Sample rate lowered during a long run | `u711_column_test.zip` | covered |
+| Curves | Derived curve on a volume grid (evaluation baseline) | `u711_proa_day12.zip`, `u711_cadet_reference.zip` | covered |
+| Evaluation | Peak table | `sample.zip`, `u73_nonbinding_pulse.zip`, `u711_proa_day12.zip`, `u711_cadet_reference.zip` | covered |
+| Evaluation | Peak table without zero at injection | - | needed |
+| Calibration | Pressure-sensor calibration | - | needed |
+| Calibration | UV and sample pump calibrations | - | needed |
+| Audit | Electronic signatures | - | needed |
+| CADET | Non-binding protein pulse | `u73_nonbinding_pulse.zip` | covered |
+| CADET | Column pulse, small tracer | `u711_column_test.zip` (tracer not stated in the file) | partly |
+| CADET | Step elution (affinity) | the Protein A runs | covered |
+| CADET | System pulse with the column replaced | - | needed |
+| CADET | Column pulse, large (pore-excluded) tracer | - | needed |
+| CADET | 2-4 linear gradient elutions of different lengths | - | needed |
+| CADET | Breakthrough to feed concentration | - | needed |
+| CADET | The CADET cases on one column and system | - | needed |
+
+"The Protein A runs" are `u73_blank.zip`, `u711_proa_day12.zip` and `u711_cadet_reference.zip`.
+
+**Runs that would close most gaps**
+
+1. One short test method on a column with a stored Vc. It should have:
+   - a linear ramp, then a hold and a second slope
+   - `Inlet B` set in the method
+   - a direct inject
+   - a block called from two places
+   - a New Chromatogram instruction partway through a phase, at a flow and %B that differ from the start
+2. The CADET chain on one column and system: system pulse, small- and large-tracer pulses,
+   non-binding protein pulse at high salt, 2-4 gradient lengths, a breakthrough.
+3. Any result from another UNICORN version or system family, a scouting run, a BufferPro run,
+   and a signed result.
+
+Every shared sample is sanitized with `tools/anonymize_zip.py` first, including its nested
+members.
 
 ## Identifying Curves (names are not a fixed set)
 

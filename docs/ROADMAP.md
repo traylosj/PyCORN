@@ -729,6 +729,12 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
   valves, column position and feed never fold; phase starts and ends never move. M22 windows
   measured from a phase start skip the held-over seconds (this replaces the lead-in part of
   M22's interim rule). CADET never folds: its sections stay exact.
+- **Decided, not built: CADET flow source** (owner, 2026-11-14; review 3.4, Decide 6). Run
+  log for structure and timing; the run log's method-flow entry for which pump
+  (docs/FACTS.md); the volume axis for the amount where it differs by more than 0.01 ml and
+  1 % of a section (feed too), with a warning; inside such a section a ramp model fitted to the
+  axis (stop, linear ramp, set flow; each piece a CADET section with a linear flow term; rate
+  never fixed); then D14's zeroing by valve position.
 - **Main proposals:**
   - three levels: a user summary per phase, steps for modelers (keyed by `phase_number`,
     `step_number`, with `state`), and sections 1:1 for CADET
@@ -922,7 +928,7 @@ database path against the zip (identical method tables). Its findings wait for t
 pick. Not checked yet (no result had them): a block called from two places; BufferPro;
 several chromatograms; a peak table without zero at injection; a custom column;
 calibrations of other sensors (UV, sample pump); signatures; process-scale and other system
-families. Method:
+families (all in `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted samples"). Method:
 each result with its UNICORN report
 (every section ticked), compared value by value; findings kept local; fixes in the shared
 builders, so CSV, Excel and the page change together, after the owner picks them. Every fix
