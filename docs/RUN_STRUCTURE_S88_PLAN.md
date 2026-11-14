@@ -287,7 +287,7 @@ volume shown, 21 the gradient wording rule, 25 section-lane chart, 26 summary be
 instead of today's sequences.
 
 **Evidence in, owner to confirm:** 6, the model's "actual" flow and feed. The survey
-(review 3.4, tested against a lab environment) shows the volume axis is the flow the pump
+(review 3.4) shows the volume axis is the flow the pump
 delivered (valve-turn stops, pressure-control ramps, sample pump alone), not a measurement
 and not column volume. The frame then says: the run log gives structure, timing, valves and
 feed (procedure); inside a section the model takes the volume axis's flow where it differs

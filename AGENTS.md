@@ -86,9 +86,12 @@ Tracked files (docs, code, comments, tests, commit messages) hold only what is t
 UNICORN install: rules, formats, decisions and why. Facts about the owner's lab are local:
 survey counts, database names and result IDs, run and project names, instrument settings,
 machine paths, what the local test files hold. They go in the gitignored `local/` folder
-at the repository root (start at `local/README.md`), never in tracked files. Where evidence
-matters, write "tested against a lab environment" (or "tuned against a lab environment" for
-a threshold) and nothing more about what is local or where it is.
+at the repository root (start at `local/README.md`), never in tracked files.
+
+Never mention the lab in tracked files or commit messages: not "tested against a lab
+environment", not "a lab result", not that a local test set exists. Mentions of the lab are
+strictly for `local/`. Evidence in tracked text is the public samples, synthetic data, or
+the rule itself with no source given.
 
 ## Key Files
 
