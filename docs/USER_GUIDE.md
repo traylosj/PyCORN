@@ -223,6 +223,10 @@ Every curve and event carries the same set of axes:
 
 The stored `time` and `volume` are never changed.
 
+After a pause, curves sampled less often than the fastest one (usually the first UV) can sit
+up to one of their own samples off it on the time axis; UNICORN plots them the same way. On
+the volume and CV axes they line up. See [Time axis after a pause](TIME_GRID_AFTER_PAUSE.md).
+
 ![The same UV curve against time, volume and column volumes](images/axes_time_volume_cv.png)
 
 **Adjusted axes.** `chrom.retention_zero` says where zero is and where that came from

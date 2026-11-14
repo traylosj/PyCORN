@@ -37,6 +37,7 @@ On `samples/sample.zip` (F1-F15) and UNICORN 7.3 / 7.11 results (F16-F24).
 | F22 | `.UFol` = uncompressed POSIX tar of `<folder>/<name>.<original id>.Result` zips plus `systemnames.xml`; `<file>.UFol.export.txt` gives each original path and id |
 | F23 | Time-grid evaluation curves (e.g. `mAU/cm` ratio curves) can store amplitudes only with no volume axis; not in `to_res3_dict()` |
 | F24 | An `.asc` holds only the curves picked in UNICORN; they match the F20 rule, zeroed by the layout's setting |
+| F25 | After a pause (logged `Pause`, or a `Continue (System)` with no `Pause`), a curve sampled less often than the finest one keeps the F1 grid, but its stored volumes put each point up to one of its own samples earlier or later. The offset is constant until the next pause, in steps of the finest curve's interval; it is 0 before the first pause and on the finest curves. UNICORN's time `.asc` uses the grid (F20), so `Curve.time` keeps it (owner, 2026-11-12). Volume and CV axes are not affected; time-axis work across curves (plots, UTC, windows, CADET) can be off by up to one coarse sample. `samples/u711_manual_run.zip` shows it; see [`TIME_GRID_AFTER_PAUSE.md`](TIME_GRID_AFTER_PAUSE.md) |
 
 ### Database facts
 
