@@ -24,12 +24,8 @@ log and the curves. Three groups read it, each with its own terms and expectatio
 - **modeling tools** (CADET) expect what the instrument did, to the second: every change of
   flow, composition and valve, the flow actually delivered.
 
-Translating UNICORN's terms into theirs takes choices, and the choices show in the details.
-When a UNICORN phase starts, the previous phase's set point stays active until the phase's
-own instruction replaces it: is that second part of the new phase? UNICORN's Pause stops the pumps, its Hold doesn't: which is ISA-88's
-Paused? Is the flow in the load phase the set point or what the volume axis shows? Without
-one consistent interpretation, each answer depends on who asks and on which PyCORN output
-they look at.
+Translating UNICORN's terms into each group's terms takes choices. Made separately for each
+group, the choices don't agree (sections 3.5, 3.7 and 3.8 give examples).
 
 **The proposal.** Interpret each run **once**, consistently, into a single description, the
 **run record**, and give each group a view of it in its own terms. The record holds three
