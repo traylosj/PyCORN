@@ -4,8 +4,9 @@ Draw the cycles-and-chromatograms figure of docs/RUN_STRUCTURE_S88_PLAN.md (sect
 
     python tools/draw_cycles_chromatograms.py [-o docs/images/cycles_chromatograms.svg]
 
-A schematic, not data: one result whose method runs three cycles of the same phases, between
-a prime and a final clean. Three rows show how the cycles are found: (A) a new chromatogram at
+A synthetic schematic drawn by Claude (an AI assistant), not data: one result whose method
+runs three cycles of the same placeholder phases P1-P5, between a "Before" and an "After"
+phase. Three rows show how the cycles are found: (A) a new chromatogram at
 each cycle boundary, (B) a new chromatogram cut inside a phase (the error case), (C) one
 chromatogram, cycles from the caller's rule. Plain SVG, same look as docs/images/logic_*.svg.
 """
@@ -22,14 +23,15 @@ FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 INK, INK2, MUTED = "#0b0b0b", "#52514e", "#898781"
 GRID, AXIS, SURFACE = "#e1e0d9", "#c3c2b7", "#fcfcfb"
 BLUE, ORANGE, AQUA, RED = "#2a78d6", "#eb6834", "#1baf7a", "#c8102e"
-PHASE_COLORS = {"Equil": "#dbe8f8", "Load": "#fde3d6", "Wash": "#d9f2e8", "Elute": "#c9dcf5", "Clean": "#ecebe5",
-                "Prime": "#ecebe5", "Final clean": "#ecebe5"}
+# placeholder phase names (P1-P5 repeat per cycle; "Before", "After" outside the cycles)
+PHASE_COLORS = {"P1": "#dbe8f8", "P2": "#fde3d6", "P3": "#d9f2e8", "P4": "#c9dcf5", "P5": "#ecebe5",
+                "Before": "#ecebe5", "After": "#ecebe5"}
 
 # the phases as run: (name, length in arbitrary time units, cycle or None)
-PHASES = [("Prime", 3, None)]
+PHASES = [("Before", 3, None)]
 for n in (1, 2, 3):
-    PHASES += [("Equil", 2, n), ("Load", 4, n), ("Wash", 2, n), ("Elute", 2, n), ("Clean", 2, n)]
-PHASES += [("Final clean", 3, None)]
+    PHASES += [("P1", 2, n), ("P2", 4, n), ("P3", 2, n), ("P4", 2, n), ("P5", 2, n)]
+PHASES += [("After", 3, None)]
 
 parts = []
 
@@ -60,15 +62,16 @@ starts, t = [], 0
 for name, length, cycle in PHASES:
     starts.append(t)
     t += length
-cycle_start = {c: starts[i] for i, (_, _, c) in enumerate(PHASES) if c and PHASES[i][0] == "Equil"}
+cycle_start = {c: starts[i] for i, (_, _, c) in enumerate(PHASES) if c and PHASES[i][0] == "P1"}
 cycle_end = {}
 for i, (_, length, c) in enumerate(PHASES):
     if c:
         cycle_end[c] = starts[i] + length
-load2 = next(starts[i] + PHASES[i][1] / 2.0 for i, p in enumerate(PHASES) if p[0] == "Load" and p[2] == 2)
+load2 = next(starts[i] + PHASES[i][1] / 2.0 for i, p in enumerate(PHASES) if p[0] == "P2" and p[2] == 2)
 
 text(20, 30, "One result, three cycles: how cycles and chromatograms relate", 16, INK, weight="600")
-text(20, 50, "Schematic. A cycle (unit procedure) starts and ends between UNICORN phases.")
+text(20, 50, "Synthetic schematic (drawn by Claude). A cycle (unit procedure) starts and ends between "
+             "UNICORN phases.")
 text(20, 65, "A chromatogram is only how the data was recorded.")
 
 # row 0: the phases as run
@@ -125,7 +128,7 @@ cuts_b = [cycle_start[1], load2]
 chrom_band(y + 28, cuts_b)
 line(xs(load2), y + 4, xs(load2), y + 48, RED, 2)
 text(xs(load2), y, "cut", 11, RED, "middle", "600")
-note(y + 70, ["Load of cycle 2 crosses the cut: using these chromatograms as cycles fails.",
+note(y + 70, ["Phase P2 of cycle 2 crosses the cut: using these chromatograms as cycles fails.",
               "They stay data segments; cycles can still come from the caller's rule."], RED)
 
 # row C
@@ -136,7 +139,7 @@ chrom_band(y + 28, [])
 cycles_band(y, AQUA)
 for c in (1, 2, 3):
     line(xs(cycle_start[c]), y - 4, xs(cycle_start[c]), y + 50, AQUA, 1, "4 3")
-note(y + 64, ["The caller's rule: \"a cycle starts at each Equil\".",
+note(y + 64, ["The caller's rule: \"a cycle starts at each phase P1\".",
               "A repeat found in the phase order is only a hint."])
 
 # time axis

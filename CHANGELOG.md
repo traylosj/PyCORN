@@ -48,11 +48,14 @@ old flows.
   samples": every run feature PyCORN needs an example of, the public sample that covers it
   (or "needed"), and three runs that would close most gaps. `sample.zip` and
   `u73_nonbinding_pulse.zip` turn out to be the same run.
-- **Docs: run structure as an ISA-88 record (proposal, nothing built).**
-  [`docs/RUN_STRUCTURE_RECORD.md`](docs/RUN_STRUCTURE_RECORD.md): one run record tagged
-  with ISA-88 levels and states, a view per audience (model, display, scripts), how it maps
-  onto CADET-Process 0.13 and CADET-GUI, and results with several chromatograms. Decided,
-  not built: where CADET's flow per section comes from (`docs/ROADMAP.md`, review 3.4).
+- **Docs: one run record for plant and lab (proposal, nothing built).**
+  [`docs/RUN_STRUCTURE_RECORD.md`](docs/RUN_STRUCTURE_RECORD.md): read a run once into one
+  record, with a view per audience (model, display, scripts); its levels use ISA-88 and
+  its terms map to research and industrial standards (OBI, Allotrope, IOF, BatchML).
+  Covers cycles, several chromatograms, runs linked through material IDs, the instrument's
+  ramps as ISA-88 transient states, how CADET-Process 0.13 fits, which outputs would
+  change, and a glossary. Eleven numbered figures, all synthetic. Decided, not built:
+  where CADET's flow per section comes from (`docs/ROADMAP.md`, review 3.4).
 
 ## 0.37.0 (2026-11-12)
 
