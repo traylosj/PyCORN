@@ -13,6 +13,21 @@ changed since your files were made.
   values); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
   CADET form on the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+## Unreleased
+
+No outputs changed.
+
+- **New sample with UNICORN's own CSV export:** `samples/u73_nonbinding_pulse.zip` (UNICORN
+  7.3, a non-binding pulse from the CADET forum, sanitized) and UNICORN's CSV export of the
+  same run. `tests/test_unicorn_csv_export.py` checks every exported curve point and Run Log
+  entry against what PyCORN reads. UNICORN's export puts curves on injection-adjusted time
+  with each point one step of its curve later than PyCORN's grid, likely from its adjustment
+  to the injection; the Run Log, on method time, matches exactly.
+- **Docs:** [Time axis after a pause](docs/TIME_GRID_AFTER_PAUSE.md): slower curves can sit
+  up to one of their own samples off the fastest curve on the time axis, not on volume or
+  CV (`docs/FACTS.md`, F25). `docs/FACTS.md` also notes which pump the volume axis counts
+  (a `(System)` run-log entry names it).
+
 ## 0.37.0 (2026-11-12)
 
 ### New: imported chromatograms' run log; PyCORN from scripts and agents, next items
