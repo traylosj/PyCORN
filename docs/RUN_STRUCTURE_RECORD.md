@@ -7,32 +7,45 @@ built.
 > AI assistant) to illustrate the proposal, not taken from UNICORN, CADET or a standard.
 > The Mermaid diagrams, the cycles figure and the transient-states figure are schematics
 > with made-up examples (names such as "Lot X", "Run 1" or "Phase P1" are placeholders, not
-> real data). Figure 7, reused from [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md),
-> was also drawn by Claude, from a public example result
+> real data). Figure 7 was also drawn by Claude, from a public example result
 > (`samples/u73_blank.zip`). Check them against the text and the sources before relying on
 > them.
 
 ## 1. In short
 
-**The problem.** PyCORN reads a run's structure (phases, steps, flow, %B, pauses, feed)
-separately for every output: the phase tables, the CADET sections, the page's tracks, the
-window statistics. Each output re-derives the same facts its own way, so they can drift
-apart, and a question such as "what was the flow in the load phase?" has more than one
-answer depending on where you look.
+**The problem.** A UNICORN result doesn't say by itself how to read it. Its method, run log
+and curves can be interpreted in more than one reasonable way, and three groups read them
+with different expectations:
 
-**The proposal.** Read each run **once** into a single description, the **run record**, and
-let every output take what it needs from it. The record holds three things:
+- **scientists** expect the method as they wrote it: phases in UNICORN's words, each with
+  its flow and %B;
+- **industrial standards** (ISA-88 and the batch systems built on it) expect a batch history:
+  procedural levels, states, set points next to actual values, entries reflecting what
+  actually happened;
+- **modeling tools** (CADET) expect what the instrument did, to the second: every change of
+  flow, composition and valve, the flow actually delivered.
 
-- **what ran, in order**: the phases, steps and pauses the run log shows;
-- **what was asked for next to what was delivered**: the method's setting (say 5 ml/min) and
-  what the instrument actually did (from the curves and the volume axis);
+These expectations meet in the details. When a UNICORN phase starts, the previous phase's
+set point stays active until the phase's own instruction replaces it: is that second part
+of the new phase? UNICORN's Pause stops the pumps, its Hold doesn't: which is ISA-88's
+Paused? Is the flow in the load phase the set point or what the volume axis shows? Without
+one consistent interpretation, each answer depends on who asks and on which PyCORN output
+they look at.
+
+**The proposal.** Interpret each run **once**, consistently, into a single description, the
+**run record**, and give each group a view of it in its own terms. The record holds three
+things:
+
+- **what ran, in order**: the phases, instructions and pauses the run log shows;
+- **set point next to actual**: the method's setting (say 5 ml/min) and what the instrument
+  actually did (from the curves and the volume axis);
 - **where each value came from**, and how sure it is (logged, measured, inferred, assumed).
 
 **Three views of one record.** Each reader gets the same facts, chosen and worded for them:
 
 | Reader | Gets |
 |---|---|
-| A modeler (CADET) | what the instrument did where it was measured, else what was asked for; every change kept, nothing smoothed; each value says where it came from |
+| A modeler (CADET) | the actual value where it was measured, else the set point; every change kept, nothing smoothed; each value says where it came from |
 | A person (Excel, the web page) | the method's settings per phase, as the user wrote them, in UNICORN's words; a short delay at a phase start is folded into the phase with a note |
 | A script or agent | the whole record as JSON (versioned, masked by default) |
 
@@ -41,7 +54,7 @@ they show different numbers, the record says why.
 
 ```mermaid
 flowchart LR
-    files["UNICORN result<br/>zip, UFol, database"] --> record["Run record<br/>what ran<br/>asked vs delivered<br/>value sources"]
+    files["UNICORN result<br/>zip, UFol, database"] --> record["Run record<br/>what ran<br/>set point vs actual<br/>value sources"]
     record --> model["Model view<br/>CADET"]
     record --> display["Display view<br/>Excel, web page"]
     record --> json["Agent view<br/>JSON, masked"]
@@ -55,8 +68,8 @@ production. So the record reads both ways (section 2): its levels use ISA-88, th
 batch-control standard plant systems use, and its runs, studies and measurements map to the
 research ontologies (OBI, Allotrope) and to CADET's terms for model calibration; UNICORN's
 own words stay beside them. Both sides share one core idea that fits a chromatography run:
-the plan (method) asks, the instrument does, and the record keeps both without smoothing
-either. Section 12 maps each word.
+the method gives set points, the instrument produces actual values, and the record keeps
+both without smoothing either. Section 12 maps each word.
 
 **What stays open.** Display wording (Decide items in section 11), how UNICORN splits a run
 over several chromatograms, and how cycles are marked (section 9 lists every open question
@@ -77,11 +90,11 @@ taking one side's vocabulary:
 |---|---|---|
 | Standards and ontologies | OBI and IAO (investigations, assays, data), Allotrope (AFO, and ASM for LC data), CADET (model inputs, references) | ISA-88 (batch control), ISA-95 / B2MML (materials), BatchML, IOF biopharma |
 | Systems that use them | ELN, LIMS, modeling tools | batch systems, historians, MES |
-| One result is | a measurement or a run of an experiment | a batch (one execution of a recipe) |
-| The method is | a protocol; its variables are factor levels | a recipe; its variables are formula parameters |
+| One result is | a measurement or a run of an experiment | a batch (made by executing one control recipe) |
+| The method is | a protocol; its variables are factor levels | a master recipe; its variables are process parameters of the formula |
 | A scouting series is | a study design execution (DoE) | a campaign |
-| Setpoint vs actual | planned value vs measured value | commanded vs report parameter |
-| Curves are | measurement data; CADET references for calibration | batch record data, historian tags |
+| Set point vs actual | planned value vs measured value | set point vs actual value |
+| Curves are | measurement data; CADET references for calibration | continuous data in the batch history, historian tags |
 | Fractions and pools are | samples for offline assays (whose results feed back into a model) | material lots and sublots |
 | The views that serve it | model view (CADET), display view (lab analysis), Allotrope ASM (later) | display view, BatchML batch record (later) |
 
@@ -101,28 +114,34 @@ without a new vocabulary. Neither product is known to exchange BatchML, so this 
 structure, not a file format. Sources: "References" at the end.
 
 ISA-88 conformance is not claimed: the record uses the standard's concepts and names as a
-frame. Definitions quoted here are from ISA-88.01-1995 (Part 1), the edition whose text was
-checked; the 2010 edition (ANSI/ISA-88.00.01-2010, IEC 61512-1) may word them differently.
+frame. Every ISA-88 statement here was checked against the full text of ANSI/ISA-S88.01-1995
+(Part 1), cited by clause number; the 2010 edition (ANSI/ISA-88.00.01-2010, IEC 61512-1) may
+word them differently.
 
-## 3. From a production process down to one value
+**In ISA-88's own terms**, the run record is the **batch history**: "all recorded information
+pertaining to a batch", associated "with the actual execution of the appropriate procedural
+elements" (5.5.3). Each view (model, display, agent) is a **batch report**: an extraction of
+that data, ordered for its recipient (5.5.4, 6.4.3).
+
+## 3. From linked runs down to one value
 
 This section walks from the largest scale to the smallest. At each level: what UNICORN
 stores, what ISA-88 calls it, and what the record keeps.
 
 ```mermaid
 flowchart LR
-    prod["Production<br/>results linked through<br/>materials or a series"] --> proc
+    prod["Linked runs<br/>through materials<br/>or a series"] --> proc
     proc["Procedure<br/>UNICORN: result"] --> up
     up["Unit procedure<br/>one per cycle"] --> op
     op["Operation<br/>UNICORN: phase"] --> ph
     ph["Phase<br/>UNICORN: block"] --> st
-    st["Step<br/>CADET: Phase"]
+    st["Section<br/>not ISA-88<br/>CADET-Process: Phase"]
     chrom["Chromatogram<br/>data, not a level"] -.- proc
 ```
 
-**Figure 2.** The levels, from a production process down to a step.
+**Figure 2.** The levels, from linked runs down to a section.
 
-### 3.1 Across results: a production process
+### 3.1 Across results: linked runs
 
 UNICORN stores one method run per result. Whatever spans several results is a **link between
 records**, never one merged record.
@@ -161,11 +180,12 @@ flowchart LR
   cycles (unit procedures, 3.3), each giving its own pool; combining them happens outside
   UNICORN, so the combined pool's ID comes from the caller. All names are placeholders.
 
-  **Batch vs lot.** The word "batch" means two things here. In ISA-88 a batch is the
-  material made by one execution of a recipe, and the record of that execution: each
+  **Batch vs lot.** The word "batch" means two things here. In ISA-88 a batch is "the
+  material that is being produced or that has been produced by a single execution of a batch
+  process", and also "an entity that represents the production of a material" (3.5): each
   UNICORN run is one, and UNICORN stores a **Batch ID** per run (a GUID, also a `Batch ID:`
   line in the run log). The plant's numbered batch ("Lot X" above) is material: in ISA-88 terms a **lot**
-  ("a unique amount of material having a set of common traits"). So the record keeps the
+  ("a unique amount of material having a set of common traits", 3.28). So the record keeps the
   run's Batch ID (from UNICORN) on the run, and a material ID on each load, fraction and
   pool.
 
@@ -185,21 +205,27 @@ flowchart LR
 
 | Setup | ISA-88 reading | In the record |
 |---|---|---|
-| Several chromatography steps of one product (e.g. capture, then polishing), on different days, with different methods, on the same skid | one procedure per result, all on the same unit; the steps of one product batch are linked by the material, not by the procedure | one record per result; linked through the material IDs of their loads and pools (one run's pool is the next one's load); the unit (masked system name) and column say where each ran |
-| The same, on different skids | as above, on different units (ISA-88's train: the units "used to make a batch of material") | as above; the unit differs |
-| A scouting run: one method run N times with stored variations | N procedures from one recipe | one record per result; a series link (scouting name, run number). Whether the series repeats one process (cycles, 3.3) or varies it (method development, DoE) is the caller's to say |
-| Methods run back to back from a queue | separate procedures | separate records, ordered by UTC; linked like production steps |
-| Connected processing across skids (one skid's outlet feeds the next, at the same time) | units running concurrently; ISA-88 "does not specifically address" continuous processes, and ISA-106 (Procedure Automation for Continuous Process Operations) covers them | one record per skid, aligned on the UTC axis every record has; which outlet feeds which inlet comes from the caller (UNICORN doesn't store it) |
+| Several chromatography steps of one product (e.g. capture, then polishing), on different days, with different methods, on the same skid | capture and polishing are **process stages** (4.1.3.1). Strictly, ISA-88 would run them as unit procedures of one procedure for the product (5.1.2.1, 5.1.2.2); but each UNICORN method holds only its own run, and no system stores the product's procedure. So the record reads each result as one procedure, and links the procedures by the material (a divergence, defined here) | one record per result; linked through the material IDs of their loads and pools (one run's pool is the next one's load); the unit (masked system name) and column say where each ran |
+| The same, on different skids | as above, on different units (ISA-88's train: "a collection of one or more units ... that has the ability to be used to make a batch of material", 3.59) | as above; the unit differs |
+| A scouting run: one method run N times with stored variations | N batches from one master recipe, each from its own control recipe (the method with that run's values, 5.3.1.4) | one record per result; a series link (scouting name, run number). Whether the series repeats one process (cycles, 3.3) or varies it (method development, DoE) is the caller's to say |
+| Methods run back to back from a queue | separate procedures | separate records, ordered by UTC; linked through material, as above |
+| Connected processing across skids (one skid's outlet feeds the next, at the same time) | units running concurrently; ISA-88 "does not specifically address" continuous processes (4.1), and ISA-106 (Procedure Automation for Continuous Process Operations) covers them | one record per skid, aligned on the UTC axis every record has; which outlet feeds which inlet comes from the caller (UNICORN doesn't store it) |
 | Multi-column continuous chromatography on one skid (columns load, wash and elute in a staggered rotation) | one procedure with parallel work on several columns | **not supported**: the record has one sequence of sections per run; it would need a column tag on every section and parallel timelines. Waits for a sample |
 
-The link labels (a lot, a series) come from the caller; ISA-88 defines a lot ("a unique
-amount of material having a set of common traits") but says nothing about splitting or
-combining batches. Where the labels go in a batch record: section 7.
+The link labels (a lot, a series) come from the caller. ISA-88 asks for exactly these links:
+"batch tracking information", meaning links between batch histories "ranging from the use of
+one batch as raw material to another, to the splitting or combining of batch histories due
+to splitting or combining of batches" (6.4.2), so that a product can be traced back to its
+materials and forward to every product a material went into (6.4.1.3). Where the labels go
+in a batch record: section 7.
 
 ### 3.2 One result: the procedure
 
-A result is one method run: one recipe executed once. In ISA-88 that is one **procedure**,
-on one clock, on one unit (the system). The record is built once per result, from all its
+A result is one method run. In ISA-88 terms the UNICORN method is a **master recipe**
+(5.3.1.3); the method with the values this run used (variables, scouting values) is the
+**control recipe**, which "defines the manufacture of a single batch" (3.11, 5.3.1.4); the
+run is that **batch**, and its **procedure** (3.37: "the strategy for carrying out a
+process") runs on one clock, on one unit (the system). The record is built once per result, from all its
 original chromatograms (3.4); the method, the system settings and the other result-level
 data are shared by all of them.
 
@@ -209,12 +235,12 @@ part:
 ```mermaid
 flowchart LR
     src["Database, or an export:<br/>.zip = one result<br/>.UFol = a folder of results"] --> res
-    res["Result<br/>= one method run<br/>(procedure)"] --> meth["Method data<br/>phases, blocks, variables,<br/>scouting = the plan"]
+    res["Result<br/>= one method run<br/>(batch, procedure)"] --> meth["Method data<br/>phases, blocks, variables,<br/>scouting = master and<br/>control recipe"]
     res --> sys["System and column data<br/>= physical model"]
     res --> audit["Run information,<br/>audit trail"]
     res --> chrom["Chromatogram 1..n<br/>= how the data was recorded"]
-    chrom --> curves["Curves<br/>UV, conductivity, flow, %B<br/>= actuals"]
-    chrom --> log["Run log<br/>Phase, Block, instruction,<br/>Pause / Continue lines<br/>= operations, phases, steps, states"]
+    chrom --> curves["Curves<br/>UV, conductivity, flow, %B<br/>= continuous data, actuals"]
+    chrom --> log["Run log<br/>Phase, Block, instruction,<br/>Pause / Continue lines<br/>= operations, phases, sections, states"]
     chrom --> inj["Injection events<br/>= feed"]
     chrom --> frac["Fraction events<br/>= fractions"]
     chrom --> peaks["Peak tables<br/>(evaluation)"]
@@ -223,12 +249,15 @@ flowchart LR
 **Figure 5.** What UNICORN stores for one result, with this document's terms.
 
 The run log is the backbone: its `Phase` lines start operations, `Block` lines phases, and
-each executed instruction a step (D13: what ran, not what the method planned).
+each executed instruction a section (D13: what ran, not what the method planned). ISA-88
+asks the same of a batch history: entries "should, to the largest possible extent, reflect
+the actual physical/chemical events that influence the batch, not only what was anticipated
+in the recipe" (6.4.1.2).
 
 ### 3.3 Inside the procedure: unit procedures and cycles
 
 A **unit procedure** is a complete piece of work on one unit (ISA-88: "a strategy for
-carrying out a contiguous process within a unit", made of contiguous operations). A run has
+carrying out a contiguous process within a unit", made of contiguous operations, 3.61). A run has
 **one** by default.
 It has several only when the run repeats a whole process, which chromatographers call
 **cycles**: to process enough material, one recipe runs the same sequence (equilibrate, load,
@@ -239,13 +268,14 @@ The same N cycles can be recorded three ways:
 
 | How the cycles were recorded | ISA-88 reading | In the record |
 |---|---|---|
-| A scouting run: N results | N procedures from one recipe | one record per result with a series link (3.1); `cycle` = run number when the caller says the series is cycles |
+| A scouting run: N results | N batches from one master recipe | one record per result with a series link (3.1); `cycle` = run number when the caller says the series is cycles |
 | One result, a new chromatogram at each cycle boundary | one procedure, N unit procedures | each chromatogram a unit procedure with `cycle = n`, when the caller says so; the cuts are checked to fall between operations |
 | One result, no new chromatograms (or cuts elsewhere) | one procedure, N unit procedures | `cycle` from the caller (e.g. "a cycle starts at each phase P1", with the phase named as the method names it); a repeat found in the logged phase order is offered as a hint, never applied on its own |
 
 Every segment carries `cycle` (empty when the run doesn't cycle), so the views work the same
 whatever the recording: a summary row and window statistics per cycle, the overlay aligned at
-each cycle's start (W12), one CADET input per cycle (real cycles differ as the column loads
+each cycle's start (W12; ISA-88's multi-batch trend likewise "must be with relative
+time-axis", 6.4.3.2), one CADET input per cycle (real cycles differ as the column loads
 and ages, so each keeps its own measured reference).
 
 ![One result, three cycles: how cycles and chromatograms relate](images/cycles_chromatograms.svg)
@@ -255,9 +285,10 @@ and ages, so each keeps its own measured reference).
 (A synthetic schematic drawn by Claude, generated by `tools/draw_cycles_chromatograms.py`.)
 
 One rule holds the hierarchy together: a unit procedure is made of whole operations, so a
-cycle or unit-procedure boundary must fall **between** UNICORN phases. (ISA-88 neither
-states nor rules out several unit procedures one after another on one unit; reading each
-cycle as one is this proposal's choice.)
+cycle or unit-procedure boundary must fall **between** UNICORN phases. (A procedure is "an
+ordered set of unit procedures" (5.1.2.1), and several may run at once in different units
+(5.1.2.2); ISA-88 neither states nor rules out several one after another on one unit, so
+reading each cycle as one is this proposal's choice.)
 
 ### 3.4 Chromatograms: how the data was recorded
 
@@ -265,7 +296,7 @@ A method can start a new chromatogram partway through a run (UNICORN's New Chrom
 instruction). Some users do this to set one piece of work apart (a by-pass measurement, then
 the column run; or one cycle from the next), others don't, so the split is not a reliable
 sign of intent. **A chromatogram is not an ISA-88 level**: it is a stretch of the batch
-record's data. The record tags every segment, value and curve with the chromatogram it came
+history's data (5.5.3). The record tags every segment, value and curve with the chromatogram it came
 from, and joins the chromatograms on one clock.
 
 What is known, and what isn't:
@@ -288,50 +319,83 @@ What is known, and what isn't:
 | The clock | chromatogram 1's own; chromatogram n starts where n-1 ends, checked against its `ChromatogramStartTime` in UTC |
 | Settings across the cut | **open test case.** If they carry over unrepeated, the record takes them from the previous chromatogram, which is hard to read and not built until a sample shows it; until then they are `not_known` before the first instruction |
 | A UNICORN phase across the cut | open, with the settings: one operation in both segments if the next run log starts inside it |
-| The instruction | a step where it ran, if the run log records it |
+| The instruction | a section boundary where it ran, if the run log records it |
 | What the user meant by the split | never inferred; the caller may make chromatograms unit procedures or cycles (3.3), or map them to an operation |
 | Imported and derived chromatograms (W17) | not part of the procedure: an imported one links to its source result, a derived one is analysis; linked, never merged |
 
 Display keeps one table set per chromatogram, as today, noting a phase cut at the boundary;
 the model picks a span by chromatogram, cycle or operation on the one clock.
 
-### 3.5 Inside a unit procedure: operations, phases, steps, sections
+### 3.5 Inside a unit procedure: operations, phases, sections
 
-| ISA-88 | UNICORN | CADET-Process 0.13 | In the record | Row in Figure 7 |
+ISA-88's procedural levels end at the **phase**: "The smallest element of procedural control
+that can accomplish a process-oriented task is a phase. A phase may be subdivided into
+smaller parts", and "the logic or set of steps that make up a phase are equipment specific"
+(ISA-88.01-1995, 5.1.2.4). So below the phase the record uses no ISA-88 level: it cuts the
+run into **sections**, the word CADET-Core uses for the stretches of its input
+(`SECTION_TIMES`), from the instructions UNICORN logged as executed.
+
+**What an instruction is, in ISA-88 terms.** A phase "can issue one or more commands", such
+as "specifying their set points" to basic control (5.1.2.4). A UNICORN instruction (`Flow`,
+`Gradient`, `Injection valve`) is such a command. Basic control then keeps the equipment in
+that state (5.1.1: "establishing and maintaining a specific state of equipment") until the
+next command changes it. That is why a set point carries across a phase boundary until the
+new phase's own instruction replaces it.
+
+| Level | UNICORN | CADET-Process 0.13 | In the record | Row in Figure 7 |
 |---|---|---|---|---|
-| Operation | a UNICORN **phase** (Equilibration, Sample Application, ...) | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats), logged text, display name | "Method phase" |
-| Phase | a UNICORN **block**, and the activities running at once inside a phase (flow and gradient, sample feed, fractionation, watches) | none (activities are flow-sheet units) | `phase`: one per equipment activity, with its equipment module | "Block"; "Sample feed" is one such activity |
-| Step | a stretch of constant state: one flow, one %B piece, one feed state, one state; from the executed run-log instructions | **`Phase`** (one flow, linear composition) and `ValveEvent` | `step` (for people and modelers) | "Proposed steps" |
-| Section | the same stretches, unfolded, as the model needs them | the model's piecewise inputs | `section` | "Run-log sections" |
+| Operation (ISA-88: "a major processing sequence that takes the material being processed from one state to another", 5.1.2.3) | a UNICORN **phase** (Equilibration, Sample Application, ...) | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats; each occurrence identified, as 5.3.3.2 asks), logged text, display name | "Operation" |
+| Phase (ISA-88: "the lowest level of procedural element", 3.34) | a UNICORN **block**, and the activities running at once inside a phase (flow and gradient, sample feed, fractionation, watches) | none (activities are flow-sheet units) | `phase`: one per equipment activity, with the equipment module that carries it out | "Phase"; "Phase activity" shows one activity, the sample feed |
+| Section (not ISA-88; CADET-Core's word) | the stretch from one executed instruction to the next: the settings (flow, %B or its ramp, valves, feed, state) don't change inside it | **`Phase`** (one flow, linear composition) and `ValveEvent` | `section`: the record's lowest level, as the model gets it | "Section" |
 
-![u73_blank.zip: UNICORN phases and blocks, the run-log sections and the proposed steps, with column flow and %B](images/u73_sections_overview.svg)
+**Display: sections joined (proposed).** People don't need 29 sections for one run. The
+display view joins neighbouring sections whose flow, %B, feed and state are equal, and folds
+the previous phase's set points into the phase when the phase's own instruction replaces them
+within 10 s, with a note (decided 2026-11-12). This is computed from the sections each time
+and isn't stored in the record. In `u73_blank.zip` the 29 sections become 12 such rows. What
+to call them is open (section 11: "the words below the phase"); this draft calls them
+**display steps**.
 
-**Figure 7.** Operations, phases, steps and sections of one run (`samples/u73_blank.zip`).
+![u73_blank.zip: operations, phases, sections and display steps, with the column flow and %B set points](images/u73_run_levels.svg)
 
-(From [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md), one public example run. Its rows,
-top to bottom, are the table's levels: "Method phase" = operations, "Block" = ISA-88 phases
-("Sample feed" is one of their activities), "Run-log sections" = sections, "Proposed steps"
-= steps; the curves below are the actual column flow and %B.)
+**Figure 7.** Operations, phases, sections and display steps of one run (`samples/u73_blank.zip`).
+
+(Drawn by Claude from the example result, generated by `tools/draw_run_levels.py`. Top to
+bottom: the record's levels, then the display steps (proposed). The curves below are the
+column flow and %B set points from the run log.)
 
 The word "phase" means three things: a UNICORN phase is an ISA-88 operation, an ISA-88 phase
-is closer to a UNICORN block, and a CADET-Process `Phase` is an ISA-88 step. The record uses
+is closer to a UNICORN block, and a CADET-Process `Phase` is a section. The record uses
 ISA-88's words with UNICORN's beside them; display keeps UNICORN's; `Phase` appears only in
 CADET objects.
 
 ### 3.6 Where it ran and what it did to the material
 
-**Physical model** (where it ran): the unit is the system (CADET: `LCFlowSheet`). Equipment
-modules: system pump (CADET: buffer inlets A-D and mixer), sample pump, injection valve
-(sample loop, `ValveEvent`), column valve (`bypass_units`, fixed for the run), inlet valves,
-outlet valve and fraction collector. Control modules: the UV, conductivity, pH and pressure
-monitors (CADET: observation points such as `column.outlet`). Source: the system
-configuration stored in the result.
+**Physical model** (where it ran, 4.2): the unit is the system (CADET: `LCFlowSheet`).
+ISA-88 draws the line between the two lower levels by what the equipment does: a collection
+that "executes one or more equipment phases" is an **equipment module** (5.2.3.3); a
+**control module** only carries out basic control, such as "an on/off automatic block valve
+with position feedback switches" (4.2.7); "control modules do not perform procedural
+control" (5.2.2.4.2). So:
 
-**Process model** (what it did to the material): equilibrate, load, wash, elute, strip,
-clean (CADET: the templates `PulseInjection`, `Step`, `StepElution`, `LWE`, `Breakthrough`;
-CADET-GUI: experiment types). UNICORN doesn't store this; phase names usually say it, but a
-phase named "Wash 2" may elute. The record keeps a `process_action` field that is empty
-unless the caller gives a mapping, never guessed.
+- equipment modules: the system pump with its mixer (flow and gradient; CADET: buffer inlets
+  A-D and mixer), the sample feed (sample pump, or injection valve with sample loop;
+  `ValveEvent`) and the fraction collector (fractionation);
+- control modules: each valve on its own (inlet valves, column valve: CADET `bypass_units`,
+  fixed for the run; outlet valve) and the UV, conductivity, pH and pressure monitors (CADET:
+  observation points such as `column.outlet`).
+
+Source: the system configuration stored in the result.
+
+**Process model** (what it did to the material, 4.1.3): ISA-88 describes a process, without
+equipment, as process stages made of process operations made of process actions. Read on
+chromatography: capture or polishing is a **process stage**; equilibrate, load, wash, elute,
+strip and clean are **process operations**, the counterpart of operations (UNICORN phases)
+(5.2.1, Figure 7). CADET's templates (`PulseInjection`, `Step`, `StepElution`, `LWE`,
+`Breakthrough`) and CADET-GUI's experiment types describe processes in the same
+equipment-free way. UNICORN doesn't store this; phase names usually say it, but a phase
+named "Wash 2" may elute. The record keeps a `process_operation` field on each operation,
+empty unless the caller gives a mapping, never guessed.
 
 **Material flow** (what went in and what came out). A run takes material in (the load,
 buffers) and gives material out (flow-through and waste, the eluate, collected as fractions;
@@ -364,7 +428,7 @@ caller-given extinction coefficient and its accuracy note.
 
 | Material | What the run records | Identified in the record as | Ontology terms |
 |---|---|---|---|
-| Load (feed) | the feed sections: valve and inlet, start and end, volume (derived from the run log, actual from the volume axis, 3.8); not what the material was | one load per feed (injection or sample inlet): the run, the feed section's `path`, its volume, and the caller's material ID for it (a stored sample-ID variable only as a hint) | an input of the run (OBI "has specified input"); ISA-88 lot; ISA-95 `MaterialActual` with its lot ID |
+| Load (feed) | the feed sections: valve and inlet, start and end, volume (calculated from the run log, actual from the volume axis, 3.8); not what the material was | one load per feed (injection or sample inlet): the run, the feed section's `element_id`, its volume, and the caller's material ID for it (a stored sample-ID variable only as a hint) | an input of the run (OBI "has specified input"); ISA-88 lot; ISA-95 `MaterialActual` with its lot ID |
 | Buffers | inlet positions and %B per section | inlet line and position; names only from the caller | an input of the run; IOF `BufferSolution` (on a biopharma work branch) |
 | Flow-through, waste | outlet valve at waste, with times and volumes | the outlet sections | an output of the run; no class |
 | Eluate | the stream reaching the fraction collector; UNICORN stores no separate record of it | the outlet sections at the collector | an output of the run; no class |
@@ -381,17 +445,24 @@ caller can give, since UNICORN doesn't store it.
 
 ISA-88's example states for a procedural element are idle, running, complete, pausing,
 paused, holding, held, restarting, stopping, stopped, aborting and aborted; the standard
-doesn't require them. Each stop has a transient "-ing" state before it, and Held is left
-through Restarting. ("Starting" is not among them: it comes from the PackML state model,
-ISA-TR88.00.02, for packaging machines.) By analogy: **Paused** is a short stop at the next
-safe point, resumed where it stopped; **Held** puts the process "into a known state" for a
-long stop, left only by a restart. UNICORN's words cross over:
+"does not require these states or preclude additional states" (5.7.2). The states ending in
+"-ing", Running included, are **transient**: the element is executing logic, and when that
+logic completes it moves on by itself (Table 2, note). Idle, Paused and Held wait for a
+command; Complete, Stopped and Aborted are final (Figure 18). A phase that ends normally
+goes from Running to Complete; no state lies between two phases.
+
+**Paused** stops "at the next defined safe or stable stop location" and "is usually used for
+short-term stops"; Resume continues from there. **Held** follows Holding logic that puts the
+element "into a known state", is "usually used for a long-term stop", and is left only by a
+Restart (5.7.2.1, 5.7.2.2). So the names swap: UNICORN's Pause is ISA-88's Held, UNICORN's
+Hold is ISA-88's Paused, and UNICORN's Continue is a Restart after a Pause and a Resume
+after a Hold:
 
 | UNICORN | ISA-88 state | Pumps | Clock | %B ramp | CADET-Process 0.13 |
 |---|---|---|---|---|---|
 | running | Running | on | runs | runs | `Phase` with flow > 0 |
-| **Pause** | **Held** | stop | stops | stops | `Phase(d, 0.0, {})` |
-| **Hold** | **Paused** | run | runs | frozen | `Phase` with `composition_start = composition_end` |
+| **Pause** | **Held** (left by Restart) | stop | stops | stops | `Phase(d, 0.0, {})` |
+| **Hold** | **Paused** (left by Resume) | run | runs | frozen | `Phase` with `composition_start = composition_end` |
 
 How today's code builds sections around pauses and holds, case by case, is shown in
 [`RUN_STRUCTURE_GUIDE.md`](RUN_STRUCTURE_GUIDE.md) (figure "Pauses and holds").
@@ -399,67 +470,93 @@ How today's code builds sections around pauses and holds, case by case, is shown
 **Flow ramps and the transient states.** Two kinds of ramp meet the states differently:
 
 - A **commanded** ramp (a gradient, a programmed flow change) is the recipe's: it happens in
-  Running, as a step whose setpoint has a slope (3.5, 3.8).
+  Running, as a section whose set point has a slope (3.5, 3.8).
 - The **instrument's own** ramps are equipment behaviour the run log doesn't record: the
   pump ramps down before a Pause and back up after the Continue; under pressure control a flow increase still takes about 10 s; a valve turn
   briefly stops the flow. The survey (review 3.4) shows them on the volume axis, and the
   decided CADET flow source (Decide 6) already fits them as pieces (stop, linear ramp, set
   flow).
 
-So the record tags the fitted pieces around a stop with ISA-88's transient states, as short
+So the record tags the fitted pieces around a stop with ISA-88's "-ing" states, as short
 sub-segments, only where the volume axis shows them:
 
-| ISA-88 state | When | Flow setpoint | Flow actual | Logged by UNICORN |
+| ISA-88 state | When | Flow set point | Flow actual | Logged by UNICORN |
 |---|---|---|---|---|
 | Running | normal execution | the method's, with any commanded slope | the volume axis; under pressure control or at a valve turn it may lag or dip, still Running | instructions |
 | **Holding** | from the Pause to the pump at rest | unchanged | ramps down (fitted) | the Pause time only |
 | Held | the pump at rest | unchanged | 0 | the pause's length |
 | **Restarting** | from the Continue to the set flow | unchanged | ramps up (fitted) | the Continue time only |
 | Pausing, Paused | a Hold | unchanged, can change | the set flow; %B frozen | Hold and Continue |
-| **Stopping** | from End (or a manual stop) to rest | unchanged | ramps down (fitted), if the volume axis shows it; not yet seen in the survey | End |
+| **Stopping** | a manual End before the method ends (ISA-88's Stop: "a controlled normal stop"), to rest | unchanged | ramps down (fitted), if the volume axis shows it; not yet seen in the survey | End |
+| Complete | the method's own End | | any ramp down belongs to Running | End |
 
 The ramp's length is inferred: UNICORN logs when a Pause, Continue or End was issued, not
 when the pump reached rest or the set flow. Each transient carries the actual flow as a
-value with source `volume_axis` and quality `fitted`; the setpoint never changes in it.
+value with source `volume_axis` and quality `fitted`; the set point never changes in it.
 Display adds "ramped n s" to the phase's note; the model gives each transient its own
 section with a linear flow term; an agent sees the state and both flows.
 
-![Flow setpoint and actual across Running, Holding, Held, Restarting and Running](images/transient_states.svg)
+![Flow set point and actual across Running, Holding, Held, Restarting and Running](images/transient_states.svg)
 
 **Figure 9.** Flow ramps and ISA-88 states around a Pause and a Hold (schematic).
 
 (A synthetic schematic drawn by Claude, generated by `tools/draw_transient_states.py`; not
 data.)
 
-### 3.8 One value: asked for, delivered, and why they differ
+### 3.8 Set point, actual and calculated values
 
-Every value is a small object, not a bare number: the setting the method gave (`setpoint`),
-what was measured (`actual`) or what was calculated (`derived`), each with its source and
-how sure it is. Method variables are the recipe's parameters; measured lengths, volumes and
-statistics are the record's.
+The record stores a value such as a flow or a volume with up to three numbers:
 
-Example, the Sample Application phase of `samples/u73_blank.zip`, column flow and feed:
+- **set point**: the value set in the method, as the run log shows it;
+- **actual**: the value measured during the run (for flow and volume: UNICORN's volume axis);
+- **calculated**: a value PyCORN computes from other values, such as set point flow x time.
+
+They can differ, so the record keeps all three, each with its source.
+
+Method variables are what ISA-88 calls **process parameters**, part of the recipe's formula
+(3.46, 5.3.2.2): they belong to the method, and one may be "used as set points, comparison
+values, or in conditional logic". Phase lengths, volumes and statistics measured from the
+run are actual or calculated values: they belong to the run record.
+
+Example: the Sample Application phase of `samples/u73_blank.zip`. UNICORN runs a phase's
+first instructions one after another, so the previous phase's flow set point stays active
+for the first 2.4 s of the new phase:
+
+| | Column flow | Sample volume |
+|---|---|---|
+| Set point (run log) | 1 ml/min; 5 ml/min (previous phase) for the first 2.4 s | |
+| Calculated (set point flow x time) | | 0.417 ml |
+| Actual (volume axis) | about 2.5 ml/min during the 0.6 s in which the injection valve is already at Inject and the flow set point is still 5 ml/min | 0.389 ml |
+
+The two sample volumes differ because of those 0.6 s: the set point was 5 ml/min, the actual
+flow about 2.5 ml/min.
+
+Which value each output uses:
+
+- **Excel and the web page:** the set point with a note, `1 ml/min (first 2.4 s at 5)`, and
+  `0.42 ml`. Which sample volume to show is still open (Decide 18).
+- **CADET:** the actual value (0.389 ml).
+- **Scripts and agents:** all three, each with its source.
+
+For scripts, the same values as JSON. Each value has a `kind` (`set_point`, `actual` or
+`calculated`), a `source`, and a `quality` (how certain it is):
 
 ```json
-{"s88_level": "operation", "path": "OP2", "display_name": "Sample Application",
+{"level": "operation", "element_id": "OP2", "display_name": "Sample Application",
  "native": {"level": "phase", "text": "Phase Sample Application"},
  "instance": 1, "state": "running",
  "column_flow": [
-   {"value": 1.0, "unit": "mL/min", "kind": "setpoint", "source": "run_log", "quality": "exact"},
-   {"value": 5.0, "unit": "mL/min", "kind": "setpoint", "source": "run_log", "quality": "exact",
+   {"value": 1.0, "unit": "mL/min", "kind": "set_point", "source": "run_log", "quality": "exact"},
+   {"value": 5.0, "unit": "mL/min", "kind": "set_point", "source": "run_log", "quality": "exact",
     "held_over": {"duration_s": 2.4}},
    {"value": 2.5, "unit": "mL/min", "kind": "actual", "source": "volume_axis", "quality": "exact",
     "span_s": [315.7, 316.3]}],
  "feed_volume": [
-   {"value": 0.417, "unit": "mL", "kind": "derived", "source": "run_log"},
+   {"value": 0.417, "unit": "mL", "kind": "calculated", "source": "run_log"},
    {"value": 0.389, "unit": "mL", "kind": "actual", "source": "volume_axis"}]}
 ```
 
-Display shows `1 ml/min (first 2.4 s at 5)` and `0.42 ml` (which feed volume to show is
-still open, Decide 18); the model takes the actual; an agent sees all three and why they
-differ.
-
-The same held-over values at the start of every phase of that run are drawn in
+The previous phase's set points at the start of every phase of that run are drawn in
 [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (figure "Phase starts").
 
 ## 4. Edge cases and how they are resolved
@@ -471,8 +568,8 @@ The same held-over values at the start of every phase of that run are drawn in
 | Work before the first cycle or after the last (system prime, final clean) | `cycle` empty for those segments, shown as "before cycles" / "after cycles" |
 | Unequal cycles (a short last load, an aborted or extra cycle) | numbered as they ran; a warning lists the phases that differ from the other cycles; never padded or dropped |
 | A pause or hold across a cycle boundary | belongs to the cycle in which it started; the next cycle starts when its first phase starts |
-| A transient (holding, restarting) the volume axis doesn't show clearly | no transient segment; the stop is a plain `held` stretch from the logged times, as today |
-| An instruction issued during Holding or Restarting | acts at the time it was logged; the transient is split there, its setpoint changes with it |
+| A Holding or Restarting stretch the volume axis doesn't show clearly | no transient segment; the stop is a plain `held` stretch from the logged times, as today |
+| An instruction issued during Holding or Restarting | acts at the time it was logged; the transient is split there, its set point changes with it |
 | The logged phase order repeats ambiguously (e.g. two washes in one cycle) | the detected repeat is a hint only; the caller decides |
 | A scouting run that varies settings (method development, DoE) rather than repeating cycles | linked as a series either way; only the caller calls it cycles |
 | Scouting runs that each hold several cycles | both levels: the series link between results, `cycle` within each |
@@ -483,39 +580,56 @@ The same held-over values at the start of every phase of that run are drawn in
 
 ## 5. The record's fields
 
-**Naming rule.** Keys are vendor-neutral: ISA-88 and IOF words, CADET's valve words, UCUM
-units. The source system's own words are values, never keys: the record names its system
-once (`"source_system": {"name": "UNICORN", "version": "7.11"}`) and every segment keeps
-UNICORN's level and text under `native`. So another system's results (another vendor's
-software, another instrument family) fit the same record without a schema change, and the
-JSON reads like BatchML and Allotrope, whose keys are vendor-neutral too. Controlled values
-follow the same rule: the injection valve as `load` / `inject` / `direct_inject` / `run`
-(CADET-Process's `ValveEvent` names) with UNICORN's `Manual load` as the native value; an
-inlet as its line (`A`, `B`, `sample`) with the position (`A1`) as the native value; states
-as ISA-88's.
+This section lists what the record holds when it is written out as JSON, the file format
+scripts and agents read. A JSON record is a set of named fields: the field's name is its
+**key** (`"unit"`), followed by its **value** (`"mL/min"`).
 
-Every segment (unit procedure, operation, phase, step, section) carries the same tags:
+The record is built from **segments**. A segment is one stretch of the run at one level: a
+unit procedure, an operation or a phase (ISA-88), or a section below them (3.2-3.5).
+Segments nest: an operation holds its phases, a phase its sections. Each segment carries the same set
+of fields, and each number in it (a flow, a volume, a %B) is stored as a value with its
+set point, actual and calculated numbers (3.8).
 
-| Tag | Values | Why |
+**Naming rule: general words as keys, UNICORN's words as values.** The keys use words that
+don't belong to one vendor: ISA-88 and IOF (the Industrial Ontologies Foundry, section 12)
+for levels and states, CADET-Process's names for valve positions, and UCUM (the Unified
+Code for Units of Measure, a standard list of unit codes such as `mL/min`) for units.
+UNICORN's own words are never lost: they are kept as values under the key `native`, and the
+record names its source system once (`"source_system": {"name": "UNICORN", "version":
+"7.11"}`). Why: results from another vendor's software or another instrument family then fit
+the same record without changing its layout, as in BatchML (the ISA-88 batch record format)
+and Allotrope (the lab data format), which follow the same rule. ISA-88 asks it of batch
+history too: "entries are identified in generic, batch-related terms and not in
+equipment-specific tags" (6.4.3). Fields with a fixed list of
+allowed values follow it too:
+
+- the injection valve as `load`, `inject`, `direct_inject` or `run` (CADET-Process's
+  `ValveEvent` names), with UNICORN's text, such as `Manual load`, under `native`;
+- an inlet as its line (`A`, `B`, `sample`), with UNICORN's position (`A1`) under `native`;
+- states as ISA-88's (3.7).
+
+**Fields on every segment:**
+
+| Field | Values | What it is for |
 |---|---|---|
-| `s88_level` | `procedure`, `unit_procedure`, `operation`, `phase`, `step`, `section` | the level, in ISA-88 words |
-| `path` | `OP3/PH1/ST2` (from `phase_number`, `step_number`); `UP2/OP3/PH1/ST2` only when the run has more than one unit procedure | stable keys across outputs |
-| `native` | the source system's `level` (UNICORN: `phase` / `block` / `instruction`), `text` (the logged text) and, for states, `state` (`pause`, `hold`) | the source system's own words, never lost |
-| `instance` | 1, 2, ... | a phase run more than once (Equilibration twice) |
-| `cycle`, `cycle_source` | 1, 2, ... or empty; `caller`, `chromatogram`, `scouting` | cycles, however they were recorded (3.3) |
-| `chromatogram` | the original chromatogram the segment was recorded in | results with several chromatograms (3.4) |
-| `state` | `running`, `held`, `paused`, and the transients `holding`, `restarting`, `stopping` (ISA-88; the native state under `native`) | pauses, holds and the instrument's ramps around them (3.7) |
-| `start`, `end` | wall s, elapsed s, volume ml, CV, UTC | every axis |
-| `equipment_module` | `system_pump`, `injection_valve`, ... | phase level only |
+| `level` | `procedure`, `unit_procedure`, `operation`, `phase` (ISA-88's levels), `section` (below them) | the segment's level |
+| `element_id` | e.g. `OP3/PH1/SE2`: operation 3, its phase 1, that phase's section 2; `UP2/OP3/PH1/SE2` when the run has more than one unit procedure | a key that names the same segment in every output (tables, CADET, JSON), so they can be joined; ISA-88 asks for the "identification of procedural elements with which the data is associated" (6.4.1.1). Not called `path`: in ISA-88 a path is "the order of equipment ... used ... in the production of a specific batch" (3.32) |
+| `native` | UNICORN's `level` (`phase`, `block` or `instruction`), its `text` (the run-log text), and for a pause or hold its `state` (`pause`, `hold`) | UNICORN's own words for the segment |
+| `instance` | 1, 2, ... | which repeat this is, when a UNICORN phase runs more than once (Equilibration twice) |
+| `cycle`, `cycle_source` | the cycle number (1, 2, ...) or empty; how it was marked: `caller` (given by the user), `chromatogram` (one chromatogram per cycle), `scouting` (one scouting run per cycle) | cycles, however they were recorded (3.3) |
+| `chromatogram` | the chromatogram the segment was recorded in | results with several chromatograms (3.4) |
+| `state` | ISA-88's procedural states (5.7.2.1): `running`, `held`, `paused`, `holding`, `restarting`, `stopping` | pauses, holds and the pump's ramps around them (3.7) |
+| `start`, `end` | the segment's start and end on every axis: wall clock (s from method start, pauses included), method time (s, pauses excluded, UNICORN's axis), volume (ml), column volumes (CV), and date and time (UTC) | placing the segment on any axis a reader uses |
+| `equipment_module` | `system_pump`, `sample_feed`, `fraction_collector`, ... | phases only: the equipment module that carries out the phase (5.2.3.3; single valves and monitors are control modules, 3.6) |
 
-Each value inside a segment:
+**Fields on every value:**
 
 | Field | Values |
 |---|---|
-| `value`, `unit` | full precision; the unit as a UCUM code (`mL/min`, `%`, `mL`, `s`; CV as the annotation `{CV}`) |
-| `kind` | `setpoint` (asked for), `actual` (measured), `derived` (calculated) |
-| `source` | `run_log`, `volume_axis`, `curve`, `system_configuration`, `method_hint`, `caller`, `default`, `not_known` |
-| `quality` | `exact`, `inferred` (e.g. an unlogged pause), `fitted` (an actual fitted to the volume axis, e.g. a ramp in a transient state), `assumed` (e.g. `B1 (assumed)`), `folded` (display only, with `held_over`) |
+| `value`, `unit` | the number at full precision (rounding happens only in display), and its UCUM unit code: `mL/min`, `%`, `mL`, `s`; column volumes as `{CV}` (UCUM writes a unit it doesn't define in braces) |
+| `kind` | `set_point` (set in the method), `actual` (measured), `calculated` (computed from other values) (3.8) |
+| `source` | where the number came from: `run_log`; `volume_axis` (UNICORN's volume axis); `curve` (a measured curve, such as UV); `system_configuration` (the instrument set-up stored with the result, such as the installed valves); `method_hint` (the method, used only as a hint, never as what ran); `caller` (given by the user); `default` (a stated default); `not_known` |
+| `quality` | how certain it is: `exact` (logged or measured as is); `inferred` (worked out from other evidence, e.g. a pause the run log doesn't show); `fitted` (an actual fitted to the volume axis, e.g. a pump ramp around a pause); `assumed` (shown as such, e.g. `B1 (assumed)` for an inlet position not stored); `folded` (display only: the previous phase's set point folded into the phase, with its length under `held_over`) |
 
 ## 6. How it fits CADET-Process 0.13 and CADET-GUI
 
@@ -543,7 +657,7 @@ flowchart LR
     end
     core["CADET-Core<br/>solver; input file<br/>(HDF5 / JSON)"]
     gui["CADET-GUI<br/>ExperimentalRun,<br/>Comparison"]
-    rec["Run record<br/>model view"] -- steps, flow sheet values --> ins
+    rec["Run record<br/>model view"] -- sections, flow sheet values --> ins
     rec -- measured curves --> ref
     rec -- fractions --> ref
     rec -. direct Core input .-> core
@@ -559,7 +673,7 @@ flowchart LR
 
 **Figure 10.** CADET's parts, and where the run record feeds in.
 
-The record gives CADET what ran (steps, valve events, flow-sheet values such as column
+The record gives CADET what ran (sections, valve events, flow-sheet values such as column
 geometry and mixer volume) and what was measured (references, fractions). What the model
 is (binding, unit-operation models, their parameters) and fitting stay CADET's (D28).
 
@@ -575,13 +689,13 @@ is a ready proposal for such a standard when one is started.
 |---|---|---|
 | procedure / unit procedure | `PhasedProcess(name, flow_sheet, steps)` | a study / run |
 | operation (UNICORN phase) | none (a `Phase` has no name) | markers: "Phase ..." run-log texts, on a volume axis only |
-| step / section, running | `Phase` (flow, %B as `{"A": 1-b, "B": b}`, ramp via `composition_end`) | "Phase <i>" spans from the template |
+| section, running | `Phase` (flow, %B as `{"A": 1-b, "B": b}`, ramp via `composition_end`) | "Phase <i>" spans from the template |
 | held (UNICORN Pause) | `Phase(d, 0.0, {})` (allowed: composition is checked only when flow > 0) | not represented (one constant flow) |
 | paused (UNICORN Hold) | `Phase` with `composition_start = composition_end` | not represented |
 | holding, restarting, stopping (the instrument's ramps, 3.7) | needs a flow at the `Phase`'s end (one flow per `Phase` today); until then each fitted piece is its own constant-flow `Phase` | not represented |
 | injection valve setting | `ValveEvent("load" / "inject" / "direct_inject" / "run")` | none |
 | equipment modules | `LCFlowSheet`: sample loop, mixer, four tubings, column, `bypass_units` | instrument templates |
-| `process_action` | templates `PulseInjection`, `Step`, `StepElution`, `LWE`, `Breakthrough` | experiment types (system pulse, column pulse, LWE, breakthrough, ...) |
+| `process_operation` | templates `PulseInjection`, `Step`, `StepElution`, `LWE`, `Breakthrough` | experiment types (system pulse, column pulse, LWE, breakthrough, ...) |
 | measured curves | `ReferenceIO(time, solution, flow_rate)`, SI by convention, no unit field | `ExperimentalRun` / `Channel`, units dropped |
 | feed start | - | `Comparison.injection_marker` (a text prefix) |
 | multi-column continuous chromatography (3.1, not supported) | its own builders (`CarouselBuilder`, `SMBBuilder`) | - |
@@ -590,9 +704,9 @@ is a ready proposal for such a standard when one is started.
 PyCORN by guessing):
 
 - One flow per `Phase`: UNICORN flow ramps can't be expressed (a flow at phase end would do).
-- Duration must be > 0 and two `ValveEvent`s in a row are rejected: zero-length steps are
-  dropped, with a warning naming their `path`.
-- No name on `Phase`: the `path` and UNICORN's text can't travel with the steps, so the GUI
+- Duration must be > 0 and two `ValveEvent`s in a row are rejected: zero-length sections are
+  dropped, with a warning naming their `element_id`.
+- No name on `Phase`: the `element_id` and UNICORN's text can't travel with the sections, so the GUI
   can't align on UNICORN's phases. Ask for an optional `name`.
 - Buffers A-D are mixer inlets (a quaternary pump), not AKTA's A/B pumps with inlets
   A1-A4/B1-B4; `bypass_units` is fixed, so a column by-pass partway through a run has no
@@ -606,8 +720,8 @@ PyCORN by guessing):
 **What the record supplies that CADET doesn't read from a run:** column geometry and Vc,
 mixer volume from the stored system configuration, inlet positions (known / assumed / not
 known), pauses and holds as states, the executed sections with their source. Loop volume
-stays the caller's (D19); `process_action` and the template stay the caller's, even though
-CADET's templates are exactly the process model ISA-88 describes.
+stays the caller's (D19); `process_operation` and the template stay the caller's, even though
+CADET's templates describe the process as ISA-88's process model does (3.6).
 
 ## 7. Outputs: what changes, what's new
 
@@ -620,8 +734,8 @@ JSON; the web page shows the same tables. The proposal touches few of them:
 |---|---|---|
 | 1. Run record | none | internal; today's `phases`, `sections` and CADET inputs re-derived from it must come out byte-identical |
 | 3. Display view | `phases` table (CSV, Excel, page), `phase_windows`, the page's tracks | **changed values**: a short delay at a phase start folded in with a note column; repeated phases named `Equilibration (2)`; window statistics skip the held-over lead-in, retiring the "interim phase rule" note. Listed first in the CHANGELOG |
-| 4. Steps table | between `phases` (one row per phase) and `sections` (1:1 with CADET) | **new table** `steps` (`<c>_steps.csv`, an Excel sheet, a page tab), added to `export_tables.py`; `schema --json` lists it (schema 1, additions only) |
-| Keys (Decide 2, 24) | `phases`, `sections`, `phase_windows`, `warnings` | **added columns** `phase_number`, `step_number`, `path`; warnings carry the `path` they belong to. One value per column ("Outputs stay atomic") |
+| 4. Display steps table (name open, section 11) | between `phases` (one row per phase) and `sections` (1:1 with CADET) | **new table** (e.g. `<c>_steps.csv`, an Excel sheet, a page tab), added to `export_tables.py`; `schema --json` lists it (schema 1, additions only) |
+| Keys (Decide 2, 24) | `phases`, `sections`, `phase_windows`, `warnings` | **added columns** `phase_number`, `section_number`, `element_id`; warnings carry the `element_id` they belong to. One value per column ("Outputs stay atomic") |
 | Cycles, chromatograms | the same tables | a `cycle` column only when cycles are marked; chromatograms already get their own files |
 | 5. `pycorn record --json` | `inspect --json` | **new command**, same envelope, schema version and masking as every `--json`. `inspect` stays the summary and gains the operation list; `record` gives the whole structure. Neither holds curve values |
 | 6. Model view | CADET files: `experiment.json`, CADET-Process CSVs, CADET-Core input | same files, built from the record; values change with the decided flow source (Decide 6). If the owner agrees (section 11), `experiment.json` becomes `model_view.json` with the section 5 naming; a file name has no alias, so both are written for one release |
@@ -658,14 +772,14 @@ Each step adds to what exists: today's outputs stay byte-identical until a step 
 otherwise.
 
 1. **Record** (`pycorn/run_record.py`): built from `run_log_sections`, the timeline, the
-   system configuration and the curves; ISA-88 levels, states, tags, setpoint / actual /
-   derived values with source and quality. Tests: today's phase table, sections and CADET
+   system configuration and the curves; ISA-88 levels, states, tags, set point / actual /
+   calculated values with source and quality. Tests: today's phase table, sections and CADET
    inputs re-derived from the record equal today's outputs.
-2. **Rules** (`pycorn/step_rules.py`): the decided phase-start rule and the other display
+2. **Rules** (`pycorn/display_rules.py`): the decided phase-start rule and the other display
    rules as they are decided; one function per view.
 3. **Display view**: the phase-start fold and repeat names in the phase table, Excel and the
    page, plus the M22 lead-in skip. A changed output gets a CHANGELOG entry.
-4. **Steps table** for modelers, from the record.
+4. **Display steps table** for people (3.5; name open), from the record's sections.
 5. **`pycorn record --json`** (and `inspect` gains the record's operation list), masked by
    default.
 6. **Model view** reads `actual` values (the decided CADET flow source); if the owner agrees
@@ -686,7 +800,7 @@ otherwise.
   them until its first instruction.
 - **Cycles** (3.3): how the caller marks them; real multi-cycle runs with and without a new
   chromatogram per cycle, and a scouting series.
-- **Production links** (3.1): the label the caller gives for a lot; connected skids;
+- **Links between runs** (3.1): the label the caller gives for a lot; connected skids;
   multi-column continuous chromatography.
 - **Terms** still to check: the 2010 edition of ISA-88 Part 1, and IEC 62264's own
   definitions behind B2MML's material lots. ("Cycle", "campaign" and "series" are this
@@ -704,9 +818,9 @@ otherwise.
   the caller marks cycles or chromatograms. Links between results are links, never merged
   records.
 - Multi-column continuous chromatography on one skid is not supported.
-- `process_action` stays empty without a caller mapping: UNICORN's names are free text.
+- `process_operation` stays empty without a caller mapping: UNICORN's names are free text.
 - The volume axis counts as "actual" only because the survey (review 3.4) shows it is the
-  flow the pump delivered; otherwise it would be a derived value and the run log the
+  flow the pump delivered; otherwise it would be a calculated value and the run log the
   model's source.
 - Several chromatograms in one result: built on the owner's statement from memory, not on
   an example.
@@ -740,17 +854,17 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 
 | # | Item | Proposed answer |
 |---|---|---|
-| 1 | steps level | yes: the ISA-88 step (constant state); `chrom.step_table()`, `<c>_steps.csv` |
-| 2 | keys | yes: `phase_number`, `step_number`, and the `path` tag |
+| 1 | steps level | not a record level: ISA-88 ends at the phase (5.1.2.4). The record goes down to sections; a table of display steps (sections joined, previous-phase set points folded) for people, `<c>_steps.csv` or as named (below) |
+| 2 | keys | yes: `phase_number`, `section_number`, and the `element_id` tag |
 | 3 | ISA-88 terms in columns | the record's JSON uses ISA-88 and other vendor-neutral keys, UNICORN's words as `native` values (section 5); display tables and CSV keep UNICORN's words only |
 | 9, 10 | held-over note; "at the start" | decided 2026-11-12 (display) |
 | 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), native state `pause`; the pump's ramp down before and up after as `holding` and `restarting` rows where the volume axis shows them (3.7) |
 | 13 | inferred pauses | same rows, `quality = inferred`; display marks them ("about 40 s, not logged") |
 | 14 | holds | `state = paused` (UNICORN Hold), a note per phase in display |
 | 16 | by-pass | an equipment state of the column valve module; display note |
-| 20 | ramp length | both: `setpoint` (logged length) and `actual` (measured on each axis); display shows the actual |
+| 20 | ramp length | both: `set_point` (logged length) and `actual` (measured on each axis); display shows the actual |
 | 23 | repeats | `instance` numbers; display `Equilibration (2)`; the logged text kept |
-| 24 | warnings per phase | warnings carry the `path` they belong to; display puts them on the phase row |
+| 24 | warnings per phase | warnings carry the `element_id` they belong to; display puts them on the phase row |
 
 **Display choices still the owner's**: 12 phase length with or without pauses (proposal:
 both), 15 which flow users see, 17 feed wording, 18 feed volume shown, 21 the gradient
@@ -770,6 +884,36 @@ parameter changes. Proposal: when plan step 6 makes this object the model view, 
 section 5's vendor-neutral keys in the JSON; keep the old names as aliases (and write both
 files) for a release, and list the rename first in the CHANGELOG.
 
+**New decision for the owner: the words below the phase.** ISA-88 points to "the steps and
+transitions as described in IEC 848: 1988" as "one method of defining subdivisions of a
+phase" (5.1.2.4); IEC 848 became IEC 60848 (GRAFCET), and IEC 61131-3's
+sequential function chart (SFC) uses the same idea. There a **step** is a state of the
+control logic, active or inactive; a **transition** with a condition ends it; **actions**
+are attached to steps, and a stored action sets a value that stays after its step ends,
+until another action changes it. Read on UNICORN:
+
+- an instruction is a stored action: it sets a value that holds until the next instruction
+  changes it (D13). In ISA-88's words, a command the phase issues to basic control, which
+  maintains the state it sets (3.5);
+- a breakpoint (a time or volume in the block) or a watch is a transition's condition;
+- so an IEC step is the wait between two breakpoints of a block. The instructions at one
+  breakpoint belong to one step, but UNICORN executes them about 0.2 s apart, and each one
+  starts a section.
+
+Neither word in this draft is an IEC step: a section is finer (one per executed
+instruction), and a display step is cut where the values change, not where the method's
+logic moves on. Options:
+
+| | Record, below the phase | Display rows (3.5) |
+|---|---|---|
+| A | sections | "steps", with a note that they are not IEC steps |
+| B | sections | another word, the owner's choice |
+| C | IEC steps (the instructions at one breakpoint grouped), then sections inside them | as A or B |
+
+C matches the standard best, but the run log may not say which instructions share a
+breakpoint: grouping them by time would be a guess, so C waits for a check of the method
+against the run log on the example results.
+
 ## 12. Words used here, and their ontology terms
 
 What each word means in PyCORN, and the matching term in the ontologies a lab or plant may
@@ -783,35 +927,39 @@ plan keeps apart too: the **plan** (the method), the **process** that ran, and t
 ```mermaid
 flowchart LR
     plan["Plan<br/>UNICORN method<br/>IOF Recipe"] -- prescribes --> run["What ran<br/>method run<br/>IOF BatchRun,<br/>Recipe...Occurrence"]
-    run -- is recorded in --> rec["Record<br/>UNICORN result, Run,<br/>run record<br/>IAO data, ISA-88 batch record"]
-    rec --> views["Views<br/>model, display, agent"]
+    run -- is recorded in --> rec["Record<br/>UNICORN result, Run,<br/>run record<br/>IAO data, ISA-88 batch history"]
+    rec --> views["Views<br/>model, display, agent<br/>ISA-88 batch reports"]
 ```
 
 **Figure 11.** Plan, what ran, and the record, in ontology terms.
 
 | Word | In PyCORN | Ontology terms |
 |---|---|---|
-| method | the UNICORN method: the plan, read only as hints | IOF `Recipe`; a method with variables is a `MasterRecipe`, the values one run used its `ControlRecipe`; IAO plan specification |
+| method | the UNICORN method: the plan, read only as hints | ISA-88 master recipe (5.3.1.3); with the values one run used, its control recipe (5.3.1.4); IOF `Recipe`, `MasterRecipe`, `ControlRecipe`; IAO plan specification |
+| method variable | a value the method lets the user set (flow, volumes, ...) | ISA-88 process parameter, part of the formula (3.46, 5.3.2.2) |
+| instruction | one UNICORN method instruction (`Flow`, `Gradient`, `Injection valve`), as logged when executed | a command a phase issues to basic control (5.1.2.4) |
 | run (method run) | one execution of a method on one system | IOF `BatchRun`, `ChromatographyProcess`; OBI planned process |
 | result, `Run` | what one run stored, as UNICORN keeps it; the `Run` class holds that data, not the run itself | IAO information content entity; Allotrope experimental data |
-| run record | the proposed single description of one run (sections 1, 5) | ISA-88 batch production record (Part 4) |
-| procedure, unit procedure, operation, phase (as executed) | the record's levels (3.2-3.5); a UNICORN phase is an ISA-88 operation | IOF `RecipeProcedureOccurrence`, `RecipeUnitProcedureOccurrence`, `RecipeOperationOccurrence`, `RecipePhaseOccurrence`, each prescribed by its `Recipe...` element |
-| step, section | constant-state stretches; CADET's piecewise inputs | no ontology class; CADET-Process `Phase` |
+| run record | the proposed single description of one run (sections 1, 5) | ISA-88 batch history (Part 1, 5.5.3); batch production record (Part 4) |
+| view (model, display, agent) | what one reader gets from the record (section 1) | ISA-88 batch report: "the extraction of data related to one or more batches", ordered for its recipient (5.5.4, 6.4.3) |
+| procedure, unit procedure, operation, phase (as executed) | the record's levels (3.2-3.5); a UNICORN phase is an ISA-88 operation | ISA-88's procedural control model (5.1.2); IOF `RecipeProcedureOccurrence`, `RecipeUnitProcedureOccurrence`, `RecipeOperationOccurrence`, `RecipePhaseOccurrence`, each prescribed by its `Recipe...` element |
+| section | the record's lowest level: the stretch from one executed instruction to the next, settings constant inside it (3.5); one CADET section each | not an ISA-88 level (a phase "may be subdivided", 5.1.2.4); the word is CADET-Core's (`SECTION_TIMES`); CADET-Process `Phase`; no ontology class |
+| display step (name open) | sections joined for people, previous-phase set points folded with a note (3.5); not stored in the record | none; not an IEC 60848 / IEC 61131-3 step (section 11) |
 | cycle | one pass of the sequence on one column (3.3) | no class in IOF, OBI or Allotrope; the record's own term |
 | series, study | linked results (3.1); a designed series (DoE scouting) is a study | OBI study design execution; IOF `StudyDesignRun` per result, `DesignPoint` for its planned factor levels; BatchML `CampaignID` |
 | experiment | kept for a planned study across runs, as the ontologies use it; today also, wrongly, the CADET export's object (section 11) | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
 | chromatogram | UNICORN's container of curves and event logs for (part of) a run (3.4) | Allotrope chromatogram = one signal against time or volume, i.e. one PyCORN curve; no IOF class |
-| curve, signal | one measured or derived trace | IAO measurement datum; Allotrope chromatogram data cube |
-| event | a UNICORN log entry (run log, injection, fraction) | a record of a process boundary; not CADET-Process's events, which are planned parameter changes in a simulation |
+| curve, signal | one measured or calculated trace | ISA-88 continuous data (5.5.1); IAO measurement datum; Allotrope chromatogram data cube |
+| event | a UNICORN log entry (run log, injection, fraction) | ISA-88 event data, e.g. "start and stop times of procedural elements" (5.5.1); not CADET-Process's events, which are planned parameter changes in a simulation |
 | sample | the material loaded onto the column (sample pump, feed) | IOF and OBI `MaterialSample` (for a taken sample); the files in `samples/` are **example results**, not samples |
 | load, eluate, flow-through | the material in, and the streams out (3.6) | inputs and outputs of the run (OBI "has specified input / output"); no IOF classes or roles yet |
 | fraction, pool | collected eluate (one row per tube) and pooled fractions (3.6) | IOF `PoolingProcess` (the act); no class for a fraction or a pool; ISA-95 `MaterialSubLot` / `MaterialLot` as the places to identify them |
-| batch | in ISA-88, one execution of a recipe and the material it made: each UNICORN run is one, with its own UNICORN Batch ID (3.1). Not the plant's numbered batch, which is a lot | ISA-88 batch; BatchML `BatchID`; IOF `BatchRun` |
+| batch | in ISA-88, the material made by one execution of a batch process, and the entity that represents its production (3.5): each UNICORN run is one, with its own UNICORN Batch ID (3.1). Not the plant's numbered batch, which is a lot | ISA-88 batch; BatchML `BatchID`; IOF `BatchRun` |
 | lot, material ID | an identified amount of material (the plant's batch or lot number). Every load, fraction and pool carries its own material ID; runs are linked through them (a pool becomes the next load) (3.1, 3.6) | ISA-88 lot; IOF supply-chain `Lot`; ISA-95 `MaterialLot` / `MaterialSubLot` in a `MaterialActual`; BatchML `LotID` only for a run with one load material |
-| system, column | the instrument (ISA-88 unit) and the column (3.6) | IOF `PreparativeChromatographySystem` (one that produces fractions for further processing), `ChromatographyColumn`, `PhysicalUnit`, `EquipmentModule` |
-| process | four senses: what ran (BFO process), ISA-88's process model, CADET-Process's `Process` (a simulation set-up), a production process | written as "the run", "process model", `Process` (in code font) and "production process" to keep them apart |
+| system, column | the instrument (ISA-88 unit, 3.60; its pumps and fraction collector equipment modules, its valves and monitors control modules) and the column (3.6) | IOF `PreparativeChromatographySystem` (one that produces fractions for further processing), `ChromatographyColumn`, `PhysicalUnit`, `EquipmentModule` |
+| process | three senses: what ran (BFO process; ISA-88 3.38: "a sequence of chemical, physical, or biological activities for the conversion, transport, or storage of material or energy"), ISA-88's process model (process stage, process operation, process action; 4.1.3), CADET-Process's `Process` (a simulation set-up) | written as "the run", "process model" and `Process` (in code font) to keep them apart |
 | model | the CADET model; the "model view" of the record | not ISA-88's process or physical models, which this plan calls by those full names |
-| setpoint, actual, derived | asked for, measured, calculated (3.8) | IOF and IAO measurement information for actuals; the plan side for setpoints |
+| set point, actual, calculated | set in the method, measured, calculated by PyCORN (3.8) | ISA-88's words: a process parameter "may be used as set points" (5.3.2.2), "actual values" (6.4.3.1), "calculations ... creating new batch data" (6.4.2); IOF and IAO measurement information for actuals |
 
 ## References
 
@@ -820,10 +968,20 @@ open them before quoting them outside this draft.
 
 ISA-88, ISA-106 and BatchML:
 
-- ISA-88.01-1995, *Batch Control Part 1: Models and Terminology*: definitions 3.5 (batch),
-  3.28 (lot), 3.59 (train), 3.61 (unit procedure); 4.1 (continuous processes not
-  specifically addressed); 5.1.2.2 (operations in a single unit); 5.7.2 (example states).
-  The 2010 edition (ANSI/ISA-88.00.01-2010) was not checked.
+- ANSI/ISA-S88.01-1995, *Batch Control Part 1: Models and Terminology*, checked against
+  its full text: definitions 3.5 (batch), 3.11 (control recipe), 3.28 (lot), 3.32 (path),
+  3.34 (phase), 3.37 (procedure), 3.38 (process), 3.46 (process parameter), 3.59 (train),
+  3.60 (unit), 3.61 (unit procedure); 4.1 (continuous processes not specifically
+  addressed); 4.1.3 (process model); 4.2.7 (control module examples); 5.1.1 (basic
+  control); 5.1.2.1-5.1.2.4 (procedure, unit procedure, operation, phase: the smallest
+  element, subdivided by IEC 848 steps and transitions); 5.2.1 and Figure 7 (procedural,
+  physical and process models mapped); 5.2.2.4.2 and 5.2.3.3 (control vs equipment
+  module); 5.3.1.3, 5.3.1.4 (master and control recipe); 5.3.2.2 (formula); 5.3.3.2 (each
+  occurrence identified); 5.5.1, 5.5.3, 5.5.4 (batch-specific information, batch history,
+  batch reports); 5.7.2, 5.7.2.1, 5.7.2.2, Table 2, Figure 18 (example states and
+  commands); 6.4.1.1-6.4.1.3, 6.4.2, 6.4.3, 6.4.3.2 (batch history entries, tracing,
+  batch tracking, reports, trends). The 2010 edition (ANSI/ISA-88.00.01-2010) was not
+  checked.
 - ISA-TR106.00.01-2013 and ANSI/ISA-106.00.01-2023, *Procedure Automation for Continuous
   Process Operations*: https://www.isa.org/products/isa-tr106-00-01-procedure-automation-for-continuou
 - BatchML batch production record schema (`BatchID`, `LotID`, `CampaignID`):
@@ -834,6 +992,18 @@ ISA-88, ISA-106 and BatchML:
 - MESA International, B2MML-BatchML (BatchML: "an XML implementation of the ANSI/ISA-88,
   Batch Control, family of standards", IEC 61512):
   https://github.com/MESAInternational/B2MML-BatchML
+
+Steps and transitions (section 11, "the words below the phase"; the standards themselves not
+read, only the sources below):
+
+- IEC 60848:2013 (edition 3), *GRAFCET specification language for sequential function
+  charts* (IEC preview): https://webstore.ansi.org/preview-pages/IEC/preview_iec60848%7Bed3.0%7Db.pdf
+- *Unambiguous Interpretation of IEC 60848 GRAFCET based on a
+  Literature Review* (steps, transitions, stored actions): https://arxiv.org/abs/2307.11556
+- IEC 61131-3 SFC action qualifiers (N, S, R, ...), as vendors document them, e.g. Beckhoff:
+  https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html
+- ISA-88 Part 2's procedure function chart and its relation to SFC (Yokogawa):
+  https://yokogawa.com/library/resources/media-publications/what-does-a-procedure-look-like-the-isa-s8802-recipe-representation-format
 
 Ontologies:
 

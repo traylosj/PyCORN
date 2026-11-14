@@ -4,7 +4,7 @@ Draw the transient-states figure of docs/RUN_STRUCTURE_RECORD.md (section 3.7).
 
     python tools/draw_transient_states.py [-o docs/images/transient_states.svg]
 
-A synthetic schematic drawn by Claude (an AI assistant), not data: the flow setpoint and the
+A synthetic schematic drawn by Claude (an AI assistant), not data: the flow set point and the
 actual flow (as the volume axis would show it) across Running, a Pause (Holding, Held,
 Restarting) and Running again, then a Hold (Pausing, Paused) where the flow keeps running and
 %B freezes. Placeholder numbers only. Plain SVG, same look as docs/images/logic_*.svg.
@@ -29,7 +29,7 @@ STATE_FILL = {"Running": "#ecebe5", "Holding": "#fde3d6", "Held": "#f6c9b3", "Re
 STATES = [("Running", 0, 20), ("Holding", 20, 24), ("Held", 24, 40), ("Restarting", 40, 45),
           ("Running", 45, 60), ("Pausing", 60, 61), ("Paused", 61, 78), ("Running", 78, 90)]
 T_END = 90
-SET = 1.0  # setpoint (placeholder units)
+SET = 1.0  # set point (placeholder units)
 # actual flow: piecewise linear points (t, flow)
 ACTUAL = [(0, SET), (20, SET), (24, 0.0), (40, 0.0), (45, SET), (90, SET)]
 SETPOINT = [(0, SET), (90, SET)]
@@ -67,7 +67,7 @@ L, R = 170, W - 40
 xs = lambda t: L + t / float(T_END) * (R - L)  # noqa: E731
 
 text(20, 30, "Flow ramps and ISA-88 states around a Pause and a Hold", 16, INK, weight="600")
-text(20, 50, "Synthetic schematic (drawn by Claude), not data. The setpoint never changes in a transient;")
+text(20, 50, "Synthetic schematic (drawn by Claude), not data. The set point never changes in a transient;")
 text(20, 65, "the actual flow is what the volume axis would show, fitted as stop, linear ramp, set flow.")
 
 # state band
@@ -92,7 +92,7 @@ for _, a, _ in STATES[1:]:
     line(xs(a), top - 4, xs(a), bot, GRID, 1, "3 3")
 polyline([(xs(t), fy(v)) for t, v in ACTUAL], ORANGE, 2.5)
 polyline([(xs(t), fy(v)) for t, v in SETPOINT], BLUE, 2, "6 4")
-text(xs(52), fy(SET) - 8, "setpoint (run log)", 10, BLUE, "middle")
+text(xs(52), fy(SET) - 8, "set point (run log)", 10, BLUE, "middle")
 text(xs(32), fy(0) - 8, "actual (volume axis): 0 while Held", 10, ORANGE, "middle")
 text(xs(21.5), fy(0.55), "ramp down", 10, ORANGE, "end")
 text(xs(43.5), fy(0.55), "ramp up", 10, ORANGE, "start")
