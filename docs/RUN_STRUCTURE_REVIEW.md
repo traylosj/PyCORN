@@ -187,7 +187,7 @@ catch-up; both times stay, as in a batch record; the model takes the actuals.
    logged flow by more than 0.01 ml and 1 % of the section, with a warning, then apply D14's
    by-pass and waste zeroing. u73's feed becomes 0.389 ml.
 
-   **Decided (owner, 2026-11-14), not built.** The run log's `The method flow is now
+   **Decided (owner, 2026-11-14); built, unreleased (`pycorn/delivered_flow.py`).** The run log's `The method flow is now
    calculated based on the system | sample flow` entry says which pump the volume axis counts
    (docs/FACTS.md); both pumps can run at once, and the valve positions say where each flow
    goes. CADET's flow per section:

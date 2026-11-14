@@ -728,12 +728,18 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
   valves, column position and feed never fold; phase starts and ends never move. M22 windows
   measured from a phase start skip the held-over seconds (this replaces the lead-in part of
   M22's interim rule). CADET never folds: its sections stay exact.
-- **Decided, not built: CADET flow source** (owner, 2026-11-14; review 3.4, Decide 6). Run
+- **Built (unreleased): CADET flow source** (owner, 2026-11-14; review 3.4, Decide 6). Run
   log for structure and timing; the run log's method-flow entry for which pump
   (docs/FACTS.md); the volume axis for the amount where it differs by more than 0.01 ml and
   1 % of a section (feed too), with a warning; inside such a section a ramp model fitted to the
   axis (stop, linear ramp, set flow; each piece a CADET section with a linear flow term; rate
-  never fixed); then D14's zeroing by valve position.
+  never fixed); then D14's zeroing by valve position. `pycorn/delivered_flow.py`,
+  `build_experiment(flow_from_axis=True)`. Choices made while building (owner may change):
+  knots near the set flow or 0 take it, the rest by least squares on the axis volume within
+  [0, the highest set flow around]; sections under 1 s or 5 axis points get one constant
+  flow; volume the axis books at a pause with no time is left out (one warning); a section
+  where pressure limits the flow gets no special handling (none seen). Not built: the
+  display's `held_over` note "ramped n s".
 - **Main proposals:**
   - three levels: a user summary per phase, steps for modelers (keyed by `phase_number`,
     `step_number`, with `state`), and sections 1:1 for CADET

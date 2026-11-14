@@ -51,14 +51,15 @@ def test_sections_in_si_and_loop_feed_cut():
     events = _events(_e(1.0, "Injection valve Inject"), _e(4.0, "Injection valve Manual load"),
                      _e(6.0, "End 1/1/2024", status=""))
     run = _run(events, curves=[_uv("UV 1_280")])
-    exp = build_experiment(run, loop_volume=(1.0, "ml"))
+    # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
+    exp = build_experiment(run, loop_volume=(1.0, "ml"), flow_from_axis=False)
     feed = [s for s in exp.sections if s.feed]
     assert len(feed) == 1
     assert (feed[0].start_s, feed[0].end_s, feed[0].feed_source) == (60.0, pytest.approx(90.0), "loop_volume")
     after = next(s for s in exp.sections if s.start_s == pytest.approx(90.0))
     assert not after.feed and after.injection_valve == "Inject"
     assert feed[0].flow_m3_s == (pytest.approx(2.0 / 6e7), 0.0)
-    exp = build_experiment(run)
+    exp = build_experiment(run, flow_from_axis=False)
     assert [s.end_s - s.start_s for s in exp.sections if s.feed] == [pytest.approx(180.0)]
     assert any("no loop volume given" in w for w in exp.warnings)
 
@@ -83,7 +84,8 @@ def test_bypass_is_not_feed_but_uses_up_the_loop():
                      _e(5.0, "End 1/1/2024", status=""))
     run = _with_injection(_run(events, curves=[_uv("UV 1_280"), _curve("Cond", lambda t: 10.0, "mS/cm",
                                                                          data_type="Conduction")]), 1.0)
-    exp = build_experiment(run, loop_volume=(3.0, "ml"))
+    # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
+    exp = build_experiment(run, loop_volume=(3.0, "ml"), flow_from_axis=False)
     assert _feed_spans(exp) == [(120.0, pytest.approx(150.0))]
     uses = [(round(s.start_s), s.sample_use) for s in exp.sections if s.injection_valve == "Inject"]
     assert uses == [(60, "to_bypass"), (120, "feed"), (150, "buffer")]
@@ -92,11 +94,11 @@ def test_bypass_is_not_feed_but_uses_up_the_loop():
     assert exp.primary_uv.not_column_outlet == [(30.0, 120.0)]
     assert any(s.role == "conductivity" and s.not_column_outlet == [(30.0, 120.0)] for s in exp.signals)
     assert any("sample sent to the column by-pass" in w for w in exp.warnings)
-    shifted = build_experiment(run, loop_volume=(3.0, "ml"), time_zero="injection")
+    shifted = build_experiment(run, loop_volume=(3.0, "ml"), time_zero="injection", flow_from_axis=False)
     assert shifted.primary_uv.not_column_outlet == [(-30.0, 60.0)]
     assert shifted.bypass[0]["start_s"] == -30.0
     # a loop used up at by-pass leaves no feed
-    assert _feed_spans(build_experiment(run, loop_volume=(1.0, "ml"))) == []
+    assert _feed_spans(build_experiment(run, loop_volume=(1.0, "ml"), flow_from_axis=False)) == []
 
 
 def test_buffer_through_the_bypass_is_not_column_outlet():

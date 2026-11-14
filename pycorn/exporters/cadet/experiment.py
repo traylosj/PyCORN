@@ -9,6 +9,11 @@ CADET-Core input file are built from this in later phases.
   `time_zero='injection'` every time is shifted so the first injection is at 0.
 - Sections come from `pycorn.run_log_sections` (what ran, D13-D16). Flow is the flow through the
   column in m^3/s as CADET polynomial coefficients (constant, slope per s).
+- Flow amount (Decide 6, `pycorn.delivered_flow`): the logged set flow, except where UNICORN's
+  volume axis differs from it beyond the tolerance (valve-turn stops, pressure-control ramps,
+  the pump stopping before a pause and ramping after it): there the section is split into
+  pieces fitted to the axis (`ExperimentSection.flow_source`), with a warning; then D14 by
+  valve position. The loop volume (D19) and the by-pass flow use the system pump's fitted flow.
 - Feed (D16, D18-D21): sections where the injection valve is at 'Inject' or 'Direct inject',
   labelled by `sample_use` (see `pycorn.run_log_sections.sample_use`).
   - D18: while the column is by-passed the sample goes to the by-pass ('to_bypass'), not feed.
@@ -97,6 +102,17 @@ class ExperimentSection:
     # per line ('A', 'B', 'sample'): label, position, state (known / assumed / not known), why
     # (`pycorn.run_log_sections.inlet_state`, from the system configuration)
     inlet_states: dict = field(default_factory=dict)
+    # Decide 6: 'run_log' (set flow), 'volume_axis' (a piece fitted to the axis) or
+    # 'volume_axis_mean' (one constant flow with the axis volume); `pycorn.delivered_flow`
+    flow_source: str = "run_log"
+    # the system pump's delivered flow (constant, slope per s) where fitted; None: the set-point
+    system_delivered_m3_s: Optional[tuple] = None
+
+    def system_pump_m3_s(self):
+        """(constant, slope per s) the system pump delivers: fitted where the axis counted it, else the set-point."""
+        if self.system_delivered_m3_s is not None:
+            return tuple(self.system_delivered_m3_s)
+        return (self.system_flow_m3_s, 0.0)
 
 
 @dataclass
@@ -190,14 +206,83 @@ def _periods(sections, keep):
     return out
 
 
+def _at(poly, dt):
+    """(constant, slope) of a linear polynomial moved `dt` s on."""
+    return None if poly is None else (poly[0] + poly[1] * dt, poly[1])
+
+
 def _split(s, t):
-    """`s` cut at wall-clock time `t`: (head, tail), %B and %Q carried on to the tail."""
+    """`s` cut at wall-clock time `t`: (head, tail), %B, %Q and linear flows carried on to the tail."""
     dt = t - s.start_s
     b0, slope = s.percent_b
     q = s.percent_q
     tail = replace(s, start_s=t, percent_b=(None if b0 is None else b0 + slope * dt, slope),
-                   percent_q=None if q is None else (tuple(v + sl * dt for v, sl in zip(*q)), q[1]))
+                   percent_q=None if q is None else (tuple(v + sl * dt for v, sl in zip(*q)), q[1]),
+                   flow_m3_s=_at(s.flow_m3_s, dt), system_delivered_m3_s=_at(s.system_delivered_m3_s, dt))
     return replace(s, end_s=t), tail
+
+
+def _linear_volume(poly, duration):
+    """Volume of flow (constant, slope per s) over `duration` s."""
+    return poly[0] * duration + 0.5 * poly[1] * duration * duration
+
+
+def _time_for_volume(poly, volume, duration):
+    """Seconds from the start at which flow (constant, slope) has delivered `volume`, within `duration`."""
+    q0, q1 = poly
+    if abs(q1) < 1e-18:
+        return volume / q0 if q0 > 0 else duration
+    disc = q0 * q0 + 2.0 * q1 * volume
+    if disc < 0:
+        return duration
+    x = (-q0 + np.sqrt(disc)) / q1
+    return min(max(x, 0.0), duration)
+
+
+def _fitted_pieces(s, row, column_ml_min):
+    """
+    Decide 6: `s` split into the pieces `pycorn.delivered_flow` fitted for it. The column gets
+    the fitted pump flow when it is fed by that pump, scaled by its own set-point otherwise; 0
+    while by-passed or at waste (D14).
+    """
+    pump_set = row["set_ml_min"] or 0.0
+    column_set = column_ml_min or 0.0
+    to_column = 0.0
+    if column_set > 0:
+        to_column = 1.0 if abs(column_set - pump_set) <= 1e-9 or pump_set <= 0 else column_set / pump_set
+    source = "volume_axis" if row["kind"] == "fitted" else "volume_axis_mean"
+    out, rest = [], s
+    for a, b, q0, slope in row["pieces"]:
+        if s.start_s + b < s.end_s - 1e-9:
+            piece, rest = _split(rest, s.start_s + b)
+        else:
+            piece = rest
+        pump = (q0 * ML_MIN_TO_M3_S, slope * ML_MIN_TO_M3_S)
+        piece.flow_m3_s = (pump[0] * to_column, pump[1] * to_column)
+        piece.flow_source = source
+        if row["pump"] == "system":
+            piece.system_delivered_m3_s = pump
+        out.append(piece)
+    return out
+
+
+def _delivered(sections, rls_sections, chrom, warnings):
+    """Decide 6: CADET sections with the flow fitted to the volume axis where it differs from the run log."""
+    from ...delivered_flow import delivered_flow
+    rows, flow_warnings = delivered_flow(chrom, rls_sections)
+    warnings += ["flow: %s" % w for w in flow_warnings]
+    out = []
+    for s, r, row in zip(sections, rls_sections, rows):
+        if row is None or not row["fitted"]:
+            out.append(s)
+            continue
+        if row["pump"] == "system" and _valve(s) == DIRECT_INJECT and (r.column_flow_ml_min or 0) > 0 and \
+                abs((r.column_flow_ml_min or 0) - (row["set_ml_min"] or 0)) > 1e-9:
+            warnings.append("flow: %.1f-%.1f s: the volume axis counts the system pump, the column gets the sample "
+                            "pump (Direct inject) at another set flow; its flow scaled from the system pump's fit"
+                            % (s.start_s, s.end_s))
+        out.extend(_fitted_pieces(s, row, r.column_flow_ml_min))
+    return out
 
 
 def _set_use(s, use, source=None):
@@ -228,17 +313,18 @@ def _cut_feed(sections, loop_volume, warnings):
             continue
         left = loop_volume * conversion_factor("ml", "m^3")
         for s in period:
-            q = s.system_flow_m3_s
+            q = s.system_pump_m3_s()
             if left <= 0:
                 _set_use(s, "buffer")
                 out.append(s)
                 continue
-            delivered = q * (s.end_s - s.start_s)
-            if delivered <= left or q <= 0:
+            duration = s.end_s - s.start_s
+            delivered = _linear_volume(q, duration)
+            if delivered <= left or delivered <= 0:
                 left -= delivered
                 out.append(s)
                 continue
-            head, tail = _split(s, s.start_s + left / q)
+            head, tail = _split(s, s.start_s + _time_for_volume(q, left, duration))
             if head.feed:
                 head.feed_source = "loop_volume"
             _set_use(tail, "buffer")
@@ -690,7 +776,7 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
                      loop_volume=None, sample_path_volume=None, buffer_salt=None, fraction_masses=None, column_name=None, bed_height=None, diameter=None,
                      particle_diameter=None, geometry_override=False, geometry_fallback_sources=None, porosities=None,
                      mixer_volume=None, tubing_volume=None, sample_inlets=None, flow_tolerance=None,
-                     percent_tolerance=None, response_factor=None):
+                     percent_tolerance=None, response_factor=None, flow_from_axis=True):
     """
     `CadetExperiment` for `chrom` (default: the run's first chromatogram).
 
@@ -721,6 +807,9 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
       the column -> UV tubing (caller only); CSTRs before and after the column (D27).
     - `sample_inlets`: inlet positions (e.g. ['A5']) that held sample pumped through a system pump
       line; default: found from injection marks with no injection-valve switch (D27).
+    - `flow_from_axis`: Decide 6 (`pycorn.delivered_flow`): where the volume axis differs from the
+      logged flow beyond the tolerance, the section's flow is fitted to the axis (stop, ramp, set
+      flow pieces, each its own section), with a warning. False: the logged set flow everywhere.
     """
     if time_zero not in TIME_ZEROS:
         raise ValueError("time_zero must be one of %s, not %r" % (", ".join(TIME_ZEROS), time_zero))
@@ -751,6 +840,8 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
     for s in rls["sections"]:
         if s.column_flow_ml_min is None:
             warnings.append("section %.1f-%.1f s: column flow unknown; exported as 0" % (s.start_s, s.end_s))
+    if flow_from_axis:
+        sections = _delivered(sections, rls["sections"], chrom, warnings)
     loop_ml = None
     if loop_volume is not None:
         loop_ml = loop_volume[0] * conversion_factor(loop_volume[1], "ml")

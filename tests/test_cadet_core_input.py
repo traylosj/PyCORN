@@ -256,7 +256,9 @@ def _normalized(core):
 
 @pytest.mark.parametrize("version", ["5", "6"])
 def test_reference_run_matches_hand_checked_file(version):
-    exp = build_experiment(open_run(EXPECTED_RUN))
+    # the hand-checked layout with the logged set flows; the flow fitted to the volume axis
+    # (Decide 6) is checked in tests/test_delivered_flow.py
+    exp = build_experiment(open_run(EXPECTED_RUN), flow_from_axis=False)
     core = to_core_input(exp, version, placeholders=True)
     t = np.asarray(core["input"]["solver"]["USER_SOLUTION_TIMES"])
     uv = exp.primary_uv.time_s

@@ -104,7 +104,18 @@ cadet-cli Chrom.1_core_v6.json out.h5
   that order. With all three, `unit_003` is the feed, `unit_004` the mixer and `unit_005` the
   tubing; without a feed inlet the mixer is `unit_003`. `/meta/UNIT_NAMES` lists the names in
   unit order. The column is always `unit_001` and the outlet `unit_002`.
-- **Sections:** one per change in the run log, pauses included (written with Q = 0).
+- **Sections:** one per change in the run log, pauses included (written with Q = 0), plus
+  the pieces of a fitted flow (below).
+- **Flow:** the logged set flow, except where UNICORN's volume axis (the stored volume, the
+  integral of the flow the pump delivered) differs from it by more than 0.01 ml **and** 1 % of
+  a section. There the section is split into a few straight pieces fitted to the axis: the
+  pump stopping while a valve turns, ramping up with pressure control on, stopping before a
+  pause and ramping up after it. Each piece is a section with a linear flow term; the pieces
+  hold exactly the axis volume; no ramp rate is assumed. The run log's `The method flow is now
+  calculated based on the system | sample flow` entry says which pump the axis counts; the
+  valve positions say where the flow goes (none to the column while it is by-passed or at
+  waste). Each changed section gives a `flow:` warning. From Python,
+  `build_experiment(run, flow_from_axis=False)` keeps the set flows.
 - **`/meta`:** where the file came from (run name, chromatogram, versions; no connection
   details), the section names, which sections feed, the placeholders, your overrides and the
   warnings.

@@ -329,8 +329,9 @@ def process_inputs(exp, components=None, buffers=None, feed=None):
         if getattr(s, "bypass", False) and not s.paused and not s.feed and getattr(s, "system_flow_m3_s", 0.0):
             # owner, 2026-11-08 (M2): with the column by-passed the pumps still push the system flow
             # through the mixer, around the column to the UV; the column itself gets none
-            q_bypass = (float(s.system_flow_m3_s), 0.0)
-            q_buffer = (q_buffer[0] + q_bypass[0], q_buffer[1])
+            pump = s.system_pump_m3_s() if hasattr(s, "system_pump_m3_s") else (s.system_flow_m3_s, 0.0)
+            q_bypass = (float(pump[0]), float(pump[1]))  # Decide 6: the fitted system pump flow where there is one
+            q_buffer = (q_buffer[0] + q_bypass[0], q_buffer[1] + q_bypass[1])
         rows.append(OrderedDict([("name", s.name), ("start_s", s.start_s), ("end_s", s.end_s), ("flow_m3_s", q),
                                  ("c", c_feed if path == "valve" else c_buffer), ("feed", s.feed),
                                  ("feed_path", path), ("buffer_flow_m3_s", q_buffer), ("feed_flow_m3_s", q_feed),
@@ -339,7 +340,7 @@ def process_inputs(exp, components=None, buffers=None, feed=None):
     return OrderedDict([("components", names), ("placeholder", placeholder), ("sections", rows),
                         ("cycle_time_s", sections[-1].end_s if sections else 0.0),
                         ("valve_feed", any(r["feed_path"] == "valve" for r in rows)),
-                        ("bypass_flow", any(r["bypass_flow_m3_s"][0] for r in rows)), ("warnings", warnings)])
+                        ("bypass_flow", any(any(r["bypass_flow_m3_s"]) for r in rows)), ("warnings", warnings)])
 
 
 # --- CADET-Process objects ------------------------------------------------------------------------
@@ -590,7 +591,7 @@ def to_process(exp, components=None, buffers=None, feed=None, column_model="Gene
                                   [sum(q[0] for q in out), sum(q[1] for q in out)], t)
         if split:
             # all to the column, or (column by-passed) all past it; a section is one or the other
-            to_column = 0.0 if row["bypass_flow_m3_s"][0] else 1.0
+            to_column = 0.0 if any(row["bypass_flow_m3_s"]) else 1.0  # a fitted piece can start at 0 and ramp
             process.add_event("s%03d_%s_split" % (k, split), "flow_sheet.output_states.%s" % split,
                               [to_column, 1.0 - to_column], t)
     if process_overrides:

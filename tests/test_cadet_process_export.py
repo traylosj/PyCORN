@@ -29,7 +29,8 @@ def _experiment(**kwargs):
               _e(3.0, "Gradient 100.0 {%B} 4.00 {min}"), _e(9.0, "End 1/1/2024", status="")]
     curves = [_uv("UV 1_280", 50.0), _curve("Cond", lambda t: 10.0, "mS/cm", data_type="Conduction")]
     run = _with_injection(_run(events, curves=curves), 1.0)
-    return build_experiment(run, **kwargs)
+    # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
+    return build_experiment(run, **dict({"flow_from_axis": False}, **kwargs))
 
 
 def _at(rows, t):
@@ -42,7 +43,7 @@ def _bypass_experiment(**kwargs):
               _e(0.0, "Gradient 0.0 {%B} 0.00 {min}"), _e(0.0, "Wavelength 280 {nm} 0 {nm} 0 {nm}"),
               _e(0.5, "Column position By-pass Down flow"), _e(1.0, "Gradient 100.0 {%B} 0.00 {min}"),
               _e(2.5, "Column position Position 1 Down flow"), _e(5.0, "End 1/1/2024", status="")]
-    return build_experiment(_run(events, curves=[_uv("UV 1_280", 50.0)]), **kwargs)
+    return build_experiment(_run(events, curves=[_uv("UV 1_280", 50.0)]), **dict({"flow_from_axis": False}, **kwargs))
 
 
 def test_system_flow_goes_past_a_bypassed_column():

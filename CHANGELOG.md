@@ -15,7 +15,24 @@ changed since your files were made.
 
 ## Unreleased
 
-No outputs changed.
+**Changed outputs: the CADET export's flows.** Where UNICORN's volume axis differs from the
+logged flow x time by more than 0.01 ml and 1 % of a section, the CADET section is now split
+into pieces fitted to the axis: valve-turn stops, ramps with pressure control on, the pump
+stopping before a pause and ramping up after it. Feed volumes follow too: `u73_blank.zip`'s
+feed is 0.389 ml (was 0.417 ml), `u711_cadet_reference.zip`'s 4.391 ml (was 4.418 ml).
+Runs with pressure control get about 2 % less volume over the run. More CADET sections, a
+`flow:` warning per changed section; `build_experiment(..., flow_from_axis=False)` gives the
+old flows.
+
+- **CADET flow from the volume axis (Decide 6, `pycorn/delivered_flow.py`).** The run log
+  gives structure and timing; its `The method flow is now calculated based on the system |
+  sample flow` entry says which pump the axis counts (results without it: the system pump,
+  or the sample pump where the system flow is 0); the axis gives the amount; the valve
+  positions say where it goes (D14). Inside a changed section the flow is a few straight
+  pieces fitted to the axis (no ramp rate assumed; the volume equals the axis), each piece a
+  CADET section with a linear flow term. The loop volume (D19) and the by-pass flow use the
+  system pump's fitted flow. Volume the axis books at a pause with no time is left out, with
+  a warning. `tests/test_delivered_flow.py`.
 
 - **New sample with UNICORN's own CSV export:** `samples/u73_nonbinding_pulse.zip` (UNICORN
   7.3, a non-binding pulse from the CADET forum, sanitized) and UNICORN's CSV export of the
