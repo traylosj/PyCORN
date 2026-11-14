@@ -13,9 +13,8 @@ built.
 
 ## 1. In short
 
-**The problem.** A UNICORN result doesn't say by itself how to read it. Its method, run log
-and curves can be interpreted in more than one reasonable way, and three groups read them
-with different expectations:
+**The problem.** A UNICORN result records a run in UNICORN's own terms: the method, the run
+log and the curves. Three groups read it, each with its own terms and expectations:
 
 - **scientists** expect the method as they wrote it: phases in UNICORN's words, each with
   its flow and %B;
@@ -25,9 +24,9 @@ with different expectations:
 - **modeling tools** (CADET) expect what the instrument did, to the second: every change of
   flow, composition and valve, the flow actually delivered.
 
-These expectations meet in the details. When a UNICORN phase starts, the previous phase's
-set point stays active until the phase's own instruction replaces it: is that second part
-of the new phase? UNICORN's Pause stops the pumps, its Hold doesn't: which is ISA-88's
+Translating UNICORN's terms into theirs takes choices, and the choices show in the details.
+When a UNICORN phase starts, the previous phase's set point stays active until the phase's
+own instruction replaces it: is that second part of the new phase? UNICORN's Pause stops the pumps, its Hold doesn't: which is ISA-88's
 Paused? Is the flow in the load phase the set point or what the volume axis shows? Without
 one consistent interpretation, each answer depends on who asks and on which PyCORN output
 they look at.
