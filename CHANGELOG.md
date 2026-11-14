@@ -32,7 +32,7 @@ No outputs changed.
   (or "needed"), and three runs that would close most gaps. `sample.zip` and
   `u73_nonbinding_pulse.zip` turn out to be the same run.
 - **Docs: run structure as an ISA-88 record (proposal, nothing built).**
-  [`docs/RUN_STRUCTURE_S88_PLAN.md`](docs/RUN_STRUCTURE_S88_PLAN.md): one run record tagged
+  [`docs/RUN_STRUCTURE_RECORD.md`](docs/RUN_STRUCTURE_RECORD.md): one run record tagged
   with ISA-88 levels and states, a view per audience (model, display, scripts), how it maps
   onto CADET-Process 0.13 and CADET-GUI, and results with several chromatograms. Decided,
   not built: where CADET's flow per section comes from (`docs/ROADMAP.md`, review 3.4).

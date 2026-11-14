@@ -369,6 +369,8 @@ The one list of run features PyCORN needs examples of: which public sample here 
 and what is still needed. Other documents link here instead of keeping their own lists.
 Coverage was checked on 2026-11-14 by reading each sample's run log, system configuration,
 stored column, chromatograms and pauses. Only the public samples and test fixtures count.
+("Sample" here means an example result file; in UNICORN and in PyCORN's code a sample is the
+material loaded onto the column.)
 
 **The samples**
 
@@ -407,7 +409,7 @@ stored column, chromatograms and pauses. Only the public samples and test fixtur
 | States | Hold (`Hold until`, %B frozen) | the Protein A runs | covered |
 | States | Logged Pause / Continue | `u711_manual_run.zip` | covered |
 | States | Pause not logged (inferred from `Continue`) | the Protein A runs | covered |
-| Chromatograms | Several original chromatograms (New Chromatogram instruction): how the run log records it, how each `Logbook` holds its part, whether set-points carry across the cut (`docs/RUN_STRUCTURE_S88_PLAN.md` section 3) | - | needed |
+| Chromatograms | Several original chromatograms (New Chromatogram instruction): how the run log records it, how each `Logbook` holds its part, whether set-points carry across the cut (`docs/RUN_STRUCTURE_RECORD.md` section 3) | - | needed |
 | Cycles | N cycles in one result, no new chromatograms | - | needed |
 | Cycles | N cycles in one result, a new chromatogram per cycle | - | needed |
 | Cycles | A scouting series (several results) repeating one sequence | - | needed |

@@ -30,11 +30,20 @@ let every output take what it needs from it. The record holds three things:
 A view never computes anything the record doesn't hold, so the views can't disagree; where
 they show different numbers, the record says why.
 
+```mermaid
+flowchart LR
+    files["UNICORN result<br/>zip, UFol, database"] --> record["Run record<br/>what ran<br/>asked vs delivered<br/>value sources"]
+    record --> model["Model view<br/>CADET"]
+    record --> display["Display view<br/>Excel, web page"]
+    record --> json["Agent view<br/>JSON, masked"]
+```
+
 **The vocabulary.** The record names its levels with ISA-88, the batch-control standard
 that plant batch systems and historians already use (section 2), next to UNICORN's own
 words. ISA-88's core idea fits a chromatography run: the method (procedure) issues
 commands, the instrument (equipment) carries them out, and the batch record keeps both,
-without smoothing either.
+without smoothing either. The same split (plan, what ran, the record of it) is how the
+ontologies used in labs and plants (IOF, OBI, Allotrope) see it; section 12 maps each word.
 
 **What stays open.** Display wording (Decide items in section 11), how UNICORN splits a run
 over several chromatograms, and how cycles are marked (section 9 lists every open question
@@ -60,6 +69,17 @@ checked; the 2010 edition (ANSI/ISA-88.00.01-2010, IEC 61512-1) may word them di
 This section walks from the largest scale to the smallest. At each level: what UNICORN
 stores, what ISA-88 calls it, and what the record keeps.
 
+```mermaid
+flowchart LR
+    prod["Production<br/>results linked<br/>by lot or series"] --> proc
+    proc["Procedure<br/>UNICORN: result"] --> up
+    up["Unit procedure<br/>one per cycle"] --> op
+    op["Operation<br/>UNICORN: phase"] --> ph
+    ph["Phase<br/>UNICORN: block"] --> st
+    st["Step<br/>CADET: Phase"]
+    chrom["Chromatogram<br/>data, not a level"] -.- proc
+```
+
 ### 3.1 Across results: a production process
 
 UNICORN stores one method run per result. Whatever spans several results is a **link between
@@ -69,17 +89,14 @@ records**, never one merged record.
 |---|---|---|
 | Several chromatography steps of one product (e.g. capture, then polishing), on different days, with different methods, on the same skid | one procedure per result, all on the same unit; the steps of one product batch are linked by the material, not by the procedure | one record per result; a caller-given lot or batch label links them; the unit (masked system name) and column say where each ran |
 | The same, on different skids | as above, on different units (ISA-88's train: the units "used to make a batch of material") | as above; the unit differs |
-| A scouting run: one method run N times with stored variations | N procedures from one recipe | one record per result; a series link (scouting name, run number). Whether the series repeats one process (cycles, 3.3) or varies it (method development) is the caller's to say |
+| A scouting run: one method run N times with stored variations | N procedures from one recipe | one record per result; a series link (scouting name, run number). Whether the series repeats one process (cycles, 3.3) or varies it (method development, DoE) is the caller's to say |
 | Methods run back to back from a queue | separate procedures | separate records, ordered by UTC; linked like production steps |
 | Connected processing across skids (one skid's outlet feeds the next, at the same time) | units running concurrently; ISA-88 "does not specifically address" continuous processes, and ISA-106 (Procedure Automation for Continuous Process Operations) covers them | one record per skid, aligned on the UTC axis every record has; which outlet feeds which inlet comes from the caller (UNICORN doesn't store it) |
-| Multi-column continuous chromatography on one skid (columns load, wash and elute in a staggered rotation) | one procedure with parallel work on several columns | **not supported**: the record has one sequence of sections per run; it would need a column tag on every section and parallel timelines. Waits for a sample. CADET-Process models such processes with its own builders (`CarouselBuilder`, `SMBBuilder`) |
+| Multi-column continuous chromatography on one skid (columns load, wash and elute in a staggered rotation) | one procedure with parallel work on several columns | **not supported**: the record has one sequence of sections per run; it would need a column tag on every section and parallel timelines. Waits for a sample |
 
-The link labels have ready places in a batch record: BatchML's batch production record has
-`BatchID`, `LotID` and `CampaignID` fields. ISA-88 defines a lot ("a unique amount of
-material having a set of common traits") but not a campaign, and it says nothing about
-splitting or combining batches; ISA-95 (B2MML) tracks material as `MaterialLot` and
-`MaterialSubLot`. So a caller's lot label maps to `LotID`, and a series (scouting, a
-production campaign) to `CampaignID`, as the record's own terms.
+The link labels (a lot, a series) come from the caller; ISA-88 defines a lot ("a unique
+amount of material having a set of common traits") but says nothing about splitting or
+combining batches. Where the labels go in a batch record: section 7.
 
 ### 3.2 One result: the procedure
 
@@ -111,11 +128,14 @@ whatever the recording: a summary row and window statistics per cycle, the overl
 each cycle's start (W12), one CADET input per cycle (real cycles differ as the column loads
 and ages, so each keeps its own measured reference).
 
-One rule holds the hierarchy together: a unit procedure is made of whole operations, and an
-operation "is carried to completion in a single unit", so a cycle or unit-procedure boundary
-must fall **between** UNICORN phases. ISA-88 neither states nor rules out several unit
-procedures one after another on the same unit (it does allow several running at once on
-different units); reading each cycle as one is this proposal's choice.
+![One result, three cycles: how cycles and chromatograms relate](images/cycles_chromatograms.svg)
+
+(Drawn by `tools/draw_cycles_chromatograms.py`; a schematic.)
+
+One rule holds the hierarchy together: a unit procedure is made of whole operations, so a
+cycle or unit-procedure boundary must fall **between** UNICORN phases. (ISA-88 neither
+states nor rules out several unit procedures one after another on one unit; reading each
+cycle as one is this proposal's choice.)
 
 ### 3.4 Chromatograms: how the data was recorded
 
@@ -151,10 +171,7 @@ What is known, and what isn't:
 | Imported and derived chromatograms (W17) | not part of the procedure: an imported one links to its source result, a derived one is analysis; linked, never merged |
 
 Display keeps one table set per chromatogram, as today, noting a phase cut at the boundary;
-the model picks a span by chromatogram, cycle or operation on the one clock. Today each
-chromatogram is read from its own run log alone (from the code, not run on an example), so
-if settings carry across the cut unlogged, the second chromatogram's tables would miss them
-until its first instruction.
+the model picks a span by chromatogram, cycle or operation on the one clock.
 
 ### 3.5 Inside a unit procedure: operations, phases, steps, sections
 
@@ -286,6 +303,7 @@ see their instrument; the mapping in 3.5 is a ready answer.
 | `process_action` | templates `PulseInjection`, `Step`, `StepElution`, `LWE`, `Breakthrough` | experiment types (system pulse, column pulse, LWE, breakthrough, ...) |
 | measured curves | `ReferenceIO(time, solution, flow_rate)`, SI by convention, no unit field | `ExperimentalRun` / `Channel`, units dropped |
 | feed start | - | `Comparison.injection_marker` (a text prefix) |
+| multi-column continuous chromatography (3.1, not supported) | its own builders (`CarouselBuilder`, `SMBBuilder`) | - |
 
 **What the model view would lose today** (gaps to raise with CADET, none to work around in
 PyCORN by guessing):
@@ -319,6 +337,9 @@ In order of value:
    unit procedure, operation, phase elements; events; parameters with values and units), so
    a later BatchML XML writer is a mapping, not a redesign. JSON first because the rest of
    PyCORN's machine output is JSON and agents read it directly.
+   Links between records take BatchML's own fields: a caller's lot label goes in `LotID`,
+   a series (scouting, a production campaign) in `CampaignID`, next to `BatchID`. Material
+   tracking beyond that is ISA-95's (`MaterialLot`, `MaterialSubLot` in B2MML).
 2. **Units as UCUM codes** and times as ISO 8601 (UTC instants, durations) in the record and
    its JSON; display keeps today's column names (`_min`, `_ml`).
 3. **BatchML XML** (later, optional): only if a user's MES or batch-record system wants it.
@@ -345,7 +366,8 @@ otherwise.
 4. **Steps table** for modelers, from the record.
 5. **`pycorn record --json`** (and `inspect` gains the record's operation list), masked by
    default.
-6. **Model view** reads `actual` values (the decided CADET flow source).
+6. **Model view** reads `actual` values (the decided CADET flow source); if the owner agrees
+   (section 11), the CADET export's "experiment" names become the model view's here.
 7. When CADET-Process 0.13.0 ships: the model view as `PhasedProcess` steps on an
    `LCFlowSheet` (needed for `characterization`, which takes an `LCProcess`), replacing
    PyCORN's own flow sheet and event compiler, after raising the gaps in section 6.
@@ -357,16 +379,21 @@ otherwise.
 - **Several chromatograms** (3.4): how the run log records New Chromatogram; whether
   settings carry across the cut; whether storage really splits the run log per
   chromatogram. Needs a short test method with the instruction partway through a phase.
+  Today each chromatogram is read from its own run log alone (from the code, not run on an
+  example): if settings carry across the cut unlogged, the second chromatogram's tables miss
+  them until its first instruction.
 - **Cycles** (3.3): how the caller marks them; real multi-cycle runs with and without a new
   chromatogram per cycle, and a scouting series.
 - **Production links** (3.1): the label the caller gives for a lot; connected skids;
   multi-column continuous chromatography.
-- **Terms** (checked 2026-11-14 against ISA-88.01-1995 and the BatchML schemas): batch,
-  lot, train, unit procedure, operation and the states are quoted from the standard;
-  "cycle", "campaign" and "series" are this proposal's own terms. Still to check: the 2010
-  edition's wording, and IEC 62264's own definitions behind B2MML's material lots.
-- The samples that would settle these are listed in `samples/SAMPLE_ZIP_CONTENTS.md`,
-  "Coverage and wanted samples".
+- **Terms** still to check: the 2010 edition of ISA-88 Part 1, and IEC 62264's own
+  definitions behind B2MML's material lots. ("Cycle", "campaign" and "series" are this
+  proposal's own terms.)
+- **Ontology gaps** to raise with the Industrial Ontologies Foundry, as the CADET gaps are
+  raised with CADET (section 12): cycle, a collected fraction, chromatogram, gradient and
+  elution, and dynamic binding capacity have no IOF class yet.
+- The example results that would settle these are listed in
+  `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted samples".
 
 ## 10. Limits
 
@@ -431,6 +458,46 @@ than the fold cutoff, so the `held_over` note should also say "ramped n s".
 **Tooling gap:** Decide 19, `pycorn export --loop-volume` / `--sample-path-volume` for the
 CADET feed (one flag or two).
 
+**New decision for the owner: the word "experiment" in the CADET export.** In OBI, Allotrope
+and IOF an experiment is a planned study across runs; PyCORN uses it for one run's data for
+CADET (`CadetExperiment`, `build_experiment()`, `ExperimentSection`, `experiment.json`), and
+that object's `events` are UNICORN log entries while CADET-Process's events are planned
+parameter changes. Proposal: when plan step 6 makes this object the model view, name it so
+(`ModelView`, `model_view(run)`, `ModelSection`, `model_view.json`, `logged_events`), keep
+the old names as aliases for a release, and list the rename first in the CHANGELOG.
+
+## 12. Words used here, and their ontology terms
+
+What each word means in PyCORN, and the matching term in the ontologies a lab or plant may
+already use: IOF (Industrial Ontologies Foundry, biopharma module, `master` at `50a88d4`,
+2026-10-15; classes under `https://spec.industrialontologies.org/ontology/construct/`), OBI
+and IAO (biomedical investigations, information artifacts) and Allotrope (AFO, and its
+liquid chromatography data model ASM). The ontologies keep three things apart that this
+plan keeps apart too: the **plan** (the method), the **process** that ran, and the
+**record** of it.
+
+| Word | In PyCORN | Ontology terms |
+|---|---|---|
+| method | the UNICORN method: the plan, read only as hints | IOF `Recipe`; a method with variables is a `MasterRecipe`, the values one run used its `ControlRecipe`; IAO plan specification |
+| run (method run) | one execution of a method on one system | IOF `BatchRun`, `ChromatographyProcess`; OBI planned process |
+| result, `Run` | what one run stored, as UNICORN keeps it; the `Run` class holds that data, not the run itself | IAO information content entity; Allotrope experimental data |
+| run record | the proposed single description of one run (sections 1, 5) | ISA-88 batch production record (Part 4) |
+| procedure, unit procedure, operation, phase (as executed) | the record's levels (3.2-3.5); a UNICORN phase is an ISA-88 operation | IOF `RecipeProcedureOccurrence`, `RecipeUnitProcedureOccurrence`, `RecipeOperationOccurrence`, `RecipePhaseOccurrence`, each prescribed by its `Recipe...` element |
+| step, section | constant-state stretches; CADET's piecewise inputs | no ontology class; CADET-Process `Phase` |
+| cycle | one pass of the sequence on one column (3.3) | no class in IOF, OBI or Allotrope; the record's own term |
+| series, study | linked results (3.1); a designed series (DoE scouting) is a study | OBI study design execution; IOF `StudyDesignRun` per result, `DesignPoint` for its planned factor levels; BatchML `CampaignID` |
+| experiment | kept for a planned study across runs, as the ontologies use it; today also, wrongly, the CADET export's object (section 11) | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
+| chromatogram | UNICORN's container of curves and event logs for (part of) a run (3.4) | Allotrope chromatogram = one signal against time or volume, i.e. one PyCORN curve; no IOF class |
+| curve, signal | one measured or derived trace | IAO measurement datum; Allotrope chromatogram data cube |
+| event | a UNICORN log entry (run log, injection, fraction) | a record of a process boundary; not CADET-Process's events, which are planned parameter changes in a simulation |
+| sample | the material loaded onto the column (sample pump, feed) | IOF and OBI `MaterialSample` (for a taken sample); the files in `samples/` are **example results**, not samples |
+| fraction, pool | collected eluate and its table rows; pooled fractions | IOF `PoolingProcess`; no class for a collected fraction |
+| lot | a caller-given label linking runs by material (3.1) | ISA-88 lot; IOF supply-chain `Lot`; BatchML `LotID` |
+| system, column | the instrument (ISA-88 unit) and the column (3.6) | IOF `PreparativeChromatographySystem` (one that produces fractions for further processing), `ChromatographyColumn`, `PhysicalUnit`, `EquipmentModule` |
+| process | four senses: what ran (BFO process), ISA-88's process model, CADET-Process's `Process` (a simulation set-up), a production process | written as "the run", "process model", `Process` (in code font) and "production process" to keep them apart |
+| model | the CADET model; the "model view" of the record | not ISA-88's process or physical models, which this plan calls by those full names |
+| setpoint, actual, derived | asked for, measured, calculated (3.8) | IOF and IAO measurement information for actuals; the plan side for setpoints |
+
 ## References
 
 Read 2026-11-14. The AVEVA pages were seen only as search excerpts (they need a browser);
@@ -452,6 +519,19 @@ ISA-88, ISA-106 and BatchML:
 - MESA International, B2MML-BatchML (BatchML: "an XML implementation of the ANSI/ISA-88,
   Batch Control, family of standards", IEC 61512):
   https://github.com/MESAInternational/B2MML-BatchML
+
+Ontologies:
+
+- Industrial Ontologies Foundry, `iofoundry/ontology`, branch `master` (`50a88d4`,
+  2026-10-15; same classes as `releases/202603`): biopharma module, e.g.
+  `RecipeProceduralOccurrenceClassificationUtility.rdf` (the occurrence classes),
+  `DesignOfExperiments.rdf` (`StudyDesignRun`), `BiopharmaEquipment.rdf`
+  (`PreparativeChromatographySystem`, `ChromatographyColumn`):
+  https://github.com/iofoundry/ontology
+- OBI, IAO and Allotrope (AFO) terms, looked up on the EBI Ontology Lookup Service:
+  https://www.ebi.ac.uk/ols4
+- Allotrope Simple Model, liquid chromatography (`liquid-chromatography` schema, REC/2024/03,
+  in Benchling's `allotropy`): https://github.com/Benchling-Open-Source/allotropy
 
 CADET-Process multi-column builders (`CarouselBuilder`, `SMBBuilder`):
 https://github.com/fau-advanced-separations/CADET-Process/blob/dev/CADETProcess/modelBuilder/carouselBuilder.py
