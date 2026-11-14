@@ -5,12 +5,12 @@ Every release, newest first. The version is in `pycorn/version.py`; each release
 (`README.txt`, `provenance.json`, the Excel Summary sheet), so you can find here what
 changed since your files were made.
 
-## Status (2026-11-12)
+## Status (2026-11-14)
 
 - **In progress:** nothing.
 - **Planned:** for scripts and agents: the page's analysis logic as a public module. After
   decisions: how phases, steps and feed are read from a run (lead-in, repeats, held-over
-  values); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
+  values; proposed as one ISA-88 run record); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
   CADET form on the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Unreleased
@@ -27,6 +27,15 @@ No outputs changed.
   up to one of their own samples off the fastest curve on the time axis, not on volume or
   CV (`docs/FACTS.md`, F25). `docs/FACTS.md` also notes which pump the volume axis counts
   (a `(System)` run-log entry names it).
+- **Docs: which samples cover what.** `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted
+  samples": every run feature PyCORN needs an example of, the public sample that covers it
+  (or "needed"), and three runs that would close most gaps. `sample.zip` and
+  `u73_nonbinding_pulse.zip` turn out to be the same run.
+- **Docs: run structure as an ISA-88 record (proposal, nothing built).**
+  [`docs/RUN_STRUCTURE_S88_PLAN.md`](docs/RUN_STRUCTURE_S88_PLAN.md): one run record tagged
+  with ISA-88 levels and states, a view per audience (model, display, scripts), how it maps
+  onto CADET-Process 0.13 and CADET-GUI, and results with several chromatograms. Decided,
+  not built: where CADET's flow per section comes from (`docs/ROADMAP.md`, review 3.4).
 
 ## 0.37.0 (2026-11-12)
 
