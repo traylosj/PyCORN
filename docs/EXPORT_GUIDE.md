@@ -459,6 +459,8 @@ provenance only.
 
 ### Phase window statistics (`--window`)
 
+> **Open: scope decision for CADET.** A numerical summary is neither UNICORN's nor needed for display. Not decided. See the roadmap, "Scope decisions for CADET".
+
 `--window` names a window relative to a phase: `NAME=PHASE:FROM:TO UNIT`.
 
 - `PHASE`: the phase as the run log names it; case, repeated spaces and a leading `Phase ` are
@@ -543,6 +545,8 @@ length all add error, also with a measured coefficient or a response factor.
 see "Output for programs" above).
 
 ## pycorn windows
+
+> **Open: scope decision for CADET.** Same as "Phase window statistics" above. Not decided.
 
 `pycorn windows <files> | --from <CSV> --window "NAME=PHASE:FROM:TO UNIT" --window-curves NAMES
 [--chromatogram ...] [--csv out.csv | --csv - | --json | --jsonl] [--no-mask] [--strict]` prints

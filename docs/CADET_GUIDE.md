@@ -181,6 +181,12 @@ to CADET's names.
 
 ## Your offline assays (load and fractions)
 
+> **Open: scope decision for CADET.** The conversions in this export that UNICORN does not
+> specify and a display does not need (UV to mg/ml, conductivity to salt) could belong to
+> CADET. Scope question: UV to mg/ml and conductivity to salt are largely vendor-neutral;
+> the fitted flow under "What is written" is UNICORN-specific (which pump the volume axis
+> counts). Not decided; all stay as they are. See the roadmap, "Scope decisions for CADET".
+
 The run records how much UV, conductivity and flow there was; it doesn't record what was in the
 load or what each fraction held. Those come from your offline assays (protein concentration,
 impurity %, salt), and each species you assay becomes a CADET component. `export_cadet()` and

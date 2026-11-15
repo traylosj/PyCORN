@@ -64,6 +64,10 @@ decisions are not built yet (checked: no `original_time_unit` column exists in t
 
 **Open.** Build nothing below without the owner.
 
+- **Scope decisions for CADET** (review of 2026-11-15): what neither UNICORN specifies nor a
+  display needs, numerical summary and analysis included. Ten rows, all open: "Open, by
+  goal", "Scope decisions for CADET".
+
 - "Modeler input" (end of this file): M1 and M3-M9, the CADET physics items i-m of the review,
   the flow path by system, the real-value check, and how parameters come in (M2 is built).
 - Issue #1, UV concentration and signal calibration (M10-M13: nonlinear UV, polynomial fits,
@@ -272,6 +276,9 @@ built, the owner's decisions, how it compares with the CADET forum advice on sig
 calibration, and what is open (M10-M13, a follow-up idea). Everything else about UV
 concentration and calibration is here; "Modeler input" and "Open, by goal" point back.
 
+> **Open: scope decision for CADET** (rows 1, 2, 7 of "Scope decisions for CADET" under "Open, by
+> goal"). UNICORN does not specify a concentration or a calibration, and no display needs one.
+
 #### Built
 
 - `concentration.ACCURACY_NOTE` is in the warnings of every mg/ml and CADET concentration
@@ -357,7 +364,8 @@ Build nothing below without the owner.
   titer x load volume at x % of feed / Vc. Planned after the breakthrough curve (proposal below). Open:
   the load-volume basis and the hold-up (system volume) normalization, x from the caller,
   one value per load. The web page gets breakthrough once this is defined.
-- **M22 Per-phase curve statistics: built in 0.35.0** (owner, 2026-11-10 / 11-11;
+- **M22 Per-phase curve statistics: built in 0.35.0** (owner, 2026-11-10 / 11-11; **open:
+  scope decision for CADET**, row 4 of "Scope decisions for CADET". Built, kept as is until decided;
   `pycorn/window_stats.py`, handoff in [`HANDOFFS.md`](HANDOFFS.md)). For each phase and each
   curve the caller names or picks by role, statistics over windows relative to a phase:
   phase name plus offsets in time, volume or CV from the phase start or from its end
@@ -382,6 +390,9 @@ Build nothing below without the owner.
     results); the UV baseline below builds on them
 
 #### UV baseline and breakthrough (proposal, 2026-11-10; version set when the owner confirms)
+
+> **Open: scope decision for CADET** (rows 5, 6 of "Scope decisions for CADET" under "Open, by
+> goal"). Whether PyCORN builds it at all is open. Don't build before the owner decides.
 
 **Proposed, under owner review; nothing is built.** Two requests together: a nominal UV
 baseline the user subtracts before any normalization, and the Protein A breakthrough of
@@ -1673,6 +1684,57 @@ of the Goals table at the top of this file points here.
    provisional: its lines feed the A and B pumps). An assumed `Buffer` sample inlet keeps
    counting as feed, with a warning (owner, 2026-11-11; 0.36.0). See "Run structure",
    "inlets from the system configuration".
+
+### Scope decisions for CADET (open, review of 2026-11-15)
+
+The review looked for what neither UNICORN specifies (stored data, only reshaped) nor a
+display needs (axes, tracks, tables the page shows). Numerical summary and analysis count.
+For each, the scope relative to CADET is a decision. **Every row is open.** The owner has
+not decided any of them. Nothing is moved, removed or renamed, and nothing new is built on
+these until the owner decides each one.
+
+The docs carry the same mark ("Open: scope decision for CADET", see the list below). Add a row
+here and a mark there when a new calculation or analysis comes in.
+
+| # | What | Where in code | Where in the docs | Today's origin | Open question |
+|---|------|---------------|-------------------|----------------|---------------|
+| 1 | UV to mg/ml (Beer-Lambert, `response_factor`, accuracy note) | `concentration.py`, `exporters/cadet/calibration.py` | USER_GUIDE "Concentration (mg/ml) from UV"; "Units and concentration" | PyCORN analysis | Is the conversion a model input (CADET) or a display value (PyCORN)? |
+| 2 | Extinction coefficient from by-pass sample | `uv_calibration.py`, `pycorn bypass-uv`, `export --bypass-uv` | USER_GUIDE "Extinction coefficient from the by-pass"; issue #1 | PyCORN analysis | Calibration of a detector: PyCORN, CADET, or both? |
+| 3 | Salt from conductivity, by-pass buffer readings | `exporters/cadet/calibration.py`, `buffer_readings.py` | CADET_GUIDE; D22 | PyCORN analysis | Already CADET export only. Does it stay a PyCORN function? |
+| 4 | Phase window statistics (M22) | `window_stats.py`, `pycorn windows`, `export --window`, the page's table | USER_GUIDE "Curve statistics over phase windows"; EXPORT_GUIDE "Phase window statistics" and "pycorn windows" | PyCORN calculated | Numerical summary of curves: display in PyCORN, or analysis in CADET? |
+| 5 | UV baseline, C/C0 and breakthrough (proposal) | not built | "UV baseline and breakthrough (proposal)" | proposed | Build it in PyCORN at all, or hand the windows to CADET? |
+| 6 | Dynamic binding capacity, QB (M21) | not built | M21 | proposed | Same question as 5. |
+| 7 | Nonlinear UV and polynomial calibration, baseline correction, cell-to-cell volume (M10-M13) | not built | "UV concentration and signal calibration (issue #1)", "Open" | proposed | Same question as 5. |
+| 8 | Flow the pump delivered, fitted from the volume axis (Decide 6) | `delivered_flow.py` | CADET_GUIDE; RUN_STRUCTURE_REVIEW 3.4 | PyCORN analysis | CADET export only. A fit of measured data: PyCORN or CADET? |
+| 9 | Planned vs run (method hints) | `method_hints.py` | EXPORT_GUIDE; "Method hints (D17, D20, D23)" | PyCORN analysis | Not stored by UNICORN as a result. Display aid or analysis? |
+| 10 | Warnings, the checks of curves against the run log | `run_log_sections.py` and others | Warnings table | PyCORN analysis | Borderline: a check of PyCORN's own reading, so it may stay. |
+
+**Scope question (owner, 2026-11-15): is the work UNICORN-specific or vendor-neutral?** Each
+row is split by that line, as a note only. Whether either part is in CADET's scope is not
+stated here and is not decided. The owner has not decided any row.
+
+| # | UNICORN-specific part | Vendor-neutral part |
+|---|------|------|
+| 1 | Stored units (AU, mAU), where the UV path length is read | Beer-Lambert conversion, `response_factor`, accuracy note |
+| 2 | Which run-log entries mark sample going to the by-pass (D18 windows), path length | Epsilon from a plateau maximum or a pulse area / loop volume |
+| 3 | Finding by-pass buffer windows from valve positions | Salt from conductivity: calibration points, interpolation or a fit |
+| 4 | The phase rule: what a phase is, lead-in, repeats (Decide 9, 23) | n, mean, median, SD, min, max over a window |
+| 5, 6, 7 | Finding the by-pass and load windows (rows 2 and 4) | Baseline, C/C0, breakthrough, DBC, calibration fits |
+| 8 | All of it: which pump the volume axis counts, stored volume vs set flow, valve and ramp behaviour | Nothing (the piecewise fit itself is plain geometry, once the sections are given) |
+| 9 | All of it: the method as a template, breakpoint variables, the sample-application dialog | Nothing |
+| 10 | Checks of how the run log was read | Checks of a calculation, with that calculation |
+
+Rows 8 and 9 are wholly UNICORN-specific. They need a UNICORN SME, not a modeling SME. The
+same holds for the UNICORN-specific column of rows 1 to 7.
+
+Not on the list, because UNICORN specifies them or a display needs them: stored curves,
+events, peaks, pools, fractions, variables, run and method details, time and volume axes,
+CV and UTC axes with the Vc they need, phase, injection and pause tables, run log sections
+and inlets (the page's tracks).
+
+Open for the whole list: whether the tables, columns and flags involved ("Origin" column in
+`export_tables.py`) would then leave PyCORN's outputs. Renamed or removed outputs change in
+place, with a CHANGELOG entry, never as aliases.
 
 ### Run structure (active)
 

@@ -418,6 +418,10 @@ a mismatch is a warning, never a correction.
 
 ### Concentration (mg/ml) from UV
 
+> **Open: scope decision for CADET.** UNICORN does not specify a concentration curve and a
+> display does not need one. Not decided; it stays as is until then. See the roadmap,
+> "Scope decisions for CADET".
+
 ```python
 from pycorn.concentration import concentration
 
@@ -441,6 +445,9 @@ coefficient or a correction factor is an estimate too. Every result carries this
   default: take it from your detector's linear range.
 
 ### Extinction coefficient from the by-pass
+
+> **Open: scope decision for CADET.** A detector calibration is neither UNICORN's nor needed for
+> display. Not decided. See the roadmap, "Scope decisions for CADET".
 
 Many runs send sample through the column by-pass before loading (priming, a UV check of the
 sample). The UV there reads the sample itself, so with its concentration from an offline
@@ -471,6 +478,9 @@ On the command line: `pycorn bypass-uv runs/*.zip --sample-conc "1.2 mg/ml"` pri
 readings (`--csv` writes them), and `pycorn export --bypass-uv` adds a `_by_pass_uv` table.
 
 ### Curve statistics over phase windows
+
+> **Open: scope decision for CADET.** A numerical summary is neither UNICORN's nor needed for
+> display. Not decided. See the roadmap, "Scope decisions for CADET".
 
 Mean, median, SD, min, max and the number of points of any curve over a window you give
 relative to a phase (`pycorn.window_stats`). A window is a name, a phase, two offsets and a
