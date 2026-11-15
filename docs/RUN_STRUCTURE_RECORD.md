@@ -484,14 +484,20 @@ valve, column and monitors) are values like any other: from the stored system co
 (the mixer), or from the caller, each with its source. The tubing lengths a document lists
 as delivered are not used as defaults (D28): a site's tubing differs.
 
-**Process model** (what it did to the material, 4.1.3): ISA-88 describes a process, without
-equipment, as process stages made of process operations made of process actions. Read on
-chromatography: capture or polishing is a **process stage**; equilibrate, load, wash, elute,
-strip and clean are **process operations**, the counterpart of operations (UNICORN phases)
-(5.2.1, Figure 7). CADET's templates (`PulseInjection`, `Step`, `StepElution`, `LWE`,
-`Breakthrough`) and CADET-GUI's experiment types describe processes in the same
-equipment-free way. UNICORN doesn't store this; phase names usually say it, but a phase
-named "Wash 2" may elute. The record keeps a `process_operation` field on each operation,
+**Process model** (what it did to the material, 4.1.3). ISA-88 describes a process without
+equipment, in three levels:
+
+| ISA-88 level | In chromatography | Counterpart in the run |
+|---|---|---|
+| process stage | capture, polishing | - |
+| process operation | equilibrate, load, wash, elute, strip, clean | an operation (UNICORN phase) (5.2.1, Figure 7) |
+| process action | - | - |
+
+CADET's templates (`PulseInjection`, `Step`, `StepElution`, `LWE`, `Breakthrough`) and
+CADET-GUI's experiment types are equipment-free in the same way.
+
+UNICORN doesn't store the process operation. Phase names usually say it, but a phase named
+"Wash 2" may elute. So the record keeps a `process_operation` field on each operation,
 empty unless the caller gives a mapping, never guessed.
 
 **Material flow** (what went in and what came out). A run takes material in (the load,
