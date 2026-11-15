@@ -244,6 +244,7 @@ RS, RV, RM_, CG, UG, EG = ("RUN_STRUCTURE_RECORD.md", "RUN_STRUCTURE_REVIEW.md",
                            "EXPORT_GUIDE.md")
 _HEADS = {}
 UNLINKED = []
+DECISIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_structure_decisions.json")
 
 
 def _heads(fn):
@@ -263,7 +264,21 @@ def slug(title):
     return re.sub(r"[^\w\- ]", "", t).replace(" ", "-")
 
 
+_IDS = {}
+
+
+def _ids(fn):
+    """Explicit anchors (`<a id="...">`) of one doc: a link to a table or figure must hit one."""
+    if fn not in _IDS:
+        with open(os.path.join(ROOT, "docs", fn), encoding="utf-8") as fh:
+            _IDS[fn] = set(re.findall(r'<a id="([^"]+)"', fh.read()))
+    return _IDS[fn]
+
+
 def ref(label, fn, prefix=None, anchor=None):
+    if anchor is not None and anchor.startswith(("table-", "figure-")) and anchor not in _ids(fn):
+        UNLINKED.append((fn, anchor))
+        return H('<span class="err">[unlinked: %s %s]</span>' % (E(fn), E(anchor)))
     if anchor is None:
         hit = next((h for h in _heads(fn) if h.startswith(prefix)), None)
         if hit is None:
@@ -593,6 +608,7 @@ def analyze(path):
     rd = frames.get("run_details")
     A["batch_id_present"] = bool(rd is not None and len(rd) and rd.astype(str).apply(lambda col: col.str.contains("Batch ID", case=False, na=False)).any().any())
     A["steps"] = build_steps(S, ops)
+    name_steps(A["steps"], ops)
     A["lead_in"] = lead_in(S)
     A["states"] = build_states(S, rows)
     A["blocks"] = build_blocks(S)
@@ -717,6 +733,23 @@ def build_steps(S, ops):
                     sec_ranges([p["sec"] for p in run]), ", ".join(diffs) or "same values"))
         all_steps += steps
     return all_steps
+
+
+def name_steps(steps, ops):
+    """
+    Step label (PyCORN): the operation's name as logged plus the activity words that are on
+    (feed, by-pass, Hold), ", " between; a pause is "<operation>, Held". Equal labels are
+    counted in run order and the later ones show "(2)", "(3)": the rule that names repeated
+    operations. Nothing in the label is a number from this run's values.
+    """
+    op_name = {o["id"]: o["name"] for o in ops}
+    seen = {}
+    for st in steps:
+        words = ["Held"] if st["paused"] else [w for k, w in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")) if st[k]]
+        base = ", ".join([op_name[st["op"]]] + words)
+        seen[base] = seen.get(base, 0) + 1
+        st["label"] = base if seen[base] == 1 else "%s (%d)" % (base, seen[base])
+        st["label_source"] = "PyCORN"
 
 
 def lead_in(S):
@@ -1038,7 +1071,7 @@ def fig_joins(A):
             continue
         flags = ", ".join(w for k, w in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")) if st[k])
         op = next((o for o in A["ops"] if o["id"] == st["op"]), None)
-        svg.text(20, y + 14, "Step %d: %s" % (n, op["display_name"] if op else st["op"]), 12.5, INK, weight="600")
+        svg.text(20, y + 14, "Step %d: %s" % (n, st["label"]), 12.5, INK, weight="600")
         svg.text(20, y + 31, "%.1f - %.1f s, %s ml/min, %s %%B%s" % (st["wa"], st["wb"], f(st["flow"], 2), f(st["b_pct"], 0),
                                                               (", " + flags) if flags else ""), 11, INK2)
         svg.text(20, y + 46, "%d sections joined, %d absorbed" % (len(st["parts"]), len([p for p in st["parts"] if p["absorbed"]])), 11, INK2)
@@ -1428,8 +1461,8 @@ def inventory(A):
             m = colf[colf["parameter"] == key]
             if len(m):
                 val = "%s %s" % (f(float(m["value"].iloc[0]), 3), m["unit"].iloc[0] or "")
-        add("Volumes and flow path", label, "CADET", "hint" if val else "missing", val or "-", "ColumnTypeData",
-            "a library value, not measured on this packing: no porosity is computed from it")
+        add("Volumes and flow path", label, "both", "hint" if val else "missing", val or "-", "ColumnTypeData",
+            "a library value, not measured on this packing: no porosity is computed from it. Display needs both for DBC; if CADET computes DBC, only CADET does")
     mix = sysd.get("mixer_m3")
     if mix is not None:
         t = "%s ml" % f(mix * 1e6, 3)
@@ -1572,7 +1605,7 @@ def inventory(A):
         m = ss[(ss["instruction"] == "Wavelength")]
         wl = ["%s %s" % (r["parameter"], r["value"]) for _, r in m.iterrows()]
     add("Detectors and calibration", "UV wavelengths", "both", "stored" if wl else "missing", "; ".join(wl) or "-", "SystemSettingData", "")
-    add("Detectors and calibration", "Extinction coefficient", "CADET", "caller", "-", "UNICORN stores none", "scope row 1, 2")
+    add("Detectors and calibration", "Extinction coefficient", "both", "caller", "-", "UNICORN stores none", "scope row 1, 2")
     cc = ""
     if cal is not None and len(cal):
         m = cal[cal["item"].astype(str).str.contains("cell constant", na=False)]
@@ -1704,7 +1737,7 @@ def steps_table(A):
     for st in A["steps"]:
         secs = sec_ranges([p["sec"] for p in st["parts"]])
         if st["paused"]:
-            rows.append(["-", st["op"], f(st["wa"], 1), f(st["wb"], 1), "-", "-", secs, "-", "Held (pause), never joined", "-"])
+            rows.append(["-", st["label"], st["op"], f(st["wa"], 1), f(st["wb"], 1), "-", "-", secs, "-", "Held (pause), never joined", "-"])
             continue
         n += 1
         flags = []
@@ -1723,9 +1756,9 @@ def steps_table(A):
             if absorbed:
                 how += "; short pieces absorbed: %s" % sec_ranges(absorbed)
         cell = H("<b>%s</b>" % E(how)) if absorbed else how
-        rows.append([n, st["op"], f(st["wa"], 1), f(st["wb"], 1), f(st["flow"], 3), f(st["b_pct"], 1) + (" (ramp %.3f %%/s)" % st["slope"] if abs(st["slope"]) > 0 else ""),
+        rows.append([n, st["label"], st["op"], f(st["wa"], 1), f(st["wb"], 1), f(st["flow"], 3), f(st["b_pct"], 1) + (" (ramp %.3f %%/s)" % st["slope"] if abs(st["slope"]) > 0 else ""),
                      secs, ", ".join(flags) or "-", cell, "; ".join(st["notes"]) or "-"])
-    return table(["step", "operation", "start s", "end s", "column flow ml/min", "%B", "original sections (# in the sections table)", "activity",
+    return table(["step", "label (PyCORN)", "operation", "start s", "end s", "column flow ml/min", "%B", "original sections (# in the sections table)", "activity",
                   "how they were joined", "note (what was absorbed)"], rows, "wide")
 
 
@@ -1777,7 +1810,7 @@ def materials_html(A):
                                                    "method's planned sample volume", "material ID"], feeds, "")
                                            if feeds else "<p class='none'>No feed section (no injection valve at Inject / Direct inject).</p>"))
     bu = buffers_used(A)
-    buf_rows = [["BUF:%s" % line, line, ", ".join("%s (%s)" % (label, state) for label, state in used.items()),
+    buf_rows = [["BUF:%s" % line, line, ", ".join(label if label.endswith((" (assumed)", " (not known)")) else "%s (%s)" % (label, state) for label, state in used.items()),
                  ("%s to %s %%B" % (f(bu["pct"][0], 0), f(bu["pct"][1], 0))) if line != "sample" and bu["pct"] else "-", "(caller)", "(caller)"]
                 for line, used in bu["lines"].items()]
     out.append("<h4>Buffers (inlet lines used)</h4>" + table(["id", "line", "positions used (state)", "%B range", "contents", "lot ID"], buf_rows, "") +
@@ -1796,9 +1829,12 @@ def materials_html(A):
 
 def states_html(A):
     rows = [[b["state"], f(b["wa"], 1), f(b["wb"], 1), f(b["wb"] - b["wa"], 1), b["why"]] for b in A["states"] if b["state"] != "running"]
+    seen = {str(b["state"]).lower() for b in A["states"]}
+    unseen = ", ".join(s for s in STATES_12 if s not in seen)
+    note = "<p class='none'>ISA-88 example states (Table 12) not seen in this run: %s. The record carries only the states a run shows.</p>" % E(unseen)
     if not rows:
-        return "<p class='none'>Only Running: no Pause, Hold or fitted ramp around a stop in this run.</p>"
-    return table(["ISA-88 state", "start s", "end s", "length s", "how it was found"], rows, "")
+        return "<p class='none'>Only Running: no Pause, Hold or fitted ramp around a stop in this run.</p>" + note
+    return table(["ISA-88 state", "start s", "end s", "length s", "how it was found"], rows, "") + note
 
 
 # ----------------------------------------------------------------------------------------------
@@ -1896,6 +1932,13 @@ def val(value, unit, kind, basis, source, **extra):
     return d
 
 
+def up_label(A):
+    """Table 15: the chromatogram's name when the result holds exactly one, else the result name."""
+    if len(A["chroms"]) == 1:
+        return A["chroms"][0]["name"]
+    return getattr(A["run"], "name", None) or A["file"]
+
+
 def record(A):
     S, rows, ops = A["S"], A["rows"], A["ops"]
     vc = (A["view"].column or {}).get("vc_m3") if A["view"] else None
@@ -1909,7 +1952,7 @@ def record(A):
                                    chromatograms=[OrderedDict(name=c["name"], kind=c["kind"]) for c in A["chroms"]],
                                    links=OrderedDict(campaign_id=None, series=None, process_stage=None, loads=[], fractions=[],
                                                      pools=[], note="all caller-supplied except fraction IDs (run + tube)"))
-    ups = OrderedDict(level="unit_procedure", element_id="UP1", label="", label_source="", boundary_source="default", operations=[])
+    ups = OrderedDict(level="unit_procedure", element_id="UP1", label=up_label(A), label_source="UNICORN", boundary_source="default", operations=[])
     blocks_by_op = {}
     fractions = [x for x in event_tables.rows(A["ch"], "fraction") if not x["pseudo"] and x["end_time"] is not None]
     for k, (s, row) in enumerate(zip(S, rows)):
@@ -1988,20 +2031,22 @@ def record(A):
     for i, g in enumerate(loads, 1):
         set_ml = sum((s.column_flow_ml_min or 0) * (s.elapsed_end_s - s.elapsed_start_s) / 60.0 for s in g)
         mats["loads"].append(OrderedDict(
-            element_id="LOAD%d" % i, injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
+            element_id="LOAD%d" % i, unit_procedure="UP1", injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
             volume=[val(set_ml, "mL", "set_point", "calculated", "run_log")],
             material_id=None, material_id_source="caller (UNICORN stores none)"))
     for x in event_tables.rows(A["ch"], "fraction"):
-        mats["fractions"].append(OrderedDict(element_id="FR:%s" % x["name"], role="waste_or_flow_through" if x["pseudo"] else "collected_fraction",
+        mats["fractions"].append(OrderedDict(element_id="FR:%s" % x["name"], unit_procedure="UP1", role="waste_or_flow_through" if x["pseudo"] else "collected_fraction",
                                              start_min=round(x["start_time"], 4), end_min=round(x["end_time"], 4),
                                              volume=[val(x["length_volume"], "mL", "actual", "measured", "volume_axis")],
                                              material_id="RUN:%s" % x["name"], material_id_source="derived (run + tube)"))
     rec["materials"] = mats
+    rec["method"] = recipe_block(A)
     rec["volumes"] = OrderedDict((k, OrderedDict(status=v["status"], text=v["text"], source=v["why"])) for k, v in A["inv"]["volumes"].items())
     rec["facts"] = [OrderedDict(group=x["group"], fact=x["fact"], needed_by=x["by"], status=x["status"], value=x["value"], source=x["source"]) for x in A["inv"]["facts"]]
     rec["views"] = OrderedDict(display=OrderedDict(
         note="computed from the sections each time; never part of the stored record",
-        steps=[OrderedDict(start_wall_s=round(st["wa"], 3), end_wall_s=round(st["wb"], 3), operation=st["op"],
+        steps=[OrderedDict(label=st["label"], label_source=st["label_source"],
+                           start_wall_s=round(st["wa"], 3), end_wall_s=round(st["wb"], 3), operation=st["op"],
                            state="held" if st["paused"] else "running",
                            column_flow=None if st["paused"] else val(st["flow"], "mL/min", "set_point", "logged", "run_log"),
                            percent_b=None if st["paused"] else val(st["b_pct"], "%", "set_point", "logged", "run_log"),
@@ -2031,9 +2076,6 @@ def check_list(A):
     ops = A["ops"]
     if ops and ops[0]["synthetic"]:
         items.append("The run has no phases: the record shows one synthetic operation. Is that the right reading of a manual run?")
-    lead = [o for o in ops if o["name"].lower().startswith("method settings")]
-    if lead:
-        items.append("A '%s' operation of %.1f s exists only as a lead-in: keep it as an operation, or fold it?" % (lead[0]["name"], lead[0]["b"] - lead[0]["a"]))
     rep = [o for o in ops if o["repeats"] > 1]
     if rep:
         items.append("Repeated phases (%s) are named with an instance number: acceptable display wording (Decide 23)?" % ", ".join(sorted({o["display_name"] for o in rep})))
@@ -2172,6 +2214,223 @@ ZOOM_JS = """
 """
 
 
+# ----------------------------------------------------------------------------------------------
+# recipe (the method as hints), edge cases, decisions to review
+# ----------------------------------------------------------------------------------------------
+
+def _op_at(A, t):
+    return next((o for o in A["ops"] if o["wa"] - 1e-6 <= t < o["wb"] + 1e-6), None)
+
+
+def recipe_block(A):
+    """
+    The method as the record would carry it (section 5, Method row): master recipe (the template),
+    control recipe (the template with this run's variable values), and planned against run.
+    Hints only (D17): nothing here is a result. Each planned block names the operation it ran in.
+    """
+    h = A["hints"]
+    if not h or not h.available:
+        return OrderedDict(available=False, note="no method in the result: no recipe")
+
+    def op_ref(a, b):
+        o = _op_at(A, (a + b) / 2.0) if a is not None and b is not None else None
+        return OrderedDict(element_id=o["id"], label=o["label"]) if o else None
+
+    planned = []
+    for b in h.blocks:
+        planned.append(OrderedDict(block=b["block"], element=op_ref(b.get("start_s"), b.get("end_s")), planned=b.get("planned"), base=b.get("base"),
+                                   variable=b.get("variable"), ran=b.get("executed"), status=b.get("status"), cause=b.get("cause")))
+    return OrderedDict(
+        available=True, kind="hint (the method is a template, D17)",
+        master_recipe=OrderedDict(name=h.method.get("name"), unicorn_version=h.method.get("unicorn_version"), technique=h.method.get("technique"),
+                                  volume_unit=h.method.get("volume_unit"), flow_unit=h.method.get("flow_unit"),
+                                  blocks=[x["block"] for x in h.blocks] + list(h.blocks_not_run)),
+        control_recipe=OrderedDict(variables=[OrderedDict(variable=v["variable"], value=v["value"], unit=v.get("unit"), scouting=v.get("scouting"))
+                                              for v in h.variables]),
+        planned_vs_ran=planned, blocks_not_run=list(h.blocks_not_run),
+        injections=[OrderedDict(block=i["block"], element=op_ref(i.get("start_s"), i.get("end_s")), planned=i.get("planned"), base=i.get("base"),
+                                ran=i.get("executed"), variable=i.get("variable")) for i in h.injections],
+        sample_application=h.sample_application, buffer_prep="stored (hint)" if h.buffer_prep else "not stored",
+        scouting=OrderedDict(name=h.scouting.get("name"), runs=len(h.scouting.get("runs") or []), variables=h.scouting.get("variables") or []),
+        warnings=list(h.warnings))
+
+
+def recipe_html(A):
+    r = recipe_block(A)
+    if not r["available"]:
+        return "<p class='none'>%s.</p>" % E(r["note"])
+    m = r["master_recipe"]
+    out = ["<p class='lead'>Hints only (D17): the method is a template, not a record of what ran. Master recipe = the method as stored. "
+           "Control recipe = the same method with the values this run used. Each planned block is tied to the operation it ran in "
+           "(the <code>element_id</code> the record uses), matched by time.</p>"]
+    out.append("<h3>Master recipe</h3>" + table(["method", "UNICORN version", "technique", "volume unit", "flow unit", "blocks (planned order)"],
+                                                [[m["name"], m["unicorn_version"], m["technique"], m["volume_unit"], m["flow_unit"], ", ".join(m["blocks"]) or "-"]], ""))
+    rows = [[p["block"], ("%s (%s)" % (p["element"]["element_id"], p["element"]["label"])) if p["element"] else "-",
+             "%s %s" % (f(p["planned"], 2), p["base"] or "") if p["planned"] is not None else "-", p["variable"] or "-",
+             f(p["ran"], 2) if p["ran"] is not None else "-", p["status"] or "-", p["cause"] or "-"] for p in r["planned_vs_ran"]]
+    out.append("<h3>Planned against run</h3>" + (table(["block", "ran in (element_id)", "planned", "set by variable", "ran (same base)", "status", "cause"], rows, "")
+                                                  if rows else "<p class='none'>No block lengths could be compared.</p>"))
+    if r["blocks_not_run"]:
+        out.append("<p>Planned blocks that did not run: <b>%s</b>.</p>" % E(", ".join(r["blocks_not_run"])))
+    if r["injections"]:
+        out.append("<h3>Planned and executed injections</h3>" + table(
+            ["block", "ran in (element_id)", "planned", "ran", "variable"],
+            [[i["block"], ("%s (%s)" % (i["element"]["element_id"], i["element"]["label"])) if i["element"] else "-",
+              "%s %s" % (f(i["planned"], 3), i["base"] or ""), f(i["ran"], 3), i["variable"] or "-"] for i in r["injections"]], ""))
+    vrows = [[v["variable"], v["value"], v["unit"] or "-", "yes" if v["scouting"] else "-"] for v in r["control_recipe"]["variables"]]
+    out.append("<h3>Control recipe: the values this run used</h3><details class='rawbox'><summary>%d variable(s) <span class='src'>search criteria and scouting flag</span></summary>%s</details>" % (
+        len(vrows), table(["variable", "value", "unit", "scouting variable"], vrows, "")))
+    if r["sample_application"]:
+        sa = r["sample_application"][0]
+        out.append("<p>Sample application dialog (planned): loop %s, sample volume %s ml, fill loop with %s ml, empty loop with %s ml.</p>" % (
+            E(sa.get("loop_type") or "-"), E(f(sa.get("sample_volume"), 3)), E(f(sa.get("fill_loop_with"), 3)), E(f(sa.get("empty_loop_with"), 3))))
+    out.append("<p>BufferPro recipe: %s. Scouting: %s.</p>" % (E(r["buffer_prep"]), E(("%d run(s), %d variable(s)" % (r["scouting"]["runs"], len(r["scouting"]["variables"])))
+                                                                                if r["scouting"]["runs"] or r["scouting"]["variables"] else "none stored")))
+    return "\n".join(out)
+
+
+STATES_12 = ("idle", "running", "complete", "pausing", "paused", "holding", "held", "restarting", "stopping", "stopped", "aborting", "aborted")
+
+
+def edge_cases_html(A):
+    """Table 16: each edge case with whether this run meets it."""
+    chroms, pauses = A["chroms"], A["pauses"]
+    fitted = len([x for x in A["rows"] if x and x["fitted"]])
+    feeds = len([1 for i, s in enumerate(A["S"]) if s.feed and (i == 0 or not A["S"][i - 1].feed)])
+    scout = (A["hints"].scouting if A["hints"] and A["hints"].available else None) or {}
+    byp = any(s.bypass for s in A["S"])
+    sev = len(chroms) > 1
+    cases = [
+        ("A new chromatogram cuts inside a phase", "Chromatograms stay a field on the elements. Making them unit procedures or cycles fails with an error naming the phase that crosses the cut.",
+         ("%d chromatograms: cut position not verified (needs a result that has one)" % len(chroms)) if sev else "does not apply: one chromatogram"),
+        ("A pause or hold across a cycle boundary", "Belongs to the cycle in which it started.", "does not apply: no cycles marked (one unit procedure)"),
+        ("A Holding or Restarting stretch the volume axis doesn't show clearly", "No transient section: a plain held stretch from the logged times.",
+         ("%d pause(s); %d of %d sections fitted to the volume axis" % (len(pauses), fitted, len([x for x in A["rows"] if x]))) if pauses else "does not apply: no pause"),
+        ("An instruction issued during Holding or Restarting", "Acts at the time it was logged; the transient is split there.", "not checked by this page"),
+        ("A scouting run that varies settings rather than repeating cycles", "Linked as a series either way. Only the caller calls it cycles.",
+         ("applies: scouting table with %d run(s)" % len(scout.get("runs") or [])) if scout.get("runs") else "does not apply: no scouting table"),
+        ("Scouting runs that each hold several cycles", "Both levels: the series link and unit procedures within each.", "does not apply: no cycles marked"),
+        ("Eluates pooled across cycles", "Material, outside the record. Fraction and pool rows carry the element_id of their unit procedure.",
+         "one unit procedure: every fraction row carries UP1 (see the JSON)"),
+        ("One run loads several materials", "One load per feed, each with its own material ID from the caller.", "%d load(s) in this run" % feeds),
+        ("Pools combined outside UNICORN, then loaded on the next step", "A new material; its ID and parents come from the caller.", "does not apply: PyCORN never joins runs"),
+        ("A by-pass measurement split from the column run by a new chromatogram", "Two operations in one unit procedure (same unit), unless the caller says otherwise.",
+         ("applies: by-pass sections and %d chromatograms" % len(chroms)) if (byp and sev) else ("by-pass sections, one chromatogram" if byp else "does not apply: no by-pass")),
+    ]
+    return table(["edge case", "what the spec does with it", "this run"], cases, "")
+
+
+def _text_data(A):
+    """One short sentence of this run's data per data_key of the decisions file."""
+    steps = [s for s in A["steps"] if not s["paused"]]
+    n_secs = len([s for s in A["S"] if not s.paused])
+    pieces = [p for st in A["steps"] for p in st["parts"] if p["absorbed"]]
+    real = [o for o in A["ops"] if not o["synthetic"]]
+    reps = sorted({o["name"] for o in real if o["repeats"] > 1})
+    fitted = len([x for x in A["rows"] if x and x["fitted"]])
+    tot = len([x for x in A["rows"] if x])
+    big = [1 for s, r in zip(A["S"], A["rows"]) if r and r["fitted"] and r["logged_ml"] and abs(r["axis_ml"] - r["logged_ml"]) > 0.1 * r["logged_ml"] and s.end_s - s.start_s > 5]
+    facts = {x["fact"]: x for x in A["inv"]["facts"]}
+    vt, vo = facts.get("Total liquid volume Vt"), facts.get("Void volume Vo")
+    noloop = [w for w in (A["view"].warnings if A["view"] else []) if "no loop volume given" in w]
+    scout = (A["hints"].scouting if A["hints"] and A["hints"].available else None) or {}
+    setml = sum((A["op_values"][o["id"]]["set"] or 0) for o in A["ops"] if o["id"] in A["op_values"])
+    actml = sum((A["op_values"][o["id"]]["actual"] or 0) for o in A["ops"] if o["id"] in A["op_values"])
+    bu = buffers_used(A)
+    return {
+        "up_cycles": "%d chromatogram(s). Default: one unit procedure, labelled '%s'. %s." % (
+            len(A["chroms"]), up_label(A), ("Phase order repeats: %s (a suggested start phase)" % ", ".join(reps)) if reps else "No repeated phase"),
+        "chromatograms": "%d chromatogram(s): %s. How the run log marks a cut: not verified." % (len(A["chroms"]), ", ".join(c["name"] for c in A["chroms"])),
+        "display_steps": "%d sections become %d display steps." % (n_secs, len(steps)),
+        "join_rule": "%d sections become %d display steps. %d short piece(s) under 10 s were absorbed%s." % (
+            n_secs, len(steps), len(pieces), (" (%s s)" % ", ".join(f(p["b"] - p["a"], 1) for p in pieces[:6])) if pieces else ""),
+        "repeats": ("Repeated: %s. Shown as an instance number." % ", ".join(reps)) if reps else "No repeated phase in this run.",
+        "ramps_flow": "%d of %d sections fitted to the volume axis; %d section(s) over 5 s where the pump delivered more than 10 %% off the set flow." % (fitted, tot, len(big)),
+        "transients": ("%d pause(s), lengths %s s." % (len(A["pauses"]), ", ".join(f(p["duration_s"], 1) for p in A["pauses"]))) if A["pauses"] else "No pause in this run.",
+        "dbc_volumes": "Total liquid volume: %s. Void volume: %s. Both are library values from the column type, not measured on this packing." % (
+            (vt["value"] if vt else "-"), (vo["value"] if vo else "-")),
+        "feed_loop": ("The feed length rests on the whole Inject period: no loop volume given." if noloop else "No feed without a loop volume in this run."),
+        "composition_order": "Buffer contents: from the caller (UNICORN stores none). BufferPro recipe: %s." % ("stored (hint)" if bu["bufferpro"] else "not stored"),
+        "buffer_layers": "Buffer lot IDs, preparation and measurements: none in the result. BufferPro recipe: %s." % ("stored (hint)" if bu["bufferpro"] else "not stored"),
+        "volume_precedence": "Volume axis against logged flow: set %s ml, actual %s ml over all operations." % (f(setml, 2), f(actml, 2)),
+        "process_operation": "Empty: the caller maps phases to process operations.",
+        "scouting_series": ("Scouting table: %d run(s)." % len(scout.get("runs") or [])) if scout.get("runs") else "No scouting table.",
+        "calibration": "Extinction coefficient: from the caller (UNICORN stores none).",
+        "none": "-",
+    }
+
+
+# options of these items are not stated in the spec; the page says so
+NO_SPEC_OPTIONS = {"feed-wording", "gradient-wording", "section-lane-chart", "summary-beside-or-instead", "flow-users-see", "cycle-flag-name"}
+
+DECIDED_LATER = {"dbc-volumes": "Display needs both volumes for DBC. If CADET computes DBC, only CADET needs them (owner)."}
+
+# decided or proposed in review sessions, not (yet) in the decisions file
+SESSION_DECISIONS = [
+    dict(id="up-label", title="Unit procedure label", status="decided", data_key="up_cycles",
+         question="What does a unit procedure show as its name?",
+         options=["Empty when the run has one unit procedure.", "The chromatogram's name when the result holds exactly one, else the result name (UNICORN)."],
+         proposed="Second option (owner chose a label so people know what it is).", links=["rst:15", "rs:3.3"]),
+    dict(id="step-label", title="Display step label", status="decided", data_key="display_steps",
+         question="What names a step cut from one operation?",
+         options=["A counter ('Run (1 of 4)').", "The operation's name plus the activity words that are on (feed, by-pass, Hold; a pause is Held). Equal labels counted in run order.",
+                  "The operation's name plus the changed value."],
+         proposed="Second option (owner chose it).", links=["rst:15", "rs:3.5"]),
+    dict(id="method-settings", title="Method Settings as an operation", status="decided", data_key="none",
+         question="Is UNICORN's short first phase kept as an operation or folded into the next?",
+         options=["Always kept as an operation.", "Folded into the next operation."], proposed="Kept (owner decision).", links=["rst:15"]),
+    dict(id="first-position", title="Inlet first position (Decide 22)", status="open", data_key="inlets",
+         question="When a valve has no position logged yet, is its first position known, assumed or not known?",
+         options=["Assumed, labelled '(assumed)' (built).", "Known when the system type is one with a mapped geometry, assumed for any other type (owner's proposal)."],
+         proposed="Owner's proposal, if UNICORN resets the valves at method start. Not confirmed: a port layout does not say where a valve sits at the start.",
+         links=["decide:22", "rst:7"]),
+    dict(id="extinction-needed-by", title="Who needs the extinction coefficient", status="decided", data_key="calibration",
+         question="Does the display or CADET need the extinction coefficient?", options=["CADET only.", "Both: the display for mg/ml, CADET for its detector calibration."],
+         proposed="Both (owner).", links=["rs:3.9", "rst:14"]),
+    dict(id="recipe-section", title="Recipe information on this page", status="proposed", data_key="none",
+         question="Does the record carry the method as master and control recipe, as hints?",
+         options=["Yes: a Method part in the record and a Recipe section here.", "No: the method stays raw text only."],
+         proposed="Yes (section 5, Method row). Built in this prototype; nothing is built in the library.", links=["rs:5", "rs:3.2"]),
+]
+
+
+def decisions_html(A):
+    with open(DECISIONS_FILE, encoding="utf-8") as fh:
+        items = json.load(fh)
+    items = [dict(x) for x in items] + [dict(x) for x in SESSION_DECISIONS]
+    for x in items:  # settled in review sessions after the file was extracted
+        if x["id"] in DECIDED_LATER:
+            x["status"], x["proposed"] = "decided", DECIDED_LATER[x["id"]]
+    data = _text_data(A)
+    data["inlets"] = "; ".join("%s: %s" % (line, ", ".join(used)) for line, used in buffers_used(A)["lines"].items()) or "-"
+    rows = []
+    for x in items:
+        opts = "".join("<li>%s</li>" % E(o) for o in x["options"])
+        note = "<br><i>The spec states no options for this item. These are placeholders.</i>" if x["id"] in NO_SPEC_OPTIONS else ""
+        where = [link_code(c) for c in x["links"]]
+        if x.get("spec_line"):
+            where.append(H("<span class='docs'>spec line %s</span>" % E(str(x["spec_line"]))))
+        rows.append([H("<b>%s</b><br>%s" % (E(x["title"]), E(x["question"]))), data.get(x["data_key"], "-"), H("<ol>%s</ol>%s" % (opts, note)), x["proposed"],
+                     badge({"open": "caller", "decided": "stored", "proposed": "hint"}[x["status"]], x["status"]), links(*where)])
+    return table(["decision", "this run", "options", "proposed answer", "status", "where"], rows, "wide")
+
+
+def link_code(code):
+    kind, _, arg = code.partition(":")
+    if kind == "rs":
+        return rs(arg)
+    if kind == "rst":
+        return rst(arg)
+    if kind == "rsf":
+        return rsf(arg)
+    if kind == "decide":
+        return decide(int(arg))
+    if kind == "ref":
+        fn, _, prefix = arg.partition("|")
+        return ref(prefix, fn, prefix=prefix)
+    raise ValueError("unknown link code %r" % code)
+
+
 def page(A, inv, rec_name):
     run, ch = A["run"], A["ch"]
     S = A["S"]
@@ -2188,7 +2447,7 @@ def page(A, inv, rec_name):
     parts.append('<header><h1>%s</h1><p>%s &middot; UNICORN %s &middot; %s &middot; <a style="color:#9ec5ff" href="index.html">all examples</a> &middot; '
                  'prototype record: <a style="color:#9ec5ff" href="%s">%s</a></p></header>' % (
                      E(A["file"]), E(A["instrument"] or "instrument not stored"), E(str(run.unicorn_version)), E(SAMPLE_NOTES.get(A["file"], "")), E(rec_name), E(rec_name)))
-    parts.append('<nav><a href="#checks">Check these</a><a href="#above">Above the run</a><a href="#levels">Levels</a><a href="#setact">Set point vs actual</a><a href="#curves">Curves</a>'
+    parts.append('<nav><a href="#checks">Check these</a><a href="#decide">Decisions</a><a href="#above">Above the run</a><a href="#levels">Levels</a><a href="#setact">Set point vs actual</a><a href="#curves">Curves</a><a href="#recipe">Recipe</a>'
                  '<a href="#tables">Tables</a><a href="#path">Flow path and volumes</a><a href="#facts">Every fact</a><a href="#scope">Scope rows</a>'
                  '<a href="#record">The JSON</a><a href="#raw">Raw UNICORN output</a><a href="#warn">Warnings</a></nav><main>')
     parts.append('<p class="note">Prototype for review. The record in docs/RUN_STRUCTURE_RECORD.md is not built: every number here is what today\'s code '
@@ -2203,6 +2462,8 @@ def page(A, inv, rec_name):
 
     parts.append('<h2 id="checks">Check these first</h2><p class="lead">Generated from this run: each item is a place where a reading or a '
                  'scope choice shows up in the data. Links go to the markdown that explains the decision.</p>%s' % checks_html)
+    parts.append('<h2 id="decide">Decisions to review</h2><p class="lead">Every open choice in the proposal, with what this run shows, the options, '
+                 'the proposed answer and where the proposal explains it. Decided and proposed items from review sessions are listed too.</p>%s' % safe("decisions", decisions_html, A))
     parts.append('<h2 id="above">0. Above and beside the operations</h2><p class="lead">Linked runs, procedure, unit '
                  'procedure and cycles, chromatograms, equipment, material. Border: green UNICORN stores it, blue PyCORN works it out, amber a hint only, '
                  'orange dashed the caller supplies it, red dashed UNICORN lacks it.</p>%s<div class="fig">%s</div>' % (
@@ -2217,6 +2478,8 @@ def page(A, inv, rec_name):
                      docs(rs("3.8"), rst(13), rst(18), decide(6), decide(15), decide(18), ref("Scope row 8", RM_, "Scope decisions for CADET")), safe("setact", fig_setpoint_actual, A)))
     parts.append('<h2 id="curves">3. Measured curves by role</h2>%s<div class="fig">%s</div>' % (
         docs(ref("Finding curves by role", UG, "Finding Curves: by Role, Not by Name"), ref("Axes", UG, "Axes"), rs("5")), safe("curves", fig_curves, A)))
+    parts.append('<h2 id="recipe">Recipe: the method as downstream receives it</h2>%s%s' % (
+        docs(rs("5"), rs("3.2"), ref("Method hints", UG, "Method hints")), safe("recipe", recipe_html, A)))
     parts.append('<h2 id="tables">4. Tables</h2>' + docs(rs("5"), rst(17), rst(18), rst(21), ref("Export guide", EG, "Phase window statistics")))
     parts.append("<h3>Operations, with set point and actual volumes</h3>" + safe("ops", ops_table, A))
     parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per operation, split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
@@ -2230,6 +2493,7 @@ def page(A, inv, rec_name):
                    sec_ranges(li["secs"]), li["start_s"], li["end_s"], li["last_start_s"])) if li else ""
     parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + li_note + safe("sections", sections_table, A))
     parts.append("<h3>Material: loads, fractions, pools</h3>" + safe("materials", materials_html, A))
+    parts.append("<h3>Edge cases (Table 16) on this run</h3>" + docs(rst(16)) + safe("edge", edge_cases_html, A))
     parts.append('<h2 id="path">5. Flow path and the volumes on it</h2><p class="lead">Which volumes UNICORN stores, which it does not. CADET needs the red ones from the caller.</p>%s<div class="fig">%s</div>' % (
         docs(rs("3.6.1"), rs("3.6.1.1"), rst(7), rsf("8a"), rsf("8b"), rs("3.6.1.2"), ref("D19, D21, D27, D28", RM_, "Decisions"), ref("CADET guide: model values", CG, "Your model values")),
         safe("path", fig_flowpath, A, inv)))

@@ -1,0 +1,302 @@
+[
+  {
+    "id": "cycle-marking-rule",
+    "title": "How the caller marks cycles",
+    "question": "Which rule marks cycles: by chromatogram, by phase, or by series?",
+    "options": [
+      "By chromatogram: each chromatogram is one cycle.",
+      "By phase: the UNICORN phase that starts each cycle, optionally also the phase that ends it.",
+      "By series: across results, the scouting series counts as cycles."
+    ],
+    "proposed": "The caller gives one of the three rules. Cycles are never found on their own.",
+    "spec_line": 1346,
+    "links": ["rs:3.3", "rst:4", "rsf:6", "rs:9"],
+    "data_key": "up_cycles",
+    "status": "open"
+  },
+  {
+    "id": "cycle-flag-name",
+    "title": "Name of the cycle flag and options key",
+    "question": "What are the CLI flag and the options JSON key for the cycle rule called?",
+    "options": [
+      "A name still to be chosen for the CLI flag.",
+      "A name still to be chosen for the options JSON key."
+    ],
+    "proposed": "none stated",
+    "spec_line": 309,
+    "links": ["rs:3.3"],
+    "data_key": "up_cycles",
+    "status": "open"
+  },
+  {
+    "id": "chrom-settings-across-cut",
+    "title": "Settings across a chromatogram cut",
+    "question": "Do flow, %B, valves, phase and state carry over a New Chromatogram cut unrepeated?",
+    "options": [
+      "Take them from the previous chromatogram (hard to read, not built until a sample shows it).",
+      "Treat them as not_known before the first instruction of the next run log."
+    ],
+    "proposed": "not_known before the first instruction, until a sample shows otherwise.",
+    "spec_line": 370,
+    "links": ["rs:3.4", "rst:5", "rs:9"],
+    "data_key": "chromatograms",
+    "status": "open"
+  },
+  {
+    "id": "chrom-phase-across-cut",
+    "title": "A UNICORN phase across the cut",
+    "question": "How is a phase handled when the next run log starts inside it?",
+    "options": [
+      "One operation in both chromatograms.",
+      "Display keeps one table set per chromatogram, noting a phase cut at the boundary."
+    ],
+    "proposed": "none stated",
+    "spec_line": 371,
+    "links": ["rs:3.4", "rst:5", "rst:16"],
+    "data_key": "chromatograms",
+    "status": "open"
+  },
+  {
+    "id": "steps-level",
+    "title": "Steps level (Decide 1)",
+    "question": "Is there a steps level in the PyCORN batch history, or only a display table?",
+    "options": [
+      "Not a level: the batch history goes down to sections, people get a display steps table.",
+      "A steps level below the phase in the batch history."
+    ],
+    "proposed": "Not a level: ISA-88 ends at the phase. People get a display steps table, <c>_steps.csv or as named.",
+    "spec_line": 1403,
+    "links": ["rs:3.5", "rs:11", "rst:22", "rst:23", "rsf:7"],
+    "data_key": "join_rule",
+    "status": "open"
+  },
+  {
+    "id": "words-below-phase",
+    "title": "Words below the phase",
+    "question": "What do the batch history and the display call the levels below the phase?",
+    "options": [
+      "A: sections in the batch history, 'steps' in display with a note that they are not IEC steps.",
+      "B: sections in the batch history, another word in display (the owner's choice).",
+      "C: IEC steps (instructions at one breakpoint grouped), then sections inside them. Display as A or B."
+    ],
+    "proposed": "none stated. C matches the standard best but waits for a check of the method against the run log.",
+    "spec_line": 1414,
+    "links": ["rs:3.5", "rs:11", "rst:23", "rst:21"],
+    "data_key": "display_steps",
+    "status": "open"
+  },
+  {
+    "id": "ramp-length",
+    "title": "Ramp length (Decide 20)",
+    "question": "Which ramp length does the batch history hold: logged, measured, or both?",
+    "options": [
+      "set_point: the logged length.",
+      "actual: measured on each axis.",
+      "Both, with display showing the actual."
+    ],
+    "proposed": "Both: set_point (logged length) and actual (measured on each axis). Display shows the actual.",
+    "spec_line": 1404,
+    "links": ["rs:3.7", "rst:12", "rst:22", "decide:20", "decide:6", "decide:15"],
+    "data_key": "ramps_flow",
+    "status": "open"
+  },
+  {
+    "id": "repeats-naming",
+    "title": "Repeated phases (Decide 23)",
+    "question": "How are repeated phases named in display and tables?",
+    "options": [
+      "instance numbers, display shows Equilibration (2), the logged text is kept.",
+      "Tables keep the logged name unchanged (today)."
+    ],
+    "proposed": "instance numbers. Display shows Equilibration (2). The logged text is kept.",
+    "spec_line": 1405,
+    "links": ["rs:3.5", "rst:15", "rst:22", "decide:23", "decide:9"],
+    "data_key": "repeats",
+    "status": "open"
+  },
+  {
+    "id": "phase-length-pauses",
+    "title": "Phase length with or without pauses (Decide 12)",
+    "question": "Does display show phase length with pauses, without pauses, or both?",
+    "options": [
+      "Phase length with pauses.",
+      "Phase length without pauses.",
+      "Both."
+    ],
+    "proposed": "Both.",
+    "spec_line": 1407,
+    "links": ["rs:3.7", "rs:11", "decide:12"],
+    "data_key": "transients",
+    "status": "open"
+  },
+  {
+    "id": "flow-users-see",
+    "title": "Which flow users see (Decide 15)",
+    "question": "Which flow does display show: the set flow or the delivered flow?",
+    "options": [
+      "The set flow, as today (Decide 6 keeps the set flow in display).",
+      "The flow the pump delivered, from the volume axis."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1407,
+    "links": ["rs:3.8", "rs:11", "rst:22", "decide:15", "decide:6"],
+    "data_key": "ramps_flow",
+    "status": "open"
+  },
+  {
+    "id": "feed-wording",
+    "title": "Feed wording (Decide 17)",
+    "question": "What words does display use for the feed sections?",
+    "options": [
+      "The wording in RUN_STRUCTURE_REVIEW.md, Decide 17.",
+      "Another wording, the owner's choice."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1407,
+    "links": ["rs:3.6.3", "rs:11", "decide:17"],
+    "data_key": "feed_loop",
+    "status": "open"
+  },
+  {
+    "id": "gradient-wording",
+    "title": "Gradient wording rule (Decide 21)",
+    "question": "What rule words a gradient or ramp in display?",
+    "options": [
+      "The rule in RUN_STRUCTURE_REVIEW.md, Decide 21.",
+      "Another rule, the owner's choice."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1408,
+    "links": ["rs:3.5", "rs:11", "decide:21"],
+    "data_key": "ramps_flow",
+    "status": "open"
+  },
+  {
+    "id": "section-lane-chart",
+    "title": "Section-lane chart (Decide 25)",
+    "question": "Is a section-lane chart added to the display?",
+    "options": [
+      "Add the section-lane chart.",
+      "Do not add it."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1409,
+    "links": ["rs:3.5", "rs:11", "rsf:7", "decide:25"],
+    "data_key": "display_steps",
+    "status": "open"
+  },
+  {
+    "id": "summary-beside-or-instead",
+    "title": "Summary beside or instead of sequences (Decide 26)",
+    "question": "Does the new summary sit beside today's sequences or replace them?",
+    "options": [
+      "Beside today's sequences.",
+      "Instead of today's sequences."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1409,
+    "links": ["rs:11", "rs:7", "decide:26"],
+    "data_key": "none",
+    "status": "open"
+  },
+  {
+    "id": "loop-volume-flags",
+    "title": "Loop and path volume flags (Decide 19)",
+    "question": "Is the CADET feed volume one flag or two: --loop-volume and --sample-path-volume?",
+    "options": [
+      "One flag.",
+      "Two flags: --loop-volume and --sample-path-volume."
+    ],
+    "proposed": "none stated",
+    "spec_line": 1411,
+    "links": ["rs:3.6.1.1", "rs:3.9", "rs:11", "rst:14", "decide:19"],
+    "data_key": "feed_loop",
+    "status": "open"
+  },
+  {
+    "id": "individual-column",
+    "title": "The individual column",
+    "question": "Where does the individual column ID come from, and what does ColumnIndividualData hold when filled?",
+    "options": [
+      "From UNICORN, when ColumnIndividualData or another field stores it.",
+      "From the caller."
+    ],
+    "proposed": "From UNICORN when stored, else from the caller. Needs an example from a system that tracks columns.",
+    "spec_line": 1357,
+    "links": ["rs:3.6.1.2", "rs:9", "rst:14"],
+    "data_key": "none",
+    "status": "open"
+  },
+  {
+    "id": "dbc-volumes",
+    "title": "Volumes needed for dynamic binding capacity",
+    "question": "Does display need total liquid and void volume for DBC, or does CADET compute DBC?",
+    "options": [
+      "Display needs both volumes for DBC.",
+      "If CADET computes DBC, only CADET needs them."
+    ],
+    "proposed": "none stated",
+    "spec_line": 596,
+    "links": ["rs:3.6.1.2"],
+    "data_key": "dbc_volumes",
+    "status": "open"
+  },
+  {
+    "id": "buffer-scope",
+    "title": "Scope of buffer provenance and components",
+    "question": "How much buffer provenance and component data does PyCORN hold?",
+    "options": [
+      "IDs only (lot, recipe).",
+      "IDs with the values a model needs (composition with its kind, measured properties).",
+      "The whole chain (raw-material lots, preparation records, test results with limits)."
+    ],
+    "proposed": "none stated. A LIMS, ELN or MES already holds the whole chain.",
+    "spec_line": 1365,
+    "links": ["rs:3.6.3.2", "rs:9", "rst:10a", "rst:14", "rsf:9a"],
+    "data_key": "buffer_layers",
+    "status": "open"
+  },
+  {
+    "id": "component-scope",
+    "title": "Scope of component fields",
+    "question": "Does the batch history hold component fields and compositions, or only link to them by ID?",
+    "options": [
+      "Hold the fields (identifier, form, molecular weight, basis, role, assay, model component), solution properties and compositions.",
+      "Only link to them by ID."
+    ],
+    "proposed": "none stated. Physicochemical constants are out of scope (D28).",
+    "spec_line": 823,
+    "links": ["rs:3.6.3.3", "rs:9", "rst:10b", "rst:10c", "rsf:9b", "rst:14"],
+    "data_key": "buffer_layers",
+    "status": "open"
+  },
+  {
+    "id": "composition-order",
+    "title": "Order of composition values for CADET",
+    "question": "Does CADET take as-made before the recipe target by a fixed order or by the caller's choice per run?",
+    "options": [
+      "A fixed order: as made where given, else the recipe's target.",
+      "The caller's choice per run."
+    ],
+    "proposed": "As made where given, else the recipe's target (proposed, the order TBD).",
+    "spec_line": 706,
+    "links": ["rs:3.6.3.1", "rs:9", "rst:10"],
+    "data_key": "composition_order",
+    "status": "open"
+  },
+  {
+    "id": "offline-volume-precedence",
+    "title": "Offline volume precedence",
+    "question": "When does a measured volume or mass take precedence over the volume axis, and does it apply to display too?",
+    "options": [
+      "Always use UNICORN's volume axis, as for now.",
+      "A measured mass takes precedence, converted with the caller's density, for calculations.",
+      "The same precedence for display as well as calculations."
+    ],
+    "proposed": "For now the volume axis is used for every calculation and display (owner, 2026-11-15). A measured mass may later take precedence.",
+    "spec_line": 931,
+    "links": ["rs:3.8", "rs:9", "rst:14"],
+    "data_key": "volume_precedence",
+    "status": "open"
+  }
+]

@@ -42,8 +42,8 @@
   {
    "level": "unit_procedure",
    "element_id": "UP1",
-   "label": "",
-   "label_source": "",
+   "label": "Chrom.1",
+   "label_source": "UNICORN",
    "boundary_source": "default",
    "operations": [
     {
@@ -994,6 +994,7 @@
   "loads": [
    {
     "element_id": "LOAD1",
+    "unit_procedure": "UP1",
     "injection_valve": "Inject",
     "start_wall_s": 1025.7,
     "end_wall_s": 5731.9,
@@ -1070,6 +1071,7 @@
   "fractions": [
    {
     "element_id": "FR:Waste",
+    "unit_procedure": "UP1",
     "role": "waste_or_flow_through",
     "start_min": 0.0,
     "end_min": 17.07,
@@ -1087,6 +1089,7 @@
    },
    {
     "element_id": "FR:Frac",
+    "unit_procedure": "UP1",
     "role": "collected_fraction",
     "start_min": 17.07,
     "end_min": 95.5317,
@@ -1104,6 +1107,7 @@
    },
    {
     "element_id": "FR:Out-Waste",
+    "unit_procedure": "UP1",
     "role": "collected_fraction",
     "start_min": 95.5317,
     "end_min": 95.5317,
@@ -1124,6 +1128,216 @@
    "peak_tables": 0,
    "pool_tables": 0
   }
+ },
+ "method": {
+  "available": true,
+  "kind": "hint (the method is a template, D17)",
+  "master_recipe": {
+   "name": "Method1",
+   "unicorn_version": "7.11.0.1097",
+   "technique": "CationExchange",
+   "volume_unit": "ml",
+   "flow_unit": "ml/min",
+   "blocks": [
+    "Purge",
+    "Equilibrate",
+    "turnload",
+    "SampleLoad",
+    "Wash"
+   ]
+  },
+  "control_recipe": {
+   "variables": [
+    {
+     "variable": "ColPosition",
+     "value": "Position 5",
+     "unit": "",
+     "scouting": true
+    },
+    {
+     "variable": "ColWashFlow",
+     "value": "0.200",
+     "unit": "ml/min",
+     "scouting": true
+    },
+    {
+     "variable": "ColVolume",
+     "value": "0.350",
+     "unit": "ml",
+     "scouting": true
+    },
+    {
+     "variable": "Conc",
+     "value": "conc",
+     "unit": null,
+     "scouting": true
+    },
+    {
+     "variable": "Delta column pressure limit",
+     "value": "0.50",
+     "unit": "MPa",
+     "scouting": false
+    },
+    {
+     "variable": "EquiFlow",
+     "value": "0.350",
+     "unit": "ml/min",
+     "scouting": false
+    },
+    {
+     "variable": "Equilibration volume",
+     "value": "15.00",
+     "unit": "{base}",
+     "scouting": true
+    },
+    {
+     "variable": "Flow restrictor",
+     "value": "In-line",
+     "unit": null,
+     "scouting": false
+    },
+    {
+     "variable": "InletA",
+     "value": "A4",
+     "unit": "",
+     "scouting": true
+    },
+    {
+     "variable": "pH cell",
+     "value": "In-line",
+     "unit": null,
+     "scouting": false
+    },
+    {
+     "variable": "Pre column pressure limit",
+     "value": "3.00",
+     "unit": "MPa",
+     "scouting": false
+    },
+    {
+     "variable": "PurgeFlow",
+     "value": "8.000",
+     "unit": "ml/min",
+     "scouting": true
+    },
+    {
+     "variable": "PurgeVol",
+     "value": "15.00",
+     "unit": "{base}",
+     "scouting": true
+    },
+    {
+     "variable": "Run gradient",
+     "value": "0.0",
+     "unit": "%B",
+     "scouting": true
+    },
+    {
+     "variable": "RunName",
+     "value": "Value1",
+     "unit": null,
+     "scouting": true
+    },
+    {
+     "variable": "Sampleflow",
+     "value": "0.040",
+     "unit": "ml/min",
+     "scouting": true
+    },
+    {
+     "variable": "SampleVol",
+     "value": "4.00",
+     "unit": "{base}",
+     "scouting": true
+    },
+    {
+     "variable": "UV averaging time",
+     "value": "2.5",
+     "unit": "sec",
+     "scouting": false
+    },
+    {
+     "variable": "UV1",
+     "value": "280",
+     "unit": "nm",
+     "scouting": false
+    },
+    {
+     "variable": "UV2",
+     "value": "295",
+     "unit": "nm",
+     "scouting": false
+    },
+    {
+     "variable": "UV3",
+     "value": "Off",
+     "unit": "nm",
+     "scouting": false
+    },
+    {
+     "variable": "Wash Volume",
+     "value": "15.00",
+     "unit": "{base}",
+     "scouting": true
+    }
+   ]
+  },
+  "planned_vs_ran": [
+   {
+    "block": "Purge",
+    "element": {
+     "element_id": "OP2",
+     "label": "Run"
+    },
+    "planned": 15.1,
+    "base": "ml",
+    "variable": null,
+    "ran": 15.314419190000002,
+    "status": "as_planned",
+    "cause": null
+   },
+   {
+    "block": "Equilibrate",
+    "element": {
+     "element_id": "OP2",
+     "label": "Run"
+    },
+    "planned": 15.0,
+    "base": "CV",
+    "variable": "Equilibration volume",
+    "ran": 14.99833,
+    "status": "as_planned",
+    "cause": null
+   }
+  ],
+  "blocks_not_run": [
+   "turnload",
+   "SampleLoad",
+   "Wash"
+  ],
+  "injections": [],
+  "sample_application": [],
+  "buffer_prep": "not stored",
+  "scouting": {
+   "name": "Scouting1",
+   "runs": 1,
+   "variables": [
+    "ColVolume",
+    "RunName",
+    "Conc",
+    "PurgeFlow",
+    "Run gradient",
+    "InletA",
+    "PurgeVol",
+    "ColPosition",
+    "Equilibration volume",
+    "Sampleflow",
+    "SampleVol",
+    "ColWashFlow",
+    "Wash Volume"
+   ]
+  },
+  "warnings": []
  },
  "volumes": {
   "column": {
@@ -1225,7 +1439,7 @@
   {
    "group": "Volumes and flow path",
    "fact": "Total liquid volume Vt",
-   "needed_by": "CADET",
+   "needed_by": "both",
    "status": "missing",
    "value": "-",
    "source": "ColumnTypeData"
@@ -1233,7 +1447,7 @@
   {
    "group": "Volumes and flow path",
    "fact": "Void volume Vo",
-   "needed_by": "CADET",
+   "needed_by": "both",
    "status": "missing",
    "value": "-",
    "source": "ColumnTypeData"
@@ -1537,7 +1751,7 @@
   {
    "group": "Detectors and calibration",
    "fact": "Extinction coefficient",
-   "needed_by": "CADET",
+   "needed_by": "both",
    "status": "caller",
    "value": "-",
    "source": "UNICORN stores none"
@@ -1788,6 +2002,8 @@
    "note": "computed from the sections each time; never part of the stored record",
    "steps": [
     {
+     "label": "Method Settings",
+     "label_source": "PyCORN",
      "start_wall_s": 0.0,
      "end_wall_s": 2.6,
      "operation": "OP1",
@@ -1816,6 +2032,8 @@
      "absorbed_note": null
     },
     {
+     "label": "Run, by-pass",
+     "label_source": "PyCORN",
      "start_wall_s": 2.6,
      "end_wall_s": 123.6,
      "operation": "OP2",
@@ -1852,6 +2070,8 @@
      "absorbed_note": "first 2.5 s (sections #3-6) absorbed: by-pass off, 8 ml/min"
     },
     {
+     "label": "Run",
+     "label_source": "PyCORN",
      "start_wall_s": 123.6,
      "end_wall_s": 1025.7,
      "operation": "OP2",
@@ -1883,6 +2103,8 @@
      "absorbed_note": "last 0.8 s (section #12) absorbed: 0.04 ml/min"
     },
     {
+     "label": "Run, feed",
+     "label_source": "PyCORN",
      "start_wall_s": 1025.7,
      "end_wall_s": 5731.9,
      "operation": "OP2",

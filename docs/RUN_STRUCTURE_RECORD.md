@@ -593,7 +593,8 @@ the run log). A run that switches between ports has one entry per column.
 values with a source (§5). Vc's source is the one `column_volume.py` picked. Geometry comes
 from the column type record or the caller. Geometry the caller gives is a source of Vc only as
 a last resort (D26). Total liquid volume and void volume stay hints: no porosity is computed
-from them. Nothing is looked up by name, in the library, or from a volume in the column name.
+from them. The display needs both for dynamic binding capacity (DBC). If CADET computes DBC
+instead, only CADET needs them. Nothing is looked up by name, in the library, or from a volume in the column name.
 
 **Across runs, through the column's ID.** Runs on the same packed column are linked by its
 physical asset ID, as runs of one product are linked by material ID (§3.1). Anything about
@@ -1038,9 +1039,10 @@ Masking replaces names that can identify people or projects, as every output doe
 | Item | Named | Numbered | Valued |
 |---|---|---|---|
 | Run | the result name as UNICORN stores it | none: the key is UNICORN's Batch ID (§5) | - |
-| Unit procedure | No label when the run has one. When cycles are marked: "Cycle n", "Before cycles", "After cycles". By chromatogram: the chromatogram's name. | `UP1`, `UP2`, ... when there is more than one. Cycles 1 to N count cycles only. | - |
-| Operation | `label`: the UNICORN phase name as logged, unless the user gives one. A repeat shows as `Equilibration (2)` (`instance`, Decide 23). | `OP1`, `OP2`, ... | - |
+| Unit procedure | `label`, first that applies: the user's override (`User input`); when cycles are marked, "Cycle n", "Before cycles", "After cycles" (by chromatogram: the chromatogram's name); when the run has one unit procedure, the name of its chromatogram if the result holds exactly one (`UNICORN`), else the result name (`UNICORN`). | `UP1`, `UP2`, ... when there is more than one. Cycles 1 to N count cycles only. | - |
+| Operation | `label`: the UNICORN phase name as logged, unless the user gives one. A repeat shows as `Equilibration (2)` (`instance`, Decide 23). "Method Settings", UNICORN's short first phase, is always kept as an operation, never folded into the next (owner decision). | `OP1`, `OP2`, ... | - |
 | Phase | `label`: the activity in plain words ("System flow", "Sample feed", "Fractionation"), unless the user gives one. `equipment_module` holds the key (`system_pump`, `sample_feed`, ...). UNICORN's block names stay in each section's `original`. | `PH1` (System flow, the whole operation), then `PH2`, ... in start order within the operation. Phases may overlap. | - |
+| Display step (view, not stored) | `label` (`PyCORN`): the operation's name as logged plus the activity words that are on (feed, by-pass, Hold), e.g. "Run, by-pass". A pause is "Run, Held". Equal labels are counted in run order and the later ones show "(2)", "(3)", as repeated operations do. | the step number in the table | - |
 | Section | none: its `element_id` | `SE1`, `SE2`, ... within the phase | - |
 | Chromatogram | UNICORN's name | UNICORN's order | - |
 | Load | "Load n", with its feed in brackets: `Load 1 (S1)`, `Load 2 (Inject)` | in run order of the feed sections | Material ID: the run's Batch ID and the load number. Contents: not known. |
