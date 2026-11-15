@@ -544,6 +544,38 @@ eluate role, a flow-through role and a fraction as gaps to raise with IOF (secti
 link from a pool to the next step's load is material genealogy (ISA-95), which only the
 caller can give, since UNICORN doesn't store it.
 
+**Composition** (what each stream held). The run records which inlet fed the pumps and at
+what %B (or %Q), and it measures conductivity, pH and UV. It doesn't record what the buffers
+or the load contain: that comes from the caller, per inlet position or line, as the CADET
+export takes it today (`buffers=`, `feed=`; [`CADET_GUIDE.md`](CADET_GUIDE.md)). With the
+kinds of 3.8 (ontology terms in section 12):
+
+| Quantity | Set point | Actual | Calculated |
+|---|---|---|---|
+| Buffer, per section | inlet position and %B or %Q (run log; known / assumed / not known, Decide 22) | - | per component, mol/m^3: the caller's buffer contents mixed by the executed %B or %Q |
+| Load, per feed | the feed section: valve or inlet (run log) | its volume (volume axis) | per component amount: the caller's concentration x the actual volume |
+| Buffer conductivity and pH | - | read where the column is by-passed, checked against the outlet (D22) | - |
+| Salt | - | the conductivity curve | mol/m^3, only through the caller's calibration (the by-pass readings give its points) |
+| Protein at the outlet | - | the UV curve, AU/cm | mg/ml, only with the caller's extinction coefficient, with its accuracy note |
+
+Salt can then have two calculated values: from the caller's buffers mixed by %B, and from
+the conductivity curve. The record keeps both, each with its source; a difference shows a
+wrong buffer entry, an inlet position that was assumed, or the delay through mixer and
+column.
+
+Which value each output uses:
+
+- **Excel and the web page (visualization):** the inlet as the run log names it (`A1`,
+  `B1 (assumed)`), the caller's buffer name beside it when given, %B as set, and the
+  measured conductivity, pH and UV. Concentrations only when the caller gave the inputs,
+  marked as calculated.
+- **CADET (modeling):** a concentration per component for every inlet, and the buffer mix
+  per section (`Phase` composition, with a ramp's start and end; section 6); the feed's
+  concentrations on the feed sections; the measured curves as references. Components and
+  contents are the caller's (D28); a component left out of a buffer is 0, as the CADET
+  export does today.
+- **Scripts and agents:** all of them, each with its kind and source.
+
 ### 3.7 States: running, paused, held, and the transients between
 
 ISA-88's example states for a procedural element are idle, running, complete, pausing,
@@ -912,6 +944,11 @@ otherwise.
   raised with CADET (section 12): cycle, a collected fraction, a pool, eluate and
   flow-through roles (3.6), chromatogram, gradient and elution, and dynamic binding
   capacity have no IOF class yet.
+- **Composition** (3.6): no ontology has a class for the buffer mix per section (a %B
+  and the contents it mixes), and Allotrope's liquid chromatography ASM (REC/2024/03,
+  tabular schema, searched as text; the shared schemas it references not read) has no
+  mobile-phase, buffer or gradient field, only detector data. The record's per-section
+  composition, with its source and quality, would be the proposal to raise with both.
 - The example results that would settle these are listed in
   `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted samples".
 
@@ -1022,8 +1059,9 @@ against the run log on the example results.
 What each word means in PyCORN, and the matching term in the ontologies a lab or plant may
 already use: IOF (Industrial Ontologies Foundry, biopharma module, `master` at `50a88d4`,
 2026-10-15; classes under `https://spec.industrialontologies.org/ontology/construct/`), OBI
-and IAO (biomedical investigations, information artifacts) and Allotrope (AFO, and its
-liquid chromatography data model ASM). The ontologies keep three things apart that this
+and IAO (biomedical investigations, information artifacts), Allotrope (AFO, and its
+liquid chromatography data model ASM), and for composition ChEBI (substances), CHMO
+(chemical methods), PATO (qualities) and UO (units). The ontologies keep three things apart that this
 plan keeps apart too: the **plan** (the method), the **process** that ran, and the
 **record** of it.
 
@@ -1062,6 +1100,11 @@ flowchart LR
 | system, column | the instrument (ISA-88 unit, 3.60; its pumps and fraction collector equipment modules, its valves and monitors control modules) and the column (3.6) | IOF `PreparativeChromatographySystem` (one that produces fractions for further processing), `ChromatographyColumn`, `PhysicalUnit`, `EquipmentModule` |
 | process | three senses: what ran (BFO process; ISA-88 3.38: "a sequence of chemical, physical, or biological activities for the conversion, transport, or storage of material or energy"), ISA-88's process model (process stage, process operation, process action; 4.1.3), CADET-Process's `Process` (a simulation set-up) | written as "the run", "process model" and `Process` (in code font) to keep them apart |
 | model | the CADET model; the "model view" of the record | not ISA-88's process or physical models, which this plan calls by those full names |
+| buffer | the liquid on one inlet; what it contains comes from the caller (3.6) | CHMO `buffer solution` (CHMO:0001462); AFO `buffer solution role`, `mobile phase` (a role); IOF `BufferSolution` (on a biopharma work branch); in ISA-88's formula, a process input (5.3.2.2) |
+| component, composition | a species the caller names (salt, protein, impurity) and how much of it is in a buffer, a load or a section (3.6); CADET-Process `ComponentSystem` | ChEBI for the substance when the caller names one (e.g. `sodium chloride`, CHEBI:26710); ChEBI `mixture` (CHEBI:60004) for a buffer as a whole; AFO `component role`, `has ingredient`. No class for a mix that changes section by section: CHMO `gradient elution` (CHMO:0002877) names the method, not the mix |
+| concentration | per component, in mol/m^3 or kg/m^3 (UCUM `mol/m3`, `kg/m3`) | CHMO `amount concentration` (CHMO:0002822), `mass concentration` (CHMO:0002821); AFO `molar concentration`, `mass concentration` (results); PATO `concentration of` (PATO:0000033) |
+| conductivity, pH, UV | measured curves, found by role (`curve_roles.py`) | PATO `electrical conductivity` (PATO:0001757); AFO `electric conductivity` (a result), `electrolytic conductivity measurement`; CHMO `pH measurement` (CHMO:0002354); UO `pH` (UO:0000196); AFO `absorbance` (a result) |
+| extinction coefficient | given by the caller, to turn UV into a concentration (3.6) | AFO `molar attenuation coefficient` (AFR_0002767), `protein attenuation coefficient` (AFR_0002766) |
 | set point, actual, calculated | set in the method, measured, calculated by PyCORN (3.8) | ISA-88's words: a process parameter "may be used as set points" (5.3.2.2), "actual values" (6.4.3.1), "calculations ... creating new batch data" (6.4.2); IOF and IAO measurement information for actuals |
 
 ## References
@@ -1117,7 +1160,8 @@ Ontologies:
   `DesignOfExperiments.rdf` (`StudyDesignRun`), `BiopharmaEquipment.rdf`
   (`PreparativeChromatographySystem`, `ChromatographyColumn`):
   https://github.com/iofoundry/ontology
-- OBI, IAO and Allotrope (AFO) terms, looked up on the EBI Ontology Lookup Service:
+- OBI, IAO and Allotrope (AFO) terms, looked up on the EBI Ontology Lookup Service; the
+  composition terms (ChEBI, CHMO, PATO, UO, AFO) on 2026-11-15:
   https://www.ebi.ac.uk/ols4
 - Allotrope Simple Model, liquid chromatography (`liquid-chromatography` schema, REC/2024/03,
   in Benchling's `allotropy`): https://github.com/Benchling-Open-Source/allotropy
