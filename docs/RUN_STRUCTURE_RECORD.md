@@ -8,8 +8,8 @@ built.
 > The Mermaid diagrams, the cycles figure and the transient-states figure are schematics
 > with made-up examples (names such as "Lot X", "Run 1" or "Phase P1" are placeholders, not
 > real data). Figure 7 was also drawn by Claude, from a public example result
-> (`samples/u73_blank.zip`), and Figure 8 from Cytiva's public instrument documents. Check
-> them against the text and the sources before relying on them.
+> (`samples/u73_blank.zip`), and Figures 8a and 8b from Cytiva's public instrument
+> documents. Check them against the text and the sources before relying on them.
 
 ## 1. In short
 
@@ -390,12 +390,13 @@ control" (5.2.2.4.2). So:
 
 Source: the system configuration stored in the result.
 
-**The flow path.** Figure 8 follows the order of the high-pressure tubing in Cytiva's
-public documents for ÄKTA avant 25 and ÄKTA pure (References). Solid lines are the path
-both documents show; dashed boxes and lines depend on the system and its installed modules.
-ÄKTA pure's manual says "the configuration of the system is defined by the user", and ÄKTA
-avant 25's documentation lists standard and optional modules. Process-scale systems are not
-covered: no public document was read for them.
+**The flow path.** Figure 8a follows the order of the high-pressure tubing in Cytiva's
+public documents for ÄKTA avant 25 and ÄKTA pure; Figure 8b the flowchart of ÄKTA ready, a
+single-use process-scale system (References). Solid lines are the path the documents show;
+dashed boxes and lines depend on the system and its installed modules. ÄKTA pure's manual
+says "the configuration of the system is defined by the user", and ÄKTA avant 25's
+documentation lists standard and optional modules. Other process-scale systems (ÄKTA
+process, ÄKTA pilot, ÄKTA ready XL) are not covered: no document was read for them.
 
 ```mermaid
 flowchart LR
@@ -425,14 +426,43 @@ flowchart LR
     classDef opt stroke-dasharray: 5 5
 ```
 
-**Figure 8.** The liquid flow path of an ÄKTA lab system, from Cytiva's public documents
+**Figure 8a.** The liquid flow path of an ÄKTA lab system, from Cytiva's public documents
 (schematic). Dashed: depends on the system's modules. The column's outlet returns through
 the column valve before the UV monitor.
+
+```mermaid
+flowchart LR
+    im["Inlet manifold<br/>XV-001 to XV-006<br/>buffers and sample"] --> p1["System pump P-201"]
+    bb(["Buffer B"]):::opt -.-> p2["Gradient pump P-202"]:::opt
+    p1 --> pt1["PT-111"]
+    p2 -.-> pt1
+    pt1 --> atv["Air trap valves<br/>XV-021 to XV-023"]
+    atv -- "Inline" --> at["Air trap AT-221"] --> cv["Column valves<br/>XV-031 to XV-033"]
+    atv -. "Bypass" .-> cv
+    cv -- "Inline" --> col["Column"] --> pt2["PT-112<br/>pH AE-121 (optional)"]
+    cv -. "Bypass" .-> pt2
+    pt2 --> fe["Flow meter FE-141<br/>temperature TE-161"]
+    fe --> ce["Conductivity CE-101"] --> uv["UV AE-131"]
+    uv --> pt3["PT-113"] --> om["Outlet manifold<br/>XV-051 to XV-056"]
+    classDef opt stroke-dasharray: 5 5
+```
+
+**Figure 8b.** The liquid flow path of ÄKTA ready, from its Operating Instructions
+(28960345 AH, 3.3-3.5; schematic). Dashed: the gradient flow section, only on systems with
+the optional gradient pump. All 19 valves are pinch valves on single-use tubing; there is no
+injection valve, loop or mixer: sample enters through an inlet of the manifold and the
+system pump. The sensors after PT-112 are drawn in the order of the flow kit's parts list;
+the flowchart drawing was not read as an image, so check it there.
+
+What differs for the record on ÄKTA ready: the feed is an inlet position, not an injection
+valve setting (no `ValveEvent`, no loop volume); the flow is the pumps' (peristaltic, with a
+flow meter FE-141 as a measured actual); the air trap's volume is on the path when it is
+`Inline`; buffer B has no inlet valve.
 
 Each valve on the path, what the record takes from it, and where its position comes from.
 The positions are UNICORN's words (kept under `native`); the set-up comes from the system
 configuration (`system_configuration.py` reads the inlet valves, sample inlet valve, sample
-pump and quaternary valve today), never from this figure:
+pump and quaternary valve today), never from these figures:
 
 | Valve | Positions (UNICORN's words) | What the record takes from it | Source |
 |---|---|---|---|
@@ -444,6 +474,10 @@ pump and quaternary valve today), never from this figure:
 | Column valve | column position, flow direction, by-pass | column flow zero at by-pass (D14, Decide 16); which column (Vc) | run log; column from the result |
 | pH valve | electrode in the path or by-passed | whether a pH curve was measured in the flow | run log |
 | Outlet valve | fraction collector, outlet ports, waste | flow-through and waste vs eluate (Figure 9) | run log |
+| ÄKTA ready: inlet manifold XV-001 to XV-006 | one open inlet | buffer and sample per section; a feed section is a sample inlet open, as the caller names it | run log; which inlet holds sample from the caller |
+| ÄKTA ready: air trap valves XV-021 to XV-023 | `Inline` (XV-022 + XV-023 open), `Bypass` (XV-021) | whether the air trap's volume is on the path | run log |
+| ÄKTA ready: column valves XV-031 to XV-033 | `Inline` (XV-032 + XV-033 open), `Bypass` (XV-031) | column flow zero at `Bypass`, as the lab systems' column valve | run log |
+| ÄKTA ready: outlet manifold XV-051 to XV-056 | one open outlet | flow-through and waste vs eluate, by the caller's naming of the outlets (no fraction collector) | run log; outlet use from the caller |
 
 The volumes along the path (loop, sample flow path, mixer, the tubing between injection
 valve, column and monitors) are values like any other: from the stored system configuration
@@ -1118,7 +1152,12 @@ AVEVA PI System (search excerpts only):
 - PI Event Frames Generator ("batches that contain unit procedures, operations, and phases"):
   https://docs.aveva.com/bundle/pi-event-frames-generator/page/1011413.html
 
-Cytiva ÄKTA instruments (read 2026-11-15 as text extracted from the PDFs; Figure 8):
+Cytiva ÄKTA instruments (read 2026-11-15 as text extracted from the PDFs; Figures 8a, 8b):
+
+- *ÄKTA ready Operating Instructions* 28960345 AH: 3.3.2 pumps (P-201 isocratic, P-202
+  for gradients), 3.3.3 valves (19 pinch valves; air trap and column valves `Bypass` /
+  `Inline`), 3.4 flowchart (labels, colours, pressure zones), 3.5 flow kits (parts in
+  order, sensors): https://d3.cytivalifesciences.com/prod/IFU/28960345.pdf
 
 - *ÄKTA avant 25 Product Documentation* 28991000 AH: 1.1 standard and optional modules,
   1.2 liquid flow path (tubing from pump to fraction collector, in order):
