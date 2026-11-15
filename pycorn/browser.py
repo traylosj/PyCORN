@@ -1081,7 +1081,7 @@ class Session:
         {'path', 'name', 'warnings': [text]}, or {'error': plain sentence, 'message': `message()`}.
         'xlsx': a zip `<run>_xlsx.zip` of the workbook(s) and README.txt (W4); 'csv': a zip
         `<run>_csv.zip` of the csv files, README.txt and provenance.json; 'core': the CADET-Core
-        JSON (a zip with the experiment's other files when there are several), its warnings
+        JSON (a zip with the model view's other files when there are several), its warnings
         starting with `CADET_EXPERIMENTAL_NOTE`. `options` (JSON text or dict): for 'xlsx' and
         'csv', mask (true: people, computer, instrument names and serials masked,
         `run_details.Masker`), curves (the names ticked on the plot, `export_options`), sample;

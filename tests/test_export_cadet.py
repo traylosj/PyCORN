@@ -50,11 +50,11 @@ def test_core_overrides_reach_the_file(run, tmp_path):
     assert any("caller overrides" in w for w in out["warnings"])
 
 
-def test_process_overrides_travel_in_experiment_json(run, tmp_path):
+def test_process_overrides_travel_in_model_view_json(run, tmp_path):
     # owner, 2026-11-08: the same generic block for CADET-Process, carried unchanged
     block = {"flow_sheet": {"column": {"bed_porosity": 0.31}}}
     out = pycorn.export_cadet(run, str(tmp_path), process_overrides=block)
-    side = _core(os.path.join(out["written"][0], "experiment.json"))
+    side = _core(os.path.join(out["written"][0], "model_view.json"))
     assert side["process_overrides"] == block
     with pytest.raises(ValueError, match="cadet_process=True"):
         pycorn.export_cadet(run, str(tmp_path / "x"), core_version="6", cadet_process=False,

@@ -13,12 +13,12 @@ from collections import OrderedDict
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment, process_inputs
+from pycorn.exporters.cadet import model_view, process_inputs
 from pycorn.run_log_sections import (QUATERNARY_NOTE, inlet_state, inlets_source, inlets_text, run_log_sections,
                                      span_details)
 from pycorn.system_configuration import ROLES, role_of, system_configuration
 
-from test_cadet_experiment import _uv, _with_injection
+from test_cadet_model_view import _uv, _with_injection
 from test_run_log_sections import _block, _e, _run
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -202,7 +202,7 @@ def _b_run(family, display, inlet_b=None):
 
 def test_cadet_buffer_keys_follow_the_inlet_states():
     # a B valve, no position logged: key the line, with a warning; its assumed position is no key
-    exp = build_experiment(_b_run(FAMILY_2, DISPLAY_2))
+    exp = model_view(_b_run(FAMILY_2, DISPLAY_2))
     hint = next(h for h in exp.hints if h["start_s"] >= 120.0)
     assert hint["inlet_labels"]["B"] == "B1 (assumed)" and hint["inlet_sources"]["B"] == "assumed"
     assert exp.system["inlet_configuration"]["inlet_valve_b"]["present"] is True
@@ -212,16 +212,16 @@ def test_cadet_buffer_keys_follow_the_inlet_states():
     with pytest.raises(ValueError, match=r"B1 is never logged.*key it 'B'"):
         process_inputs(exp, components=["salt"], buffers={"A1": [20], "B1": [500]})
     # no B valve: 'B' is known, no warning
-    exp = build_experiment(_b_run(FAMILY_1, DISPLAY_1))
+    exp = model_view(_b_run(FAMILY_1, DISPLAY_1))
     inputs = process_inputs(exp, components=["salt"], buffers={"A1": [20], "B": [500]})
     assert not any("used for line B" in w for w in inputs["warnings"])
     # logged: the position as logged, still keyed either way (backward compatible)
-    exp = build_experiment(_b_run(FAMILY_2, DISPLAY_2, inlet_b="B2"))
+    exp = model_view(_b_run(FAMILY_2, DISPLAY_2, inlet_b="B2"))
     for key in ("B2", "B"):
         inputs = process_inputs(exp, components=["salt"], buffers={"A1": [20], key: [500]})
         assert not any("used for line B" in w for w in inputs["warnings"])
     # configuration not known: the line key, with a warning
-    exp = build_experiment(_b_run(None, None))
+    exp = model_view(_b_run(None, None))
     inputs = process_inputs(exp, components=["salt"], buffers={"A1": [20], "B": [500]})
     assert any("'B (not known)'" in w for w in inputs["warnings"])
 
@@ -237,8 +237,8 @@ def _line_load(family, display):
 def test_no_sample_pump_only_qualifies_the_feed_warning():
     no_pump = OrderedDict((k, v) for k, v in FAMILY_1.items())
     no_pump["Sample pump"] = False
-    exp = build_experiment(_line_load(no_pump, DISPLAY_1))
-    with_pump = build_experiment(_line_load(FAMILY_1, DISPLAY_1))
+    exp = model_view(_line_load(no_pump, DISPLAY_1))
+    with_pump = model_view(_line_load(FAMILY_1, DISPLAY_1))
     # the run-log rule decides the feed window; the configuration changes no section
     spans = [(s.start_s, s.end_s, s.feed_line) for s in exp.sections if s.feed]
     assert spans and spans == [(s.start_s, s.end_s, s.feed_line) for s in with_pump.sections if s.feed]

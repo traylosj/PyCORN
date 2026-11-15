@@ -11,10 +11,10 @@ import numpy as np
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment, process_inputs, to_csv
+from pycorn.exporters.cadet import model_view, process_inputs, to_csv
 from pycorn.exporters.cadet.process_export import _mix, _section_flow_at, system_flows, system_units
 
-from test_cadet_experiment import _uv, _with_injection
+from test_cadet_model_view import _uv, _with_injection
 from test_run_log_sections import _curve, _e, _run
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +22,7 @@ LOCAL = sorted(glob.glob(os.path.join(HERE, "..", "unicorn_test_files", "U7.*", 
 Q = 2.0 / 6e7  # 2 ml/min in m^3/s
 
 
-def _experiment(**kwargs):
+def _model_view(**kwargs):
     events = [_e(0.0, "Method Run x", subtype="BlockStart", status=""), _e(0.0, "System flow 2.000 {ml/min} Off"),
               _e(0.0, "Gradient 0.0 {%B} 0.00 {min}"), _e(0.0, "Wavelength 280 {nm} 0 {nm} 0 {nm}"),
               _e(1.0, "Injection valve Inject"), _e(2.0, "Injection valve Manual load"),
@@ -30,25 +30,25 @@ def _experiment(**kwargs):
     curves = [_uv("UV 1_280", 50.0), _curve("Cond", lambda t: 10.0, "mS/cm", data_type="Conduction")]
     run = _with_injection(_run(events, curves=curves), 1.0)
     # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
-    return build_experiment(run, **dict({"flow_from_axis": False}, **kwargs))
+    return model_view(run, **dict({"flow_from_axis": False}, **kwargs))
 
 
 def _at(rows, t):
     return next(r for r in rows if r["start_s"] <= t < r["end_s"])
 
 
-def _bypass_experiment(**kwargs):
+def _bypass_model_view(**kwargs):
     """2 ml/min; the column by-passed 0.5-2.5 min, and %B steps to 100 at 1 min (inside the by-pass)."""
     events = [_e(0.0, "Method Run x", subtype="BlockStart", status=""), _e(0.0, "System flow 2.000 {ml/min} Off"),
               _e(0.0, "Gradient 0.0 {%B} 0.00 {min}"), _e(0.0, "Wavelength 280 {nm} 0 {nm} 0 {nm}"),
               _e(0.5, "Column position By-pass Down flow"), _e(1.0, "Gradient 100.0 {%B} 0.00 {min}"),
               _e(2.5, "Column position Position 1 Down flow"), _e(5.0, "End 1/1/2024", status="")]
-    return build_experiment(_run(events, curves=[_uv("UV 1_280", 50.0)]), **dict({"flow_from_axis": False}, **kwargs))
+    return model_view(_run(events, curves=[_uv("UV 1_280", 50.0)]), **dict({"flow_from_axis": False}, **kwargs))
 
 
 def test_system_flow_goes_past_a_bypassed_column():
     # owner, 2026-11-08 (M2): with flow during a by-pass the mixer stays on and in line
-    exp = _bypass_experiment(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
+    exp = _bypass_model_view(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
     inputs = process_inputs(exp)
     assert inputs["bypass_flow"]
     units = system_units(exp, inputs)
@@ -64,17 +64,17 @@ def test_system_flow_goes_past_a_bypassed_column():
     assert flows[("mixer", "tubing")] == 0.0 and flows[("mixer", "column")] == pytest.approx(Q)
     assert flows[("tubing", "outlet")] == pytest.approx(Q)
     # without CSTRs the by-pass goes from the buffer inlet to the outlet
-    plain = process_inputs(_bypass_experiment())
-    flows = {(a, b): q[0] for a, b, q in system_flows(system_units(_bypass_experiment(), plain), _at(
+    plain = process_inputs(_bypass_model_view())
+    flows = {(a, b): q[0] for a, b, q in system_flows(system_units(_bypass_model_view(), plain), _at(
         plain["sections"], 100.0), True)}
     assert flows[("buffer", "outlet")] == pytest.approx(Q) and flows[("buffer", "column")] == 0.0
     # a run without a by-pass has no such connection
-    assert not process_inputs(_experiment())["bypass_flow"]
+    assert not process_inputs(_model_view())["bypass_flow"]
 
 
 def test_process_overrides_go_in_unchanged_in_cadet_process_names(tmp_path):
     # owner, 2026-11-08: one generic parameter block, no assumptions about what it holds
-    exp = _bypass_experiment(mixer_volume=(0.6, "ml"), bed_height=(2.5, "cm"), diameter=(1.6, "cm"))
+    exp = _bypass_model_view(mixer_volume=(0.6, "ml"), bed_height=(2.5, "cm"), diameter=(1.6, "cm"))
     block = {"flow_sheet": {"column": {"bed_porosity": 0.31, "axial_dispersion": 2e-7}}}
     side = json.load(open(to_csv(exp, str(tmp_path), process_overrides=block), encoding="utf-8"))
     assert side["process_overrides"] == block  # carried as given, for process.parameters = ...
@@ -94,7 +94,7 @@ def test_process_overrides_go_in_unchanged_in_cadet_process_names(tmp_path):
 def test_process_splits_the_mixer_past_a_bypassed_column():
     pytest.importorskip("CADETProcess")
     from pycorn.exporters.cadet import to_cadet_process
-    proc = to_cadet_process(_bypass_experiment(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul")))["process"]
+    proc = to_cadet_process(_bypass_model_view(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul")))["process"]
     splits = [e for e in proc.events if e.name.endswith("_mixer_split")]
     # to the column, or (by-passed) all past it; simulated in docs/CADET_GUIDE.md's terms by
     # tests/test_cadet_core_run.py on the Core input, which uses the same flows
@@ -102,7 +102,7 @@ def test_process_splits_the_mixer_past_a_bypassed_column():
 
 
 def test_placeholder_components_follow_percent_b_and_feed():
-    inputs = process_inputs(_experiment())
+    inputs = process_inputs(_model_view())
     assert inputs["placeholder"] and inputs["components"] == ["salt", "sample"]
     assert any("placeholder" in w for w in inputs["warnings"])
     rows = inputs["sections"]
@@ -119,7 +119,7 @@ def test_placeholder_components_follow_percent_b_and_feed():
 
 
 def test_caller_concentrations_are_all_or_nothing():
-    exp = _experiment()
+    exp = _model_view()
     with pytest.raises(ValueError, match=r"uses line B from 180\.0 s.*buffers\['B'\]"):
         process_inputs(exp, components=["salt", "mAb"], buffers={"A": [20, 0]}, feed=[20, 1.5])
     with pytest.raises(ValueError, match="feed"):
@@ -138,17 +138,17 @@ def test_caller_concentrations_are_all_or_nothing():
     assert _at(rows, 500.0)["c"][0, 0] == pytest.approx(500.0)
 
 
-def _valve_experiment(a2="A2", b="B1"):
+def _valve_model_view(a2="A2", b="B1"):
     """A buffer valve on each line: equilibrate on A1, wash on A2 from 3 min, B from 5 min."""
     events = [_e(0.0, "Method Run x", subtype="BlockStart", status=""), _e(0.0, "System flow 2.000 {ml/min} Off"),
               _e(0.0, "Inlet A A1"), _e(0.0, "Inlet B %s" % b), _e(0.0, "Gradient 0.0 {%B} 0.00 {min}"),
               _e(0.0, "Wavelength 280 {nm} 0 {nm} 0 {nm}"), _e(3.0, "Inlet A %s" % a2),
               _e(5.0, "Gradient 100.0 {%B} 0.00 {min}"), _e(7.0, "End 1/1/2024", status="")]
-    return build_experiment(_run(events, curves=[_uv("UV 1_280", 50.0)]))
+    return model_view(_run(events, curves=[_uv("UV 1_280", 50.0)]))
 
 
 def test_buffers_per_inlet_position_with_the_line_as_fallback():
-    exp = _valve_experiment()
+    exp = _valve_model_view()
     inputs = process_inputs(exp, components=["salt"], buffers={"A1": [20], "A2": [1000], "B": [500]})
     rows = inputs["sections"]
     assert _at(rows, 60.0)["c"][0, 0] == 20.0  # A1
@@ -166,7 +166,7 @@ def test_buffers_per_inlet_position_with_the_line_as_fallback():
 
 
 def test_buffers_take_a_process_system_s_own_inlet_names():
-    exp = _valve_experiment(a2="WFI", b="Elution_buffer")
+    exp = _valve_model_view(a2="WFI", b="Elution_buffer")
     inputs = process_inputs(exp, components=["salt"], buffers={"A1": [20], "WFI": [0], "Elution_buffer": [500]})
     assert [_at(inputs["sections"], t)["c"][0, 0] for t in (60.0, 240.0, 360.0)] == [20.0, 0.0, 500.0]
 
@@ -181,13 +181,13 @@ def test_quaternary_mix_takes_line_a():
 
 
 def test_section_flow_at_times():
-    exp = _experiment()
+    exp = _model_view()
     q = _section_flow_at(exp.sections, np.array([-1.0, 30.0, 539.0, 540.0, 600.0]))
     assert q.tolist() == pytest.approx([0.0, Q, Q, Q, 0.0])
 
 
 def test_csv_and_sidecar(tmp_path):
-    exp = _experiment(epsilon=1.4, molecular_weight=150000)
+    exp = _model_view(epsilon=1.4, molecular_weight=150000)
     path = to_csv(exp, str(tmp_path))
     side = json.load(open(path, encoding="utf-8"))
     names = {f["name"]: f for f in side["files"]}
@@ -204,7 +204,7 @@ def test_csv_and_sidecar(tmp_path):
 
 
 def test_csv_system_volumes_flag(tmp_path):
-    exp = _experiment(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
+    exp = _model_view(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
     side = json.load(open(to_csv(exp, str(tmp_path / "with")), encoding="utf-8"))
     assert [u[0] for u in side["process_inputs"]["units"]] == ["buffer", "feed", "mixer", "column", "tubing",
                                                                 "outlet"]
@@ -213,7 +213,7 @@ def test_csv_system_volumes_flag(tmp_path):
 
 
 def test_csv_without_process_inputs_still_writes(tmp_path):
-    exp = _experiment()
+    exp = _model_view()
     side = json.load(open(to_csv(exp, str(tmp_path), components=["salt"], buffers={"A": [1]}), encoding="utf-8"))
     assert side["process_inputs"] is None
     assert any(w.startswith("process: no inputs") for w in side["warnings"])
@@ -225,7 +225,7 @@ def test_references_nrmse_against_itself_is_zero():
     pytest.importorskip("CADETProcess")
     from CADETProcess.comparison import NRMSE
     from pycorn.exporters.cadet import to_references
-    exp = _experiment(epsilon=1.4, molecular_weight=150000)
+    exp = _model_view(epsilon=1.4, molecular_weight=150000)
     refs, _ = to_references(exp)
     assert [r.name for r in refs][:2] == ["UV 1_280", "UV 1_280 mol/m^3"]
     uv = refs[0]
@@ -238,7 +238,7 @@ def test_references_nrmse_against_itself_is_zero():
 def test_process_skeleton():
     pytest.importorskip("CADETProcess")
     from pycorn.exporters.cadet import to_process
-    exp = _experiment()
+    exp = _model_view()
     process, inputs = to_process(exp)
     assert process.cycle_time == pytest.approx(540.0)
     # no stored mixer and no tubing in the synthetic run: buffer and feed inlets only (D27)
@@ -258,7 +258,7 @@ def test_process_skeleton():
         assert np.ravel(timelines["flow_sheet.%s.flow_rate" % inlet].value(t))[0] == pytest.approx(q)
 
     # with a mixer and a tubing volume: CSTR outflow = inflow; the mixer holds during valve feed
-    exp = _experiment(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
+    exp = _model_view(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
     process, inputs = to_process(exp)
     assert [u[0] for u in inputs["units"]] == ["buffer", "feed", "mixer", "column", "tubing", "outlet"]
     assert process.flow_sheet["mixer"].init_liquid_volume == pytest.approx(0.6e-6)
@@ -269,13 +269,13 @@ def test_process_skeleton():
     with pytest.raises(ValueError, match="column_model"):
         to_process(exp, column_model="Tank")
     with pytest.raises(ValueError, match="method_start"):
-        to_process(_experiment(time_zero="injection"))
+        to_process(_model_view(time_zero="injection"))
 
 
 def test_fractionation_reference(tmp_path):
     pytest.importorskip("CADETProcess")
     from pycorn.exporters.cadet import to_fractionation_reference
-    exp = _experiment()
+    exp = _model_view()
     ref, warnings = to_fractionation_reference(exp)
     assert ref is None and warnings
     exp.fractions = [SimpleNamespace(tube="T1", start_s=100.0, end_s=160.0, volume_m3=2e-6,
@@ -291,7 +291,7 @@ def test_fractionation_reference(tmp_path):
 @pytest.mark.skipif(not LOCAL, reason="local test files not present")
 @pytest.mark.parametrize("path", LOCAL[:3], ids=os.path.basename)
 def test_local_runs_export(path, tmp_path):
-    exp = build_experiment(open_run(path))
+    exp = model_view(open_run(path))
     side = json.load(open(to_csv(exp, str(tmp_path)), encoding="utf-8"))
     assert side["process_inputs"]["placeholder"]
     try:

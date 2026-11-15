@@ -10,10 +10,10 @@ from collections import OrderedDict
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment
+from pycorn.exporters.cadet import model_view
 from pycorn.method_hints import method_hints
 
-from test_cadet_experiment import _with_injection
+from test_cadet_model_view import _with_injection
 from test_run_log_sections import _block, _e, _run
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -161,9 +161,9 @@ def test_bufferpro_fields_by_name():
     assert method_hints(_load_run("2.00")).buffer_prep is None
 
 
-def test_build_experiment_carries_hints_and_shifts_them():
+def test_model_view_carries_hints_and_shifts_them():
     run = _with_injection(_load_run("3.00"), 1.01)
-    exp = build_experiment(run, time_zero="injection")
+    exp = model_view(run, time_zero="injection")
     inj, = exp.method_hints.injections
     assert inj["start_s"] == pytest.approx(0.0) and inj["status"] == "short"
     assert [w for w in exp.warnings if w.startswith("method: injection in block 'Load'")]

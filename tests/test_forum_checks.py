@@ -3,7 +3,7 @@ Checks from the CADET forum's UNICORN threads (docs/ROADMAP.md, "CADET forum: ot
 
 Run on every sample bundle: pH keeps its decimals (the original PyCORN read pH 8.0 as 80), time axes
 never repeat a point (a repeated time point broke a CADET-Match fit), and a run without a column
-still builds a CADET experiment.
+still builds a CADET model view.
 """
 import glob
 import os
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment
+from pycorn.exporters.cadet import model_view
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAMPLES = sorted(glob.glob(os.path.join(HERE, "..", "samples", "*.zip")))
@@ -43,13 +43,13 @@ def test_time_axes_never_repeat_a_point(run):
 
 
 def test_cadet_signals_have_strictly_increasing_time(run):
-    exp = build_experiment(run)
+    exp = model_view(run)
     for signal in exp.signals:
         assert (np.diff(signal.time_s) > 0).all(), signal.name
 
 
 def test_run_without_a_column_still_builds(request, run):
-    exp = build_experiment(run)
+    exp = model_view(run)
     name = os.path.basename(request.node.callspec.id)
     if name in NO_COLUMN:
         assert exp.column.get("name") is None

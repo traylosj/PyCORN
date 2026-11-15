@@ -111,7 +111,7 @@ class SystemConfiguration:
         return self.roles[role].present
 
     def summary(self):
-        """{role: {'present', 'state', 'components'}}: plain data (JSON, the CADET experiment)."""
+        """{role: {'present', 'state', 'components'}}: plain data (JSON, the CADET model view)."""
         return OrderedDict((r, OrderedDict([("present", s.present), ("state", s.state),
                                             ("components", list(s.components))]))
                            for r, s in self.roles.items())

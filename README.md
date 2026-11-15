@@ -11,7 +11,7 @@ with time, volume, column-volume and wall-clock (UTC) axes.
 - **Analysis**: find curves by role (UV, conductivity, pH, %B, flow, ...) instead of
   instrument-specific names; phase, injection and fraction tables; unit conversion;
   mg/ml from UV with your extinction coefficient.
-- **Export**: build a CADET / CADET-Process experiment (SI units) from what the run
+- **Export**: build a CADET / CADET-Process model view (SI units) from what the run
   actually executed.
 - **No install**: [open PyCORN in your browser](https://traylosj.github.io/PyCORN/), drop
   result files, get the plot, tables and Excel. Your files stay on your computer

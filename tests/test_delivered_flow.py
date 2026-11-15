@@ -1,7 +1,7 @@
 """
 The flow the pump delivered, from UNICORN's volume axis (pycorn/delivered_flow.py; Decide 6 in
 docs/RUN_STRUCTURE_REVIEW.md): which pump the method-flow entry names, the tolerance, the fitted
-stop / ramp / set-flow pieces, and their use in the CADET experiment.
+stop / ramp / set-flow pieces, and their use in the CADET model view.
 """
 import os
 
@@ -10,8 +10,8 @@ import pytest
 
 from pycorn import open_run
 from pycorn.delivered_flow import delivered_flow, fit_flow, method_flow_basis, pump_rule, volume_axis
-from pycorn.exporters.cadet import build_experiment
-from pycorn.exporters.cadet.experiment import _linear_volume, _time_for_volume
+from pycorn.exporters.cadet import model_view
+from pycorn.exporters.cadet.view import _linear_volume, _time_for_volume
 from pycorn.model import Curve
 from pycorn.run_log_sections import run_log_sections
 
@@ -176,14 +176,14 @@ def test_cadet_sections_follow_the_fitted_flow():
               _e(1.0, "System flow 5.000 {ml/min} Pre column pressure"), _e(3.0, "End 1/1/2024", status="")]
     curve = _axis(lambda t: 1.0 if t < 60 else min(5.0, 1.0 + (t - 60) * RAMP), 180.0)
     run = _run(events, curves=[curve])
-    exp = build_experiment(run)
+    exp = model_view(run)
     total = sum(_linear_volume(s.flow_m3_s, s.end_s - s.start_s) for s in exp.sections) * 1e6
     assert total == pytest.approx(float(curve.volume[-1]), abs=1e-4)
     assert all(a.end_s == pytest.approx(b.start_s) for a, b in zip(exp.sections, exp.sections[1:]))
     assert {s.flow_source for s in exp.sections} == {"run_log", "volume_axis"}
     ramp = [s for s in exp.sections if s.flow_m3_s[1] > 0]
     assert ramp and ramp[0].start_s == pytest.approx(60.0, abs=0.3)
-    plain = build_experiment(run, flow_from_axis=False)
+    plain = model_view(run, flow_from_axis=False)
     assert len(plain.sections) == 2 and {s.flow_source for s in plain.sections} == {"run_log"}
 
 
@@ -196,8 +196,8 @@ def _feed_ml(exp):
 def test_u73_feed_is_the_volume_axis():
     # the injection valve turns at half flow just before the feed's flow drops: 0.417 ml logged, 0.389 ml delivered
     run = open_run(os.path.join(SAMPLES, "u73_blank.zip"))
-    assert _feed_ml(build_experiment(run, flow_from_axis=False)) == pytest.approx(0.4167, abs=5e-4)
-    assert _feed_ml(build_experiment(run)) == pytest.approx(0.3892, abs=5e-4)
+    assert _feed_ml(model_view(run, flow_from_axis=False)) == pytest.approx(0.4167, abs=5e-4)
+    assert _feed_ml(model_view(run)) == pytest.approx(0.3892, abs=5e-4)
 
 
 @pytest.mark.parametrize("name", ["u711_cadet_reference.zip", "u711_proa_day12.zip", "u73_blank.zip"])

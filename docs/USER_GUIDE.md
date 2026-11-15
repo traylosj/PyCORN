@@ -106,7 +106,7 @@ The default everywhere is the run's original chromatogram: `run.chromatogram()`,
 the CADET export and the web page. Every other chromatogram is selectable:
 `ExportOptions(chromatograms=[...])` and `pycorn export --chromatogram NAME|all|imported|derived`
 (see the export guide), `pycorn.export_cadet(chromatogram=...)`, the `chrom=` argument of
-`phase_windows`, `build_experiment`, `run_log_sections` and the other per-chromatogram
+`phase_windows`, `model_view`, `run_log_sections` and the other per-chromatogram
 functions, and the chromatogram picker in the web page's run list.
 
 An imported chromatogram keeps its source run's log as an `ImportedLogbook` event curve, on
@@ -115,7 +115,7 @@ the same time and volume axes as its curves. PyCORN reads it as that chromatogra
 window statistics, the column volumes (CV), the column by-pass and the UTC axis of an imported
 chromatogram are the source run's, and so is its CADET export. Everything read from it is
 labelled as the source result's: `chrom.run_log_source()` (also `run_log_source` in
-`run_log_sections()` and in the CADET experiment's `source`) gives the source result's ID and
+`run_log_sections()` and in the CADET model view's `source`) gives the source result's ID and
 name, and the warnings say "imported chromatogram: run log ... is the source result's". In the
 tables, injections and fractions come from its event curves except pooled-fraction curves and
 marks of another method run (a different stored method start), since every event curve of an
@@ -556,6 +556,6 @@ Before relying on a result, check:
 
 - [`docs/EXPORT_GUIDE.md`](EXPORT_GUIDE.md): `pycorn find` and `pycorn export`, which write runs to CSV, Excel
   or pickle, with every output file and column explained.
-- [`docs/CADET_GUIDE.md`](CADET_GUIDE.md): building a CADET / CADET-Process experiment from a run.
+- [`docs/CADET_GUIDE.md`](CADET_GUIDE.md): building a CADET / CADET-Process model view from a run.
 - [`sql/CONNECTOR_GUIDE.md`](../sql/CONNECTOR_GUIDE.md): database settings, several servers and databases.
 - [`samples/SAMPLE_ZIP_CONTENTS.md`](../samples/SAMPLE_ZIP_CONTENTS.md): what a UNICORN result file contains.

@@ -233,15 +233,15 @@ def test_imported_window_stats(run):
     assert not any("imported chromatogram" in n for n in base_notes)
 
 
-def test_cadet_experiment_of_an_imported_chromatogram(run):
+def test_cadet_model_view_of_an_imported_chromatogram(run):
     import copy
-    from pycorn.exporters.cadet import build_experiment
+    from pycorn.exporters.cadet import model_view
     imported = run.chromatograms[mf.IMPORTED]
-    exp = build_experiment(run, imported, **GEOMETRY)
-    base = build_experiment(run, run.chromatogram(), **GEOMETRY)
+    exp = model_view(run, imported, **GEOMETRY)
+    base = model_view(run, run.chromatogram(), **GEOMETRY)
     assert len(exp.sections) == len(base.sections) > 0
     assert exp.source["run_log_source"]["source_result_id"] == mf.SOURCE_ID
-    assert "run_log_source" not in base.source  # the original's experiment as before
+    assert "run_log_source" not in base.source  # the original's model view as before
     assert not _notes(base.warnings)
     # this result's data used, each once with a warning
     assert exp.system["mixer_m3"] == base.system["mixer_m3"] and exp.column["sources"] == base.column["sources"]
@@ -253,14 +253,14 @@ def test_cadet_experiment_of_an_imported_chromatogram(run):
     # UV signals: the other run's UV curve has no role
     other = {c.name for c in imported.other_run_curves()}
     assert [s.name for s in exp.signals] == [s.name for s in base.signals if s.name not in other]
-    assert not _notes(build_experiment(run, run.chromatograms[mf.COPY], **GEOMETRY).warnings)
+    assert not _notes(model_view(run, run.chromatograms[mf.COPY], **GEOMETRY).warnings)
     # truly no run log: the clear error stays
     bare = copy.deepcopy(run)
     chrom = bare.chromatograms[mf.IMPORTED]
     for key in [k for k, ec in chrom.event_curves.items() if ec.type == "ImportedLogbook"]:
         del chrom.event_curves[key]
     with pytest.raises(ValueError, match="no run-log sections"):
-        build_experiment(bare, chrom, **GEOMETRY)
+        model_view(bare, chrom, **GEOMETRY)
 
 
 def test_export_of_an_imported_chromatogram(run, tmp_path):

@@ -78,7 +78,7 @@ The flow through the column depends on the valves:
 
 UNICORN doesn't log the loop volume or the sample tubing volume. The tables show the valve
 as it was set. In Python, the CADET export can end the feed when the loop is empty, if you
-give it the loop volume (`build_experiment(run, loop_volume=(0.5, "ml"))`, see
+give it the loop volume (`model_view(run, loop_volume=(0.5, "ml"))`, see
 [`docs/CADET_GUIDE.md`](CADET_GUIDE.md)). `pycorn export` doesn't pass a loop volume to the CADET files yet.
 
 ## Inlets

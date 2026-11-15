@@ -1656,7 +1656,7 @@ def build_parser():
                         "merged into every --cadet-core file unchanged")
     o.add_argument("--process-overrides", metavar="FILE.json",
                    help="your model values in CADET-Process's own parameter layout (as process.parameters shows "
-                        "it); stored unchanged in each <chromatogram>_cadet/experiment.json (--cadet)")
+                        "it); stored unchanged in each <chromatogram>_cadet/model_view.json (--cadet)")
 
     s = e.add_argument_group("smaller files (opt-in; the CADET files and the stored run are not changed)")
     s.add_argument("--tables", action="append", metavar="LIST",

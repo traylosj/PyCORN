@@ -1,5 +1,5 @@
 """
-`CadetExperiment` and the signal conversions (pycorn/exporters/cadet, docs/ROADMAP.md C1).
+`ModelView` and the signal conversions (pycorn/exporters/cadet, docs/ROADMAP.md C1).
 
 Synthetic runs for the rules; the local test files (gitignored), when present, for real data.
 """
@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment, process_inputs, read_fraction_masses, salt_calibration_points
+from pycorn.exporters.cadet import model_view, process_inputs, read_fraction_masses, salt_calibration_points
 from pycorn.exporters.cadet.calibration import salt_from_conductivity, uv_au_per_cm, uv_concentration
 from pycorn.model import Event, EventCurve
 
@@ -44,7 +44,7 @@ def _with_injection(run, time_min):
 
 def test_time_zero_is_checked():
     with pytest.raises(ValueError, match="time_zero"):
-        build_experiment(_run(_events(_e(5.0, "End 1/1/2024", status=""))), time_zero="start")
+        model_view(_run(_events(_e(5.0, "End 1/1/2024", status=""))), time_zero="start")
 
 
 def test_sections_in_si_and_loop_feed_cut():
@@ -52,14 +52,14 @@ def test_sections_in_si_and_loop_feed_cut():
                      _e(6.0, "End 1/1/2024", status=""))
     run = _run(events, curves=[_uv("UV 1_280")])
     # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
-    exp = build_experiment(run, loop_volume=(1.0, "ml"), flow_from_axis=False)
+    exp = model_view(run, loop_volume=(1.0, "ml"), flow_from_axis=False)
     feed = [s for s in exp.sections if s.feed]
     assert len(feed) == 1
     assert (feed[0].start_s, feed[0].end_s, feed[0].feed_source) == (60.0, pytest.approx(90.0), "loop_volume")
     after = next(s for s in exp.sections if s.start_s == pytest.approx(90.0))
     assert not after.feed and after.injection_valve == "Inject"
     assert feed[0].flow_m3_s == (pytest.approx(2.0 / 6e7), 0.0)
-    exp = build_experiment(run, flow_from_axis=False)
+    exp = model_view(run, flow_from_axis=False)
     assert [s.end_s - s.start_s for s in exp.sections if s.feed] == [pytest.approx(180.0)]
     assert any("no loop volume given" in w for w in exp.warnings)
 
@@ -67,7 +67,7 @@ def test_sections_in_si_and_loop_feed_cut():
 def test_direct_inject_is_not_cut_by_the_loop_volume():
     events = _events(_e(1.0, "Sample flow 0.500 {ml/min} Off"), _e(1.0, "Injection valve Direct inject"),
                      _e(3.0, "Injection valve Manual load"), _e(4.0, "End 1/1/2024", status=""))
-    exp = build_experiment(_run(events), loop_volume=(0.1, "ml"))
+    exp = model_view(_run(events), loop_volume=(0.1, "ml"))
     feed = [s for s in exp.sections if s.feed]
     assert sum(s.end_s - s.start_s for s in feed) == pytest.approx(120.0)
     assert feed[0].flow_m3_s[0] == pytest.approx(0.5 / 6e7)
@@ -85,7 +85,7 @@ def test_bypass_is_not_feed_but_uses_up_the_loop():
     run = _with_injection(_run(events, curves=[_uv("UV 1_280"), _curve("Cond", lambda t: 10.0, "mS/cm",
                                                                          data_type="Conduction")]), 1.0)
     # the synthetic curves' volume axis is a placeholder (1 ml/min): keep the logged flow
-    exp = build_experiment(run, loop_volume=(3.0, "ml"), flow_from_axis=False)
+    exp = model_view(run, loop_volume=(3.0, "ml"), flow_from_axis=False)
     assert _feed_spans(exp) == [(120.0, pytest.approx(150.0))]
     uses = [(round(s.start_s), s.sample_use) for s in exp.sections if s.injection_valve == "Inject"]
     assert uses == [(60, "to_bypass"), (120, "feed"), (150, "buffer")]
@@ -94,17 +94,17 @@ def test_bypass_is_not_feed_but_uses_up_the_loop():
     assert exp.primary_uv.not_column_outlet == [(30.0, 120.0)]
     assert any(s.role == "conductivity" and s.not_column_outlet == [(30.0, 120.0)] for s in exp.signals)
     assert any("sample sent to the column by-pass" in w for w in exp.warnings)
-    shifted = build_experiment(run, loop_volume=(3.0, "ml"), time_zero="injection", flow_from_axis=False)
+    shifted = model_view(run, loop_volume=(3.0, "ml"), time_zero="injection", flow_from_axis=False)
     assert shifted.primary_uv.not_column_outlet == [(-30.0, 60.0)]
     assert shifted.bypass[0]["start_s"] == -30.0
     # a loop used up at by-pass leaves no feed
-    assert _feed_spans(build_experiment(run, loop_volume=(1.0, "ml"), flow_from_axis=False)) == []
+    assert _feed_spans(model_view(run, loop_volume=(1.0, "ml"), flow_from_axis=False)) == []
 
 
 def test_buffer_through_the_bypass_is_not_column_outlet():
     events = _events(_e(1.0, "Column position By-pass Down flow"), _e(2.0, "Column position Position 1 Down flow"),
                      _e(3.0, "End 1/1/2024", status=""))
-    exp = build_experiment(_run(events, curves=[_uv("UV 1_280")]))
+    exp = model_view(_run(events, curves=[_uv("UV 1_280")]))
     assert exp.bypass == [{"start_s": 60.0, "end_s": 120.0, "sample": False}]
     assert exp.primary_uv.not_column_outlet == [(60.0, 120.0)]
     assert any("1 column by-pass window(s) without sample (60.0-120.0 s)" in w for w in exp.warnings)
@@ -121,7 +121,7 @@ def test_buffer_readings_at_bypass_outlet_check_and_salt():
                      _e(8.0, "Column position By-pass Down flow"), _e(10.0, "Column position Position 1 Down flow"),
                      _e(10.25, "End 1/1/2024", status=""))
     curves = [_curve("Cond", _cond, "mS/cm", data_type="Conduction"), _curve("pH", lambda t: 7.0, "pH", data_type="pH")]
-    exp = build_experiment(_run(events, curves=curves), buffer_salt={"A1": 20.0, "B": 1000.0})
+    exp = model_view(_run(events, curves=curves), buffer_salt={"A1": 20.0, "B": 1000.0})
     first, second = exp.buffer_readings
     assert (first["start_s"], first["end_s"], first["percent_b"]) == (60.0, 180.0, 0.0)
     assert (first["read_start_s"], first["read_end_s"]) == (pytest.approx(140.0), 180.0)
@@ -132,7 +132,7 @@ def test_buffer_readings_at_bypass_outlet_check_and_salt():
     assert second["outlet"]["start_s"] == 360.0 and second["outlet"]["conductivity_matches"] is False
     assert any("conductivity at the column outlet 360.0-480.0 s (25 mS/cm)" in w for w in exp.warnings)
     assert salt_calibration_points(exp.buffer_readings) == [(pytest.approx(5.0), 20.0), (pytest.approx(50.0), 510.0)]
-    assert build_experiment(_run(events, curves=curves)).buffer_readings[0]["salt_mol_m3"] is None
+    assert model_view(_run(events, curves=curves)).buffer_readings[0]["salt_mol_m3"] is None
 
 
 @pytest.mark.parametrize("outlet_ph, matches", [(6.92, True), (6.85, False)])
@@ -142,7 +142,7 @@ def test_buffer_ph_outlet_match_tolerance(outlet_ph, matches):
                      _e(3.0, "Column position Position 1 Down flow"), _e(6.0, "End 1/1/2024", status=""))
     curves = [_curve("Cond", lambda t: 5.0, "mS/cm", data_type="Conduction"),
               _curve("pH", lambda t: 7.0 if 0.99 < t < 3.01 else outlet_ph, "pH", data_type="pH")]
-    exp = build_experiment(_run(events, curves=curves))
+    exp = model_view(_run(events, curves=curves))
     assert exp.buffer_readings[0]["outlet"]["ph_matches"] is matches
     assert any(w.startswith("pH at the column outlet") for w in exp.warnings) is not matches
 
@@ -153,7 +153,7 @@ def test_direct_inject_from_the_buffer_inlet_only_is_not_feed():
                      _e(1.0, "Sample inlet Buffer"), _e(1.0, "Sample flow 5.000 {ml/min} Off"),
                      _e(3.0, "Injection valve Manual load"), _e(4.0, "End 1/1/2024", status=""))
     for path in (None, (0.5, "ml")):
-        exp = build_experiment(_run(events), sample_path_volume=path)
+        exp = model_view(_run(events), sample_path_volume=path)
         assert _feed_spans(exp) == []
         assert any("buffer only" in w for w in exp.warnings)
         assert {s.sample_use for s in exp.sections if s.injection_valve == "Direct inject"} == {"buffer"}
@@ -167,14 +167,14 @@ def _chase_events():
 
 
 def test_buffer_chase_ends_the_feed_at_the_switch_without_a_path_volume():
-    exp = build_experiment(_run(_chase_events()))
+    exp = model_view(_run(_chase_events()))
     assert _feed_spans(exp) == [(60.0, 120.0)]
     assert any("feed ends at the switch" in w for w in exp.warnings)
 
 
 def test_buffer_chase_pushes_the_path_volume_on_with_one():
     # D21 (b): 0.5 ml path at 1 ml/min: the feed runs 30 s past the switch
-    exp = build_experiment(_run(_chase_events()), sample_path_volume=(500.0, "ul"))
+    exp = model_view(_run(_chase_events()), sample_path_volume=(500.0, "ul"))
     feed = [s for s in exp.sections if s.feed]
     assert [(s.start_s, s.end_s) for s in feed] == [(60.0, 120.0), (120.0, pytest.approx(150.0))]
     assert [s.feed_source for s in feed] == ["valve", "sample_path_volume"]
@@ -194,11 +194,11 @@ def _washed_events():
 
 
 def test_buffer_washed_path_delays_the_feed():
-    exp = build_experiment(_run(_washed_events()), sample_path_volume=(0.5, "ml"))
+    exp = model_view(_run(_washed_events()), sample_path_volume=(0.5, "ml"))
     assert _feed_spans(exp) == [(pytest.approx(90.0), 180.0)]
     first = next(s for s in exp.sections if s.start_s == 60.0)
     assert first.sample_use == "buffer" and first.injection_valve == "Direct inject"
-    exp = build_experiment(_run(_washed_events()))
+    exp = model_view(_run(_washed_events()))
     assert _feed_spans(exp) == [(60.0, 180.0)]
     assert any("held Buffer" in w for w in exp.warnings)
 
@@ -206,7 +206,7 @@ def test_buffer_washed_path_delays_the_feed():
 def test_uv_channels_wavelengths_primary_and_concentration():
     run = _run(_events(_e(5.0, "End 1/1/2024", status="")),
                curves=[_uv("UV 1_280"), _uv("UV 2_0", 3.0), _uv("UV 3_260", 50.0)])
-    exp = build_experiment(run, epsilon=1.0, molecular_weight=50000)
+    exp = model_view(run, epsilon=1.0, molecular_weight=50000)
     names = [s.name for s in exp.signals if s.role == "uv"]
     assert names == ["UV 1_280", "UV 3_260"]
     assert any("UV 2_0: channel off" in w for w in exp.warnings)
@@ -217,7 +217,7 @@ def test_uv_channels_wavelengths_primary_and_concentration():
     assert uv.concentration["mol/m^3"][0] == pytest.approx(0.5 / 50.0)
     assert exp.signal("UV 3_260").concentration is None
     assert any(w.startswith("UV 1_280: concentration from UV") for w in exp.warnings)  # issue #1
-    scaled = build_experiment(run, epsilon=1.0, molecular_weight=50000, response_factor=0.8)
+    scaled = model_view(run, epsilon=1.0, molecular_weight=50000, response_factor=0.8)
     assert scaled.primary_uv.concentration["kg/m^3"][0] == pytest.approx(0.5 / 0.8)
     assert scaled.primary_uv.concentration["conversion"]["response_factor"] == 0.8
 
@@ -225,7 +225,7 @@ def test_uv_channels_wavelengths_primary_and_concentration():
 def test_uv_without_path_or_wavelength_instruction():
     events = [_e(0.0, "System flow 1.000 {ml/min} Off"), _e(0.0, "Gradient 0.0 {%B} 0.00 {min}"),
               _e(2.0, "End 1/1/2024", status="")]
-    exp = build_experiment(_run(events, curves=[_uv("UV 1_254", uv_info=None)]))
+    exp = model_view(_run(events, curves=[_uv("UV 1_254", uv_info=None)]))
     uv = exp.primary_uv
     assert uv.export_unit == "AU" and uv.wavelength_nm == 254.0 and uv.wavelength_source == "curve_name"
     assert any("no UV path length" in w for w in exp.warnings)
@@ -243,7 +243,7 @@ def _line_load_events(inlet_at=1.0):
 
 def test_feed_through_a_pump_line_from_a_mark_after_an_inlet_switch():
     run = _with_injection(_run(_line_load_events()), 1.0 + 0.1 / 60)
-    exp = build_experiment(run)
+    exp = model_view(run)
     feed = [s for s in exp.sections if s.feed]
     assert feed and all(s.feed_line == "A" and s.feed_source == "injection_mark" for s in feed)
     # feed from the switch (not the block start, which is still on A1) until A1 comes back
@@ -256,7 +256,7 @@ def test_feed_through_a_pump_line_from_a_mark_after_an_inlet_switch():
     assert load["buffer_flow_m3_s"][0] > 0 and load["c_buffer"][1, 0] == 1.0  # 'sample' on line A, through the mixer
     assert not process_inputs(exp)["valve_feed"]
     # caller names the sample inlet: same sections, labelled by source
-    named = build_experiment(_run(_line_load_events()), sample_inlets=["A5"])
+    named = model_view(_run(_line_load_events()), sample_inlets=["A5"])
     assert [(s.start_s, s.end_s) for s in named.sections if s.feed] == [(s.start_s, s.end_s) for s in feed]
     assert {s.feed_source for s in named.sections if s.feed} == {"sample_inlets"}
 
@@ -264,7 +264,7 @@ def test_feed_through_a_pump_line_from_a_mark_after_an_inlet_switch():
 def test_mark_without_an_inlet_switch_is_not_feed():
     # the common case: the inlet in force since method start says nothing
     run = _with_injection(_run(_line_load_events(inlet_at=4.0)), 2.0)
-    exp = build_experiment(run)
+    exp = model_view(run)
     assert not any(s.feed for s in exp.sections)
     assert any("no inlet switch within 60 s" in w for w in exp.warnings)
 
@@ -276,11 +276,11 @@ def test_system_volumes_mixer_stored_tubing_from_caller():
     run.metadata["SystemData"] = {"Systems": {"System": {"MixerInformation": mixer}}}
     run.metadata["SystemSettingData"] = {"SystemSettings": {"InstructionGroup": [{"Instructions": [
         {"Instruction": "Delay volume: Monitor to frac", "Parameters": {"Parameter": "Volume\t435 µl"}}]}]}}
-    exp = build_experiment(run)
+    exp = model_view(run)
     assert exp.system["mixer_m3"] == pytest.approx(1.4e-6) and exp.system["mixer_source"] == "SystemData MixerInformation"
     assert exp.system["tubing_m3"] is None and any("column-to-UV tubing volume" in w for w in exp.warnings)
     assert exp.system["delay_volume_hints"] == ["Delay volume: Monitor to frac: Volume 435 ul"]
-    exp = build_experiment(run, mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
+    exp = model_view(run, mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"))
     assert exp.system["mixer_m3"] == pytest.approx(0.6e-6) and exp.system["mixer_source"] == "caller"
     assert exp.system["tubing_m3"] == pytest.approx(5e-8)
     assert any("given 0.6 ml used over the stored 1.4 ml" in w for w in exp.warnings)
@@ -307,7 +307,7 @@ def test_uv_path_length_fallback_only_where_the_run_has_none():
     curves = [_uv("UV 1_280", 100.0, uv_info=None), _uv("UV 2_260", 100.0),
               _uv("UV 3_254", 500.0, uv_info=None, unit="mAU/cm")]
     label = "fallback (--path-length)"
-    exp = build_experiment(_run(events, curves=curves), uv_path_length_fallback_cm=0.5,
+    exp = model_view(_run(events, curves=curves), uv_path_length_fallback_cm=0.5,
                            uv_path_length_fallback_basis=label, epsilon=1.0)
     filled, stored, per_cm = (exp.signal(n) for n in ("UV 1_280", "UV 2_260", "UV 3_254"))
     assert (filled.uv_path_length_cm, filled.uv_path_basis, filled.export_unit) == (0.5, label, "AU/cm")
@@ -319,30 +319,30 @@ def test_uv_path_length_fallback_only_where_the_run_has_none():
     used = [w for w in exp.warnings if label in w]
     assert len(used) == 1 and used[0].startswith("UV 1_280: no UV path length in the run")
     with pytest.raises(ValueError, match="above 0 cm"):
-        build_experiment(_run(events, curves=curves), uv_path_length_fallback_cm=0.0)
+        model_view(_run(events, curves=curves), uv_path_length_fallback_cm=0.0)
 
 
 def test_injection_time_zero_and_pause_shift():
     events = _events(_e(4.0, "End 1/1/2024", status=""))
     run = _with_injection(_run(events, curves=[_uv("UV 1_280")], pauses=[(30.0, 10.0)]), 2.0)
-    exp = build_experiment(run)
+    exp = model_view(run)
     assert exp.time_zero["injection_offset_s"] == pytest.approx(130.0)  # 120 s elapsed + 10 s pause
     uv = exp.primary_uv
     k = int(np.argmin(np.abs(run.chromatogram().curve("UV 1_280").time - 1.0)))
     assert uv.time_s[k] == pytest.approx(70.0)  # 60 s elapsed + the 10 s pause before it
-    shifted = build_experiment(run, time_zero="injection")
+    shifted = model_view(run, time_zero="injection")
     assert shifted.sections[0].start_s == pytest.approx(-130.0)
     assert shifted.primary_uv.time_s[k] == pytest.approx(-60.0)
     assert exp.hints[0]["start_s"] == pytest.approx(0.0)
-    assert shifted.hints[0]["start_s"] == pytest.approx(-130.0)  # one time origin in experiment.json
+    assert shifted.hints[0]["start_s"] == pytest.approx(-130.0)  # one time origin in model_view.json
     with pytest.raises(ValueError, match="no injection"):
-        build_experiment(_run(events), time_zero="injection")
+        model_view(_run(events), time_zero="injection")
 
 
 def test_no_run_log_is_a_clear_error():
     # e.g. an imported chromatogram: its run log ('ImportedLogbook') gives no sections (D13)
     with pytest.raises(ValueError, match="no run-log sections"):
-        build_experiment(_run([], curves=[_uv("UV 1_280")]))
+        model_view(_run([], curves=[_uv("UV 1_280")]))
 
 
 def test_fraction_masses(tmp_path):
@@ -362,7 +362,7 @@ def test_fraction_masses(tmp_path):
         column_volume=None, column_volume_unit=None, xml={},
         events=[Event(time=t, volume=2 * t, text=n, type=None, subtype=None, instruction_feedback=None, xml={})
                 for t, n in ((1.0, "T1"), (2.0, "T2"), (3.0, "Waste"))])
-    exp = build_experiment(run, fraction_masses=str(path))
+    exp = model_view(run, fraction_masses=str(path))
     by_tube = {f.tube: f for f in exp.fractions}
     assert by_tube["T1"].mass_kg == {"mAb": pytest.approx(2.5e-6)}
     assert by_tube["T2"].volume_m3 == pytest.approx(2e-6)
@@ -390,7 +390,7 @@ def test_local_runs_build(path):
     run = open_run(path)
     if (run.chromatogram().column_volume_info or {}).get("value") is None:
         pytest.skip("no stored Vc: a deliberate edge (a manual run), not a method run")
-    exp = build_experiment(run, epsilon=1.4)
+    exp = model_view(run, epsilon=1.4)
     assert exp.primary_uv is not None and exp.primary_uv.wavelength_nm == 280.0
     assert exp.primary_uv.export_unit == "AU/cm" and exp.primary_uv.concentration is not None
     assert any(s.feed for s in exp.sections)

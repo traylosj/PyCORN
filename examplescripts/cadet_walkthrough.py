@@ -8,7 +8,7 @@ CADET walkthrough: from a UNICORN run to a CADET-Core simulation, next to what w
 Steps (docs/CADET_GUIDE.md, "Walkthrough"):
 1. Load the run and fill in what was measured offline: the load (protein g/L and impurity %), the
    buffers' salt, and the fraction assays. They become components with mol/m^3 concentrations.
-2. Build the experiment from what the run executed and write the CADET-Core input.
+2. Build the model view from what the run executed and write the CADET-Core input.
 3. Run cadet-cli.
 4. Write the simulated outlet next to the measured UV and conductivity (`overlay.csv`), the
    simulated vs assayed mass per fraction (`fractions.csv`), the mass balance, and with --plot
@@ -31,7 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))  # run from a checkout without installing
 
 from pycorn import open_run  # noqa: E402
-from pycorn.exporters.cadet import build_experiment, process_inputs  # noqa: E402
+from pycorn.exporters.cadet import model_view, process_inputs  # noqa: E402
 from pycorn.exporters.cadet.core_input import to_core_input, write_json  # noqa: E402
 
 # ---- EXAMPLE VALUES (made up; replace with your own) --------------------------------------------
@@ -72,11 +72,11 @@ def load_concentrations(load, mw):
 
 
 def build(run_path=RUN):
-    """The experiment with the offline values filled in (step 1-2)."""
+    """The model view with the offline values filled in (step 1-2)."""
     feed = load_concentrations(LOAD, MOLECULAR_WEIGHT_G_MOL)
     components = {"names": COMPONENTS, "molecular_weights": MOLECULAR_WEIGHT_G_MOL,
                   "feed": feed, "buffers": {line: {"salt": c} for line, c in BUFFER_SALT_MOL_M3.items()}}
-    return build_experiment(open_run(run_path), components=components, fraction_masses=FRACTION_ASSAYS,
+    return model_view(open_run(run_path), components=components, fraction_masses=FRACTION_ASSAYS,
                             epsilon=EPSILON_280[0], epsilon_unit=EPSILON_280[1],
                             molecular_weight=MOLECULAR_WEIGHT_G_MOL["protein"], molecular_weight_unit="g/mol",
                             **COLUMN)
@@ -255,7 +255,7 @@ def main(argv=None):
         print("  fraction %-6s %-9s assay %.4g mg, simulated %.4g mg"
               % (row["tube"], row["component"], row["assay_mg"], row["simulated_mg"]))
     print("  wrote %s, %s%s" % (r["overlay"], r["fractions_csv"], (", " + r["plot"]) if "plot" in r else ""))
-    print("  %d warning(s) from the experiment; the first ones:" % len(r["warnings"]))
+    print("  %d warning(s) from the model view; the first ones:" % len(r["warnings"]))
     for w in r["warnings"][:5]:
         print("   - %s" % w[:150].encode("ascii", "replace").decode("ascii"))
     return 0

@@ -370,7 +370,7 @@ def test_cadet_parameter_blocks_from_json_files(tmp_path, capsys):
         written = json.load(f)
     assert written["input"]["model"]["unit_001"]["COL_POROSITY"] == 0.31
     assert written["input"]["model"]["unit_001"]["LIN_KA"] == [1.0]  # a name pycorn doesn't know: unchanged
-    with open(folder / "Chrom.1_cadet" / "experiment.json", encoding="utf-8") as f:
+    with open(folder / "Chrom.1_cadet" / "model_view.json", encoding="utf-8") as f:
         assert json.load(f)["process_overrides"] == {"flow_sheet": {"column": {"bed_porosity": 0.31}}}
     # checked before anything is loaded
     bad = tmp_path / "bad.json"
@@ -697,7 +697,7 @@ def test_export_cadet_and_core(run, tmp_path):
                                epsilon={280.0: (1.4, "ml/(mg*cm)")})
     written = rx.write_run(run, folder, ["csv"], options=options)
     assert "Chrom.1_cadet/" in written and "Chrom.1_core_v5.json" in written
-    with open(folder / "Chrom.1_cadet" / "experiment.json", encoding="utf-8") as f:
+    with open(folder / "Chrom.1_cadet" / "model_view.json", encoding="utf-8") as f:
         assert f.read()
     with open(folder / "Chrom.1_core_v5.json", encoding="utf-8") as f:
         core = json.load(f)
@@ -732,7 +732,7 @@ def test_export_system_volumes(run, tmp_path):
     folder = tmp_path / "r"
     rx.write_run(run, folder, ["csv"], options=rx.ExportOptions(
         mixer_volume=(0.6, "ml"), tubing_volume=(0.2, "ml"), sample_inlets=["Z9"], **geometry))
-    with open(folder / "Chrom.1_cadet" / "experiment.json", encoding="utf-8") as f:
+    with open(folder / "Chrom.1_cadet" / "model_view.json", encoding="utf-8") as f:
         sidecar = json.load(f)
     system = sidecar["system"]
     assert {"mixer", "tubing"} <= {u[0] for u in sidecar["process_inputs"]["units"]}
@@ -749,7 +749,7 @@ def test_export_system_volumes(run, tmp_path):
     with open(folder / "Chrom.1_core_v6.json", encoding="utf-8") as f:
         names = json.load(f)["meta"]["UNIT_NAMES"]
     assert not {"mixer", "tubing"} & set(names)
-    with open(folder / "Chrom.1_cadet" / "experiment.json", encoding="utf-8") as f:
+    with open(folder / "Chrom.1_cadet" / "model_view.json", encoding="utf-8") as f:
         assert not {"mixer", "tubing"} & {u[0] for u in json.load(f)["process_inputs"]["units"]}
     assert any(s == "cadet" and "tubing volume" in m for s, m in zip(_warnings(folder)["source"],
                                                                    _warnings(folder)["message"]))

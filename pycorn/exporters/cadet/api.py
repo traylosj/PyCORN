@@ -48,7 +48,7 @@ def export_cadet(run, folder, core_version=None, cadet_process=True, chromatogra
                  core_overrides=None, process_overrides=None, overwrite=False, **options):
     """
     Write the CADET export of the chromatograms of `run` into `folder` (created if needed), per
-    chromatogram: `<stem>_cadet/` (CADET-Process CSVs and `experiment.json`) when `cadet_process`, and
+    chromatogram: `<stem>_cadet/` (CADET-Process CSVs and `model_view.json`) when `cadet_process`, and
     `<stem>_core_v<n>.json|.h5` (CADET-Core input) when `core_version` is '5' or '6'.
 
     - `chromatogram`: which chromatograms (W17): None (default) the run's original one(s); a name,
@@ -61,7 +61,7 @@ def export_cadet(run, folder, core_version=None, cadet_process=True, chromatogra
       porosities, transport, binding, discretization and solver the run doesn't give. What it
       doesn't set gets the placeholders listed in `/meta/placeholders`.
     - `process_overrides`: the same for CADET-Process, in its own parameter layout (as
-      `process.parameters` shows it); stored unchanged in `experiment.json` as `process_overrides`,
+      `process.parameters` shows it); stored unchanged in `model_view.json` as `process_overrides`,
       for `process.parameters = ...` where the Process is built (`to_cadet_process(...,
       process_overrides=)` sets it). Owner, 2026-11-08: one generic block per target, no
       assumptions about what it holds.

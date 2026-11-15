@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-`CadetExperiment`: a run as a neutral, all-SI description for CADET and CADET-Process
+`ModelView`: a run as a neutral, all-SI description for CADET and CADET-Process
 (docs/ROADMAP.md, "CADET export"). No CADET import; the CADET-Process objects and the
 CADET-Core input file are built from this in later phases.
 
@@ -12,13 +12,13 @@ CADET-Core input file are built from this in later phases.
 - Flow amount (Decide 6, `pycorn.delivered_flow`): the logged set flow, except where UNICORN's
   volume axis differs from it beyond the tolerance (valve-turn stops, pressure-control ramps,
   the pump stopping before a pause and ramping after it): there the section is split into
-  pieces fitted to the axis (`ExperimentSection.flow_source`), with a warning; then D14 by
+  pieces fitted to the axis (`ModelSection.flow_source`), with a warning; then D14 by
   valve position. The loop volume (D19) and the by-pass flow use the system pump's fitted flow.
 - Feed (D16, D18-D21): sections where the injection valve is at 'Inject' or 'Direct inject',
   labelled by `sample_use` (see `pycorn.run_log_sections.sample_use`).
   - D18: while the column is by-passed the sample goes to the by-pass ('to_bypass'), not feed.
     Every by-pass window, with sample or buffer (owner, rev 7e), is listed in
-    `CadetExperiment.bypass` and marks UV and conductivity as not column outlet
+    `ModelView.bypass` and marks UV and conductivity as not column outlet
     (`Signal.not_column_outlet`). Buffer-only windows give buffer conductivity and pH,
     checked against the column outlet (D22, `buffer_readings.py`).
   - D19: a loop injection ('Inject') ends after the caller's `loop_volume` of system flow
@@ -43,7 +43,7 @@ CADET-Core input file are built from this in later phases.
   run's installed valves and pumps (`pycorn.system_configuration`).
 - Method hints (D17, D20): `pycorn.method_hints` (planned injections and block lengths
   against what ran, sample-application dialog, BufferPro, variables, documentation) in
-  `CadetExperiment.method_hints`, its warnings prefixed 'method: '. They change no section.
+  `ModelView.method_hints`, its warnings prefixed 'method: '. They change no section.
 """
 import base64
 import binascii
@@ -77,7 +77,7 @@ MIXER_ITEM = re.compile(r'Name="Volume"\s+Value="([^"]+)"\s+Unit="([^"]+)"')
 
 
 @dataclass
-class ExperimentSection:
+class ModelSection:
     start_s: float
     end_s: float
     name: Optional[str]  # block, else phase
@@ -144,12 +144,12 @@ class Fraction:
 
 
 @dataclass
-class CadetExperiment:
+class ModelView:
     source: dict
     time_zero: dict
     column: dict
     sections: list
-    events: list
+    logged_events: list  # UNICORN log entries (injections, set point changes), not CADET-Process events
     signals: list
     flow: Optional[dict]
     fractions: list
@@ -377,8 +377,7 @@ def _line_feed(sections, chrom, sample_inlets, warnings, config=None):
     caller's `sample_inlets` (inlet positions such as 'A5'): every section that draws from one of
     them. Otherwise from each injection mark with no injection-valve switch within MARK_NEAR_S:
     only an A or B inlet **switched** within MARK_INLET_S of the mark is the sample line (owner:
-    the inlet in force since method start says nothing; tested against a lab environment, most
-    such marks had no switch near them); feed runs from that switch while the position stays selected. No switch
+    the inlet in force since method start says nothing); feed runs from that switch while the position stays selected. No switch
     near the mark: no feed, a warning. Sample loaded through a line with no mark is not seen
     (known limitation). The run's system configuration (`config`) only adds to the warnings: a
     system with no sample pump says so (sample through an A/B line, inferred); it never makes
@@ -598,7 +597,7 @@ def _sample_path(sections, path_ml, warnings):
 
 def uv_wavelengths(chrom, sections, curves=None):
     """
-    The D8 wavelength rule, shared by `build_experiment` and `pycorn export`: ([(curve, channel, nm,
+    The D8 wavelength rule, shared by `model_view` and `pycorn export`: ([(curve, channel, nm,
     nm_source)], warnings) for `curves` (names), else every UV curve with data. `sections` are the
     `run_log_sections(...)['sections']`. Per channel: the run log's last Wavelength instruction
     before the first feed (else the last in the run); the curve name suffix only as a fallback,
@@ -768,7 +767,7 @@ def _hints(sections):
     return hints
 
 
-def build_experiment(run, chrom=None, time_zero="method_start", components=None, uv_curves=None,
+def model_view(run, chrom=None, time_zero="method_start", components=None, uv_curves=None,
                      primary_wavelength_nm=280.0, uv_path_length_cm=None, uv_path_length_fallback_cm=None,
                      uv_path_length_fallback_basis="fallback", epsilon=None, epsilon_unit="ml/(mg*cm)",
                      epsilon_molar=None, epsilon_molar_unit="1/(M*cm)", molecular_weight=None,
@@ -778,7 +777,7 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
                      mixer_volume=None, tubing_volume=None, sample_inlets=None, flow_tolerance=None,
                      percent_tolerance=None, response_factor=None, flow_from_axis=True):
     """
-    `CadetExperiment` for `chrom` (default: the run's first chromatogram).
+    `ModelView` for `chrom` (default: the run's first chromatogram).
 
     - `time_zero`: 'method_start' (D5) or 'injection'.
     - `components`: whatever the caller knows (names, buffer A/B or Q-line concentrations in
@@ -825,11 +824,11 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
     own = run.holds_run_of(chrom)
     if not rls["sections"]:
         # no run log (e.g. a derived chromatogram) or no executed entries: nothing ran to build from (D13)
-        raise ValueError("%s: no run-log sections, so no CADET experiment (%s)"
+        raise ValueError("%s: no run-log sections, so no CADET model view (%s)"
                          % (chrom.name, "; ".join(rls["warnings"]) or "no executed run-log entries"))
     warnings = ["sections: %s" % w for w in rls["warnings"]]
 
-    sections = [ExperimentSection(
+    sections = [ModelSection(
         start_s=s.start_s, end_s=s.end_s, name=s.block or s.phase, phase=s.phase, block=s.block,
         flow_m3_s=((s.column_flow_ml_min or 0.0) * ML_MIN_TO_M3_S, 0.0), percent_b=s.percent_b,
         percent_q=s.percent_q, feed=s.feed, feed_source="valve" if s.feed else None, sample_use=s.sample_use,
@@ -973,7 +972,7 @@ def build_experiment(run, chrom=None, time_zero="method_start", components=None,
                           ("end_s", rls["end_s"] - offset), ("checks", rls["checks"])])
     if rls.get("run_log_source") is not None:  # W17: the run log is the source result's (not on the original)
         source["run_log_source"] = OrderedDict(rls["run_log_source"])
-    return CadetExperiment(source=source, time_zero=tz, column=column, sections=sections, events=events,
+    return ModelView(source=source, time_zero=tz, column=column, sections=sections, logged_events=events,
                            signals=signals, flow=flow, fractions=fractions, components=dict(components or {}),
                            hints=section_hints, warnings=warnings, bypass=bypass,
                            buffer_readings=readings, method_hints=hints, system=system)

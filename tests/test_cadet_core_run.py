@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment, process_inputs
+from pycorn.exporters.cadet import model_view, process_inputs
 from pycorn.exporters.cadet.core_input import to_core_input, write_json
 
 from test_cadet_core_input import EXPECTED_RUN, GEOMETRY, _exp
@@ -76,7 +76,7 @@ def test_expected_run_simulates_and_the_sample_comes_out(version, extra, tmp_pat
     # 28 sections, pauses, the feed at section 13: with one switch per flow change (10) the Cores never
     # reached the feed switch and no sample entered the column (X20)
     cli = _cli(version)
-    exp = build_experiment(open_run(EXPECTED_RUN))
+    exp = model_view(open_run(EXPECTED_RUN))
     core = to_core_input(exp, version, placeholders=True, **extra)
     assert _sample_balance(exp, core, cli, tmp_path) == pytest.approx(1.0, rel=0.01)
 
@@ -85,10 +85,10 @@ def test_expected_run_simulates_and_the_sample_comes_out(version, extra, tmp_pat
 def test_new_buffer_reaches_the_outlet_past_a_bypassed_column(version, extra, tmp_path):
     # owner, 2026-11-08 (M2): the system flow goes through the mixer and around the column, so the
     # UV and conductivity see the new buffer during the by-pass (before: the mixer held, outlet 0)
-    from test_cadet_process_export import _bypass_experiment
+    from test_cadet_process_export import _bypass_model_view
     h5py = pytest.importorskip("h5py")
     cli = _cli(version)
-    exp = _bypass_experiment(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"), **GEOMETRY)
+    exp = _bypass_model_view(mixer_volume=(0.6, "ml"), tubing_volume=(50, "ul"), **GEOMETRY)
     core = to_core_input(exp, version, placeholders=True, **extra)
     done, out = _simulate(cli, core, tmp_path, "bypass")
     assert done.returncode == 0, done.stderr + done.stdout

@@ -131,7 +131,7 @@ def _salt(section, buffer_salt):
 def buffer_readings(chrom, sections, bypass, wall_s, buffer_salt=None):
     """
     (readings, warnings) for the buffer-only by-pass windows `bypass` (see
-    `CadetExperiment.bypass`) over the experiment `sections` (wall-clock s, before any
+    `ModelView.bypass`) over the model view's `sections` (wall-clock s, before any
     time-zero shift). `wall_s(chrom, elapsed_s)` maps stored time to wall-clock time.
     """
     warnings = []

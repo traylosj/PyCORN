@@ -9,11 +9,26 @@ changed since your files were made.
 
 - **In progress:** nothing.
 - **Planned:** for scripts and agents: the page's analysis logic as a public module. After
-  decisions: how phases, steps and feed are read from a run (lead-in, repeats, held-over
-  values; proposed as one ISA-88 run record); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
+  decisions: how phases, steps and feed are read from a run (lead-in, repeats, phase start lag;
+  proposed as one ISA-88 run record); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
   CADET form on the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Unreleased
+
+**Renamed: the CADET export's "experiment" is now the model view.** In OBI, Allotrope and
+IOF an experiment is a planned study across runs, not one run's data. The names change in
+place, with no aliases:
+
+| Was | Now |
+|---|---|
+| `<chromatogram>_cadet/experiment.json` | `<chromatogram>_cadet/model_view.json` |
+| its `"format": "pycorn-cadet-experiment"` | `"format": "pycorn-cadet-model-view"` |
+| its `events` | `logged_events` (UNICORN's log entries, not CADET-Process events) |
+| `build_experiment(run)` | `model_view(run)` |
+| `CadetExperiment`, `ExperimentSection` | `ModelView`, `ModelSection` |
+| `pycorn/exporters/cadet/experiment.py` | `pycorn/exporters/cadet/view.py` |
+
+Why: `docs/RUN_STRUCTURE_RECORD.md` §11.
 
 **Changed outputs: the CADET export's flows.** Where UNICORN's volume axis differs from the
 logged flow x time by more than 0.01 ml and 1 % of a section, the CADET section is now split
@@ -21,7 +36,7 @@ into pieces fitted to the axis: valve-turn stops, ramps with pressure control on
 stopping before a pause and ramping up after it. Feed volumes follow too: `u73_blank.zip`'s
 feed is 0.389 ml (was 0.417 ml), `u711_cadet_reference.zip`'s 4.391 ml (was 4.418 ml).
 Runs with pressure control get about 2 % less volume over the run. More CADET sections, a
-`flow:` warning per changed section; `build_experiment(..., flow_from_axis=False)` gives the
+`flow:` warning per changed section; `model_view(..., flow_from_axis=False)` gives the
 old flows.
 
 - **CADET flow from the volume axis (Decide 6, `pycorn/delivered_flow.py`).** The run log

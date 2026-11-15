@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-CADET-Core input from a `CadetExperiment`, in the CADET-Core 5 or 6 layout (docs/ROADMAP.md,
+CADET-Core input from a `ModelView`, in the CADET-Core 5 or 6 layout (docs/ROADMAP.md,
 "CADET export": phase C3, D9, D25).
 
 - `to_core_input(exp, core_version, ...)`: the input as a plain nested dict
@@ -25,8 +25,8 @@ Layouts, from the sources (X16, X17, rev 9):
   `adsorption` in `particle_type_000`. Owner (C3): DG by default (16 elements, degree 4; particles 1
   element, degree 4, the CADET-Process DG defaults).
 
-Model parameters: from the experiment (geometry from the run's linked column or the caller's
-`build_experiment` values, D10/D26; porosities from `build_experiment(porosities=)`), else with
+Model parameters: from the model view (geometry from the run's linked column or the caller's
+`model_view` values, D10/D26; porosities from `model_view(porosities=)`), else with
 `placeholders=True` the CADET-Core GRM benchmark values, each listed in `/meta` and warned, and binding
 `NONE` (tracer). Geometry never gets a placeholder (D10): missing geometry is an error.
 
@@ -156,7 +156,7 @@ def check_overrides(overrides):
 
 
 def _resolve_parameters(exp, model, n_comp, placeholders, warnings):
-    """(values, placeholder names) for `model`, experiment > placeholder; error on what's missing."""
+    """(values, placeholder names) for `model`, model view > placeholder; error on what's missing."""
     col = exp.column or {}
     por = col.get("porosities") or {}
     from_exp = {"length": col.get("length_m"), "cross_section_area": col.get("cross_section_area_m2"),
@@ -174,7 +174,7 @@ def _resolve_parameters(exp, model, n_comp, placeholders, warnings):
         geometry = [m for m in missing if m in GEOMETRY]
         raise ValueError("%s needs %s%s" % (
             model, ", ".join(missing),
-            "; geometry comes only from the run's linked column or build_experiment's bed_height / diameter "
+            "; geometry comes only from the run's linked column or model_view's bed_height / diameter "
             "(D10, D26)" if geometry else
             "; pass placeholders=True and set your values with overrides= in CADET-Core's names (D28)"))
     for name in values:
@@ -315,7 +315,7 @@ def to_core_input(exp, core_version, components=None, buffers=None, feed=None, c
     - `components`, `buffers`, `feed`: as in `process_inputs` (none of them: placeholder 'salt' and
       'sample', D24).
     - `column_model`: 'GeneralRateModel', 'LumpedRateModelWithPores' or 'LumpedRateModelWithoutPores'.
-    - `placeholders=True`: the transport values the experiment doesn't give and the binding become
+    - `placeholders=True`: the transport values the model view doesn't give and the binding become
       placeholders (non-binding tracer, CADET-Core benchmark values), listed in `/meta/placeholders`.
       Never geometry (D10). Without it, anything missing is an error. Your own model values go in
       `overrides` (D28; the earlier `parameters=` / `binding=` are gone).
@@ -349,11 +349,11 @@ def to_core_input(exp, core_version, components=None, buffers=None, feed=None, c
         raise ValueError("column_model must be one of %s, not %r" % (", ".join(COLUMN_MODELS), column_model))
     if exp.time_zero.get("kind") != "method_start":
         raise ValueError("the Core input needs time_zero='method_start' (sections start at the method start, D24); "
-                         "rebuild the experiment with it")
+                         "rebuild the model view with it")
     inputs = process_inputs(exp, components, buffers, feed)
     rows = inputs["sections"]
     if not rows:
-        raise ValueError("the experiment has no sections")
+        raise ValueError("the model view has no sections")
     warnings = list(inputs["warnings"])
     names = inputs["components"]
     n_comp = len(names)

@@ -78,7 +78,7 @@ docs/ROADMAP.md, "Default outputs and flag decisions"):
 - `method_hints`: `_planned_vs_run_blocks` / `_planned_vs_run_injections` (planned vs executed;
   hints only, D17).
 - `route`, `command`: provenance only, recorded with the export (`provenance()`).
-- `cadet`: CADET-Process CSVs and experiment.json in `<chrom>_cadet/`.
+- `cadet`: CADET-Process CSVs and model_view.json in `<chrom>_cadet/`.
 - `cadet_core` ('5' or '6'): CADET-Core input `<chrom>_core_v<n>.json` (or `.h5` with
   `core_format='hdf5'`, needs h5py).
 """
@@ -817,9 +817,9 @@ class ExportOptions:
     mixer_volume: tuple = None  # D27: over the stored mixer size
     tubing_volume: tuple = None  # D27: column -> UV tubing (the run stores none)
     sample_inlets: list = None  # D27: inlet positions ('A5') holding sample on a system pump line
-    system_volumes: bool = True  # False: no mixer / tubing CSTRs (Core input, experiment.json units)
+    system_volumes: bool = True  # False: no mixer / tubing CSTRs (Core input, model_view.json units)
     # one generic parameter block per target (D28; owner, 2026-11-08: no assumptions about its content):
-    # merged into the Core input unchanged / stored unchanged in experiment.json (--core-overrides,
+    # merged into the Core input unchanged / stored unchanged in model_view.json (--core-overrides,
     # --process-overrides: JSON files)
     core_overrides: dict = None
     process_overrides: dict = None
@@ -1001,7 +1001,7 @@ def provenance(options, formats=None):
 PATH_BASIS = "fallback (--path-length)"
 GEOMETRY_FLAGS = (("length", "bed_height", "--bed-height"), ("diameter", "diameter", "--diameter"),
                   ("particle_diameter", "particle_diameter", "--particle-diameter"))
-PRIMARY_NM = 280.0  # build_experiment's primary wavelength
+PRIMARY_NM = 280.0  # model_view's primary wavelength
 
 
 def _geometry_kwargs(options):
@@ -1039,7 +1039,7 @@ def uv_wavelengths(run, chrom, sections_result=None):
     ([(curve, channel, nm, nm source)], warnings) for the live UV curves of `chrom`, by the
     CADET export's rule (D8, `pycorn.exporters.cadet.uv_wavelengths`): the run log's Wavelength
     instruction per channel, the curve-name suffix only as a fallback (warned); 0 nm channels
-    are left out. Owner, 2026-11-08: the same rule as `build_experiment`.
+    are left out. Owner, 2026-11-08: the same rule as `model_view`.
     """
     from .exporters.cadet import uv_wavelengths as d8
     from .run_log_sections import run_log_sections
@@ -1048,7 +1048,7 @@ def uv_wavelengths(run, chrom, sections_result=None):
 
 
 def _primary_nm(channels):
-    """build_experiment's primary wavelength among `channels` (280 nm, else the lowest channel)."""
+    """model_view's primary wavelength among `channels` (280 nm, else the lowest channel)."""
     if not channels:
         return None
     if any(_same_nm(nm, PRIMARY_NM) for _, _, nm, _ in channels):
@@ -1176,9 +1176,9 @@ def hint_frames(run, chrom, sections, problems):
 
 def cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=None):
     """
-    Build the CADET experiment of `chrom` (from the stored run, time zero at the method start)
+    Build the CADET model view of `chrom` (from the stored run, time zero at the method start)
     and write what `options` asks for into `folder`: `<stem>_cadet/` (CADET-Process CSVs and
-    experiment.json) and `<stem>_core_v<n>.json|.h5` (CADET-Core input). Returns the names written.
+    model_view.json) and `<stem>_core_v<n>.json|.h5` (CADET-Core input). Returns the names written.
     `sections_result`: `run_log_sections(run, chrom)` when already built (saves building it again).
     Whenever files are written, `problems` gets `CADET_EXPERIMENTAL_NOTE` once (W15).
     """
@@ -1190,7 +1190,7 @@ def cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=N
 
 
 def _cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=None):
-    from .exporters.cadet import build_experiment, to_core_input, to_csv, write_hdf5, write_json
+    from .exporters.cadet import model_view, to_core_input, to_csv, write_hdf5, write_json
     kwargs = {}
     eps = dict(options.epsilon or {})
     molar = dict(options.epsilon_molar or {})
@@ -1200,7 +1200,7 @@ def _cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=
         key = next((k for k in list(eps) + list(molar) if _same_nm(k, nm)), None)
         if key is None:
             problems.append((chrom.name, "cadet", "no --epsilon (epsilon=) for the primary UV wavelength (%s nm): "
-                                                  "the CADET experiment has no concentration" % nm))
+                                                  "the CADET model view has no concentration" % nm))
         elif key in eps:
             kwargs.update(epsilon=eps[key][0], epsilon_unit=eps[key][1], epsilon_wavelength_nm=nm)
             # D29: CADET works in mol/m^3; a mass coefficient gives it only with the molecular weight
@@ -1222,7 +1222,7 @@ def _cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=
         kwargs.update(absorbance_limit_mau=options.absorbance_limit[0]
                       * conversion_factor(options.absorbance_limit[1], "mAU"))
     geometry = _geometry_kwargs(options)
-    exp = build_experiment(run, chrom, time_zero="method_start", uv_path_length_fallback_cm=options.path_length_cm,
+    exp = model_view(run, chrom, time_zero="method_start", uv_path_length_fallback_cm=options.path_length_cm,
                            uv_path_length_fallback_basis=PATH_BASIS, bed_height=geometry["bed_height"],
                            diameter=geometry["diameter"], particle_diameter=geometry["particle_diameter"],
                            geometry_override=geometry["override"],
@@ -1230,7 +1230,7 @@ def _cadet_outputs(run, chrom, options, folder, stem, problems, sections_result=
                            mixer_volume=options.mixer_volume, tubing_volume=options.tubing_volume,
                            sample_inlets=options.sample_inlets, **kwargs)
     problems += [(chrom.name, "cadet", w) for w in exp.warnings]
-    # PyCORN's own metadata (experiment.json 'source', Core 'meta'), never CADET's names
+    # PyCORN's own metadata (model_view.json 'source', Core 'meta'), never CADET's names
     prov = provenance(options)
     exp.source = dict(exp.source or {}, export=prov)
     written = []
@@ -1539,7 +1539,7 @@ def _write_into(run, partial, formats, options, stamp):
         per_chrom[name] = [(sheet, frame) for sheet, frame in frames
                            if frame is not None and (wanted is None or sheet in wanted)]
         if options.cadet or options.cadet_core:
-            # from the stored run (build_experiment converts to SI itself); the sections built
+            # from the stored run (model_view converts to SI itself); the sections built
             # above only when they are of that run (not unit-converted)
             same = rls if run is stored else None
             cadet = _built("CADET export", chrom.name, lambda: cadet_outputs(

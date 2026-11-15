@@ -15,10 +15,10 @@ import numpy as np
 import pytest
 
 from pycorn import open_run
-from pycorn.exporters.cadet import build_experiment, process_inputs
+from pycorn.exporters.cadet import model_view, process_inputs
 from pycorn.exporters.cadet.core_input import PLACEHOLDERS, to_core_input, write_hdf5, write_json
 
-from test_cadet_process_export import _experiment
+from test_cadet_process_export import _model_view
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEST_FILES = os.path.join(HERE, "..", "unicorn_test_files")
@@ -31,7 +31,7 @@ GRM = dict(bed_porosity=0.35, particle_porosity=0.8, axial_dispersion=1e-7, film
 
 
 def _exp(**kwargs):
-    return _experiment(**dict(GEOMETRY, **kwargs))
+    return _model_view(**dict(GEOMETRY, **kwargs))
 
 
 def test_core_version_is_required_and_checked():
@@ -191,7 +191,7 @@ def test_overrides_v5_and_every_placeholder_replaced():
 
 def test_missing_values_raise_and_name_them():
     with pytest.raises(ValueError, match="length, cross_section_area.*D10"):
-        to_core_input(_experiment(), "5", placeholders=True)  # geometry never gets a placeholder
+        to_core_input(_model_view(), "5", placeholders=True)  # geometry never gets a placeholder
     with pytest.raises(ValueError, match="bed_porosity, particle_porosity, axial_dispersion, film_diffusion, "
                                          "pore_diffusion.*overrides="):
         to_core_input(_exp(), "6")
@@ -203,8 +203,8 @@ def test_missing_values_raise_and_name_them():
             to_core_input(_exp(), "6", placeholders=True, **removed)
     with pytest.raises(TypeError, match="unexpected"):
         to_core_input(_exp(), "6", placeholders=True, porosity=0.3)
-    # caller geometry instead of a linked column (build_experiment, D26)
-    core = to_core_input(_experiment(bed_height=(10, "cm"), diameter=(1, "cm")), "5", placeholders=True)
+    # caller geometry instead of a linked column (model_view, D26)
+    core = to_core_input(_model_view(bed_height=(10, "cm"), diameter=(1, "cm")), "5", placeholders=True)
     assert core["input"]["model"]["unit_001"]["CROSS_SECTION_AREA"] == pytest.approx(np.pi * 0.01 ** 2 / 4)
 
 
@@ -258,7 +258,7 @@ def _normalized(core):
 def test_reference_run_matches_hand_checked_file(version):
     # the hand-checked layout with the logged set flows; the flow fitted to the volume axis
     # (Decide 6) is checked in tests/test_delivered_flow.py
-    exp = build_experiment(open_run(EXPECTED_RUN), flow_from_axis=False)
+    exp = model_view(open_run(EXPECTED_RUN), flow_from_axis=False)
     core = to_core_input(exp, version, placeholders=True)
     t = np.asarray(core["input"]["solver"]["USER_SOLUTION_TIMES"])
     uv = exp.primary_uv.time_s
@@ -278,9 +278,9 @@ def test_reference_run_matches_hand_checked_file(version):
 @pytest.mark.parametrize("path", LOCAL, ids=os.path.basename)
 def test_local_runs_both_layouts(path, tmp_path):
     run = open_run(path)
-    exp = build_experiment(run)
+    exp = model_view(run)
     if not exp.column.get("length_m"):  # no linked column: caller geometry (D26)
-        exp = build_experiment(run, bed_height=(10, "cm"), diameter=(0.77, "cm"))
+        exp = model_view(run, bed_height=(10, "cm"), diameter=(0.77, "cm"))
     shared = []
     for version in ("5", "6"):
         core = to_core_input(exp, version, placeholders=True)

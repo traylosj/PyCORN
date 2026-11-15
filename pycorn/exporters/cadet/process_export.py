@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-CADET-Process objects and CSV/JSON from a `CadetExperiment` (docs/ROADMAP.md, "CADET export":
+CADET-Process objects and CSV/JSON from a `ModelView` (docs/ROADMAP.md, "CADET export":
 phase C2, D24, D27).
 
 - `to_csv(exp, directory)`: CSV like the CADET-Process examples (two columns, `time_s, value`, no
-  header, X13), one file per signal, plus `experiment.json` with units, sources, sections,
+  header, X13), one file per signal, plus `model_view.json` with units, sources, sections,
   calibration and warnings, so the data can be used without importing PyCORN. No CADET import.
 - `process_inputs(exp, ...)`: the Process skeleton as plain data (no CADET import): component
   names and, per section, the inlet flow and concentration polynomials.
@@ -43,7 +43,7 @@ PLACEHOLDER_COMPONENTS = ("salt", "sample")
 PLACEHOLDER_SALT_AT_100_B = 100.0  # mol/m^3 of 'salt' at 100 %B
 QUATERNARY_LINES = ("Q1", "Q2", "Q3", "Q4")
 COLUMN_MODELS = ("GeneralRateModel", "LumpedRateModelWithPores", "LumpedRateModelWithoutPores")
-SIDECAR = "experiment.json"
+SIDECAR = "model_view.json"
 
 
 def _cadet_process():
@@ -524,7 +524,7 @@ def to_process(exp, components=None, buffers=None, feed=None, column_model="Gene
     CADET-Process `Process` (D27): Inlet 'buffer' -> Cstr 'mixer' -> column 'column' -> Cstr 'tubing'
     -> Outlet 'outlet', and Inlet 'feed' -> 'column' for valve feed (see `system_units`). Per section
     one flow and one concentration event per inlet and one flow event per CSTR (outflow = inflow);
-    `cycle_time` = last section end. Geometry and porosities from the experiment when it has them;
+    `cycle_time` = last section end. Geometry and porosities from the model view when it has them;
     transport and binding are left for the caller. Returns (process, inputs) with `inputs` from
     `process_inputs` plus 'units'.
 
@@ -537,12 +537,12 @@ def to_process(exp, components=None, buffers=None, feed=None, column_model="Gene
     check_process_overrides(process_overrides)
     if exp.time_zero.get("kind") != "method_start":
         raise ValueError("the Process needs time_zero='method_start' (CADET-Process events can't be negative); "
-                         "rebuild the experiment with it (references and CSV work with either)")
+                         "rebuild the model view with it (references and CSV work with either)")
     if column_model not in COLUMN_MODELS:
         raise ValueError("column_model must be one of %s, not %r" % (", ".join(COLUMN_MODELS), column_model))
     inputs = process_inputs(exp, components, buffers, feed)
     if not inputs["sections"]:
-        raise ValueError("the experiment has no sections")
+        raise ValueError("the model view has no sections")
     _cadet_process()
     from CADETProcess.processModel import ComponentSystem, FlowSheet, Inlet, Outlet, Process
     from CADETProcess.processModel import unitOperation
@@ -621,7 +621,7 @@ def to_cadet_process(exp, components=None, buffers=None, feed=None, column_model
                      process_overrides=None):
     """
     Everything for CADET-Process: {'references', 'fractionation', 'process', 'inputs', 'warnings'}.
-    `process=False` skips the Process (e.g. for a time_zero='injection' experiment).
+    `process=False` skips the Process (e.g. for a time_zero='injection' model view).
     `process_overrides`: see `to_process`.
     """
     check_process_overrides(process_overrides)
@@ -669,8 +669,8 @@ def _write_two_columns(path, t, v):
 
 def to_csv(exp, directory, components=None, buffers=None, feed=None, system_volumes=True, process_overrides=None):
     """
-    Write the experiment to `directory` (created if needed): one `time_s,value` CSV per reference
-    (as in `to_references`), `flow.csv` (measured flow, m^3/s), and `experiment.json` with every
+    Write the model view to `directory` (created if needed): one `time_s,value` CSV per reference
+    (as in `to_references`), `flow.csv` (measured flow, m^3/s), and `model_view.json` with every
     file's unit, the sections, events, fractions, column, buffer readings, method hints, the
     Process inputs (placeholder or caller components) and all warnings. `system_volumes=False`
     leaves the mixer and tubing CSTRs out of `process_inputs.units`, as in `to_core_input` (D27).
@@ -718,12 +718,12 @@ def to_csv(exp, directory, components=None, buffers=None, feed=None, system_volu
     except ValueError as exc:
         warnings.append("process: no inputs (%s)" % exc)
     sidecar = OrderedDict([
-        ("format", "pycorn-cadet-experiment"), ("format_version", 1),
+        ("format", "pycorn-cadet-model-view"), ("format_version", 1),
         ("units", "SI: s, m, m^2, m^3, m^3/s, mol/m^3, S/m; UV in AU/cm (AU without a path length); %B in %"),
         ("source", exp.source), ("time_zero", exp.time_zero), ("files", files), ("column", exp.column),
         ("system", exp.system),
         ("components", exp.components), ("process_inputs", inputs), ("sections", exp.sections),
-        ("bypass", exp.bypass), ("events", exp.events), ("fractions", exp.fractions),
+        ("bypass", exp.bypass), ("logged_events", exp.logged_events), ("fractions", exp.fractions),
         ("buffer_readings", exp.buffer_readings), ("hints", exp.hints), ("method_hints", exp.method_hints),
         ("process_overrides", process_overrides), ("warnings", warnings)])
     path = os.path.join(directory, SIDECAR)

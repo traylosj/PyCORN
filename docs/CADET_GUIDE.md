@@ -50,8 +50,8 @@ Quantities are `(value, unit)` in Python and `"value unit"` on the command line.
 | `core_version="5"` / `"6"` | `--cadet-core 5` / `6` | Write a CADET-Core input in the layout of 5.1.2 or 6.0.0a5. No default: each Core rejects the other's layout |
 | `core_format="json"` / `"hdf5"` | `--core-format` | `.json` (no dependency) or `.h5` (`pip install pycorn[cadet-core]`) |
 | `core_overrides={...}` | `--core-overrides FILE.json` | Your model values in CADET-Core's own names, merged into the Core file (below) |
-| `process_overrides={...}` | `--process-overrides FILE.json` | Your model values in CADET-Process's own names, stored in `experiment.json` (below) |
-| `chromatogram="Chrom.1"` | (the original chromatogram) | Which chromatograms: a name, `"all"`, `"original"`, `"imported"`, `"derived"`, or a list of them (W17; KeyError for a name the run lacks). Without it, the run's original chromatogram; the others are named in the warnings. Several selected are all exported, with a warning (until users settle on a rule). An imported chromatogram exports from the run log it carries (`ImportedLogbook`, its source result's); `experiment.json` `source.run_log_source` names that result, this result's column type, mixer, delay volumes, method and system configuration are used for it, each with a warning (they may differ from the source result's run), and curves of another method run it carries are left out of the signals |
+| `process_overrides={...}` | `--process-overrides FILE.json` | Your model values in CADET-Process's own names, stored in `model_view.json` (below) |
+| `chromatogram="Chrom.1"` | (the original chromatogram) | Which chromatograms: a name, `"all"`, `"original"`, `"imported"`, `"derived"`, or a list of them (W17; KeyError for a name the run lacks). Without it, the run's original chromatogram; the others are named in the warnings. Several selected are all exported, with a warning (until users settle on a rule). An imported chromatogram exports from the run log it carries (`ImportedLogbook`, its source result's); `model_view.json` `source.run_log_source` names that result, this result's column type, mixer, delay volumes, method and system configuration are used for it, each with a warning (they may differ from the source result's run), and curves of another method run it carries are left out of the signals |
 | `overwrite=True` | `--overwrite` | Replace files that exist |
 | `bed_height`, `diameter`, `particle_diameter` | `--bed-height`, `--diameter`, `--particle-diameter` | Column geometry, used only where the run stores none |
 | `override_geometry=True` | `--override-geometry` | Your geometry wins over what the run stores |
@@ -71,16 +71,16 @@ Quantities are `(value, unit)` in Python and `"value unit"` on the command line.
 ### `<chromatogram>_cadet/` (CADET-Process)
 
 - **One CSV per measured signal**, two columns (time in s, value) and no header row, as in the
-  CADET-Process examples. `experiment.json` names each file's columns and unit. UV channels are
+  CADET-Process examples. `model_view.json` names each file's columns and unit. UV channels are
   in AU/cm, conductivity in S/m, %B in %, and with an extinction coefficient and molecular
   weight, the UV concentration in mol/m^3. Time zero is the method start.
 - **`flow.csv`**: the measured flow, in m^3/s.
-- **`experiment.json`**: the unit of every file, the column (geometry and where each value came
-  from), the system volumes, the sections built from the run log, by-pass windows, events,
-  fractions, buffer readings, method hints, the inputs for a CADET-Process `Process`
+- **`model_view.json`**: the unit of every file, the column (geometry and where each value came
+  from), the system volumes, the sections built from the run log, by-pass windows, the logged
+  events (`logged_events`: UNICORN's log entries, not CADET-Process events), fractions, buffer readings, method hints, the inputs for a CADET-Process `Process`
   (`process_inputs`: units, sections, inlet concentrations) and all warnings. Everything is in SI.
 
-For live CADET-Process objects, use `pycorn.exporters.cadet.build_experiment()` and
+For live CADET-Process objects, use `pycorn.exporters.cadet.model_view()` and
 `to_cadet_process()`. Set your model values on the returned `Process` with CADET-Process's own
 API. To simulate, install both: `pip install pycorn[cadet]` gives CADET-Process 0.12, which
 does not install a simulator, and `pip install CADET-Core==5.1.2` in the same environment gives
@@ -115,7 +115,7 @@ cadet-cli Chrom.1_core_v6.json out.h5
   calculated based on the system | sample flow` entry says which pump the axis counts; the
   valve positions say where the flow goes (none to the column while it is by-passed or at
   waste). Each changed section gives a `flow:` warning. From Python,
-  `build_experiment(run, flow_from_axis=False)` keeps the set flows.
+  `model_view(run, flow_from_axis=False)` keeps the set flows.
 - **`/meta`:** where the file came from (run name, chromatogram, versions; no connection
   details), the section names, which sections feed, the placeholders, your overrides and the
   warnings.
@@ -169,7 +169,7 @@ parameter layout: the nested dict `process.parameters` shows, e.g.
 `to_cadet_process(exp, process_overrides=...)` sets it last on the `Process` it returns
 (`process.parameters = ...`), and CADET-Process itself rejects a name it doesn't know.
 `export_cadet(..., process_overrides=...)` and `pycorn export --cadet --process-overrides
-FILE.json` build no `Process`: they store the block unchanged in `experiment.json` under
+FILE.json` build no `Process`: they store the block unchanged in `model_view.json` under
 `process_overrides`, so your own script sets it after building the `Process`. Things that are
 objects in CADET-Process rather than values (a binding model) are made with its API on the
 returned `Process`.
@@ -184,7 +184,7 @@ to CADET's names.
 The run records how much UV, conductivity and flow there was; it doesn't record what was in the
 load or what each fraction held. Those come from your offline assays (protein concentration,
 impurity %, salt), and each species you assay becomes a CADET component. `export_cadet()` and
-`pycorn export` don't take them: build the experiment yourself, then write it with the same
+`pycorn export` don't take them: build the model view yourself, then write it with the same
 functions they use.
 
 **1. Components and molecular weights.** One name per species, salt first if it matters for
@@ -250,7 +250,7 @@ configuration the result stores (`run.system_configuration()`; the same labels a
 
 A key of a position the run never logged (for example `B1` above) still raises `ValueError`,
 as before; the message now says when it is a valve's assumed first position and to key the
-line. Keys that worked before work the same. The experiment's `hints` give each section's
+line. Keys that worked before work the same. The model view's `hints` give each section's
 `inlet_labels` and `inlet_sources` (`known`, `assumed`, `not known`), and
 `exp.system['inlet_configuration']` the installed valves and pumps.
 
@@ -271,15 +271,15 @@ tube matches no fraction is warned about.
 **5. Build and write:**
 
 ```python
-from pycorn.exporters.cadet import build_experiment, to_csv
+from pycorn.exporters.cadet import model_view, to_csv
 from pycorn.exporters.cadet.core_input import to_core_input, write_json
 
-exp = build_experiment(run, components={"names": COMPONENTS, "molecular_weights": MW,
+exp = model_view(run, components={"names": COMPONENTS, "molecular_weights": MW,
                                         "feed": feed, "buffers": buffers},
                        fraction_masses="fraction_assays.csv",
                        epsilon=1.4, molecular_weight=MW["protein"],   # UV as protein, mol/m^3
                        bed_height=(2.5, "cm"), diameter=(1.6, "cm"))
-to_csv(exp, "cadet_out/Chrom.1_cadet")              # experiment.json lists the fractions with their mass
+to_csv(exp, "cadet_out/Chrom.1_cadet")              # model_view.json lists the fractions with their mass
 core = to_core_input(exp, "6", placeholders=True)    # core_overrides= as above
 write_json(core, "cadet_out/Chrom.1_core_v6.json")
 ```
@@ -302,7 +302,7 @@ python examplescripts/cadet_walkthrough.py --cadet-cli PATH/TO/cadet-cli --core 
    0.17 M salt in line B, and assays for the run's fraction `Frac`. They're chosen to agree with
    the run: the load's mass is what the measured UV shows. Replace them with your own. They are
    at the top of the script, under "EXAMPLE VALUES".
-2. It builds the experiment and writes the CADET-Core input with placeholders (no binding).
+2. It builds the model view and writes the CADET-Core input with placeholders (no binding).
 3. It runs `cadet-cli` (5 or 6).
 4. It writes `overlay.csv` (measured UV as protein, simulated protein, impurity and salt,
    measured conductivity, and a flag where the column was by-passed), `fractions.csv` (simulated
@@ -373,7 +373,7 @@ comparator.plot_comparison(results)
 
 The solution path is `outlet.inlet`: the outlet unit of pycorn's flow sheet. Use `start` / `end`
 (in s from the method start) to leave out windows where the column was by-passed
-(`experiment.json`, `bypass`) and the end of the run. `start=400, end=2250` fit
+(`model_view.json`, `bypass`) and the end of the run. `start=400, end=2250` fit
 [`samples/sample.zip`](../samples/sample.zip) only (by-pass until 79.5 s, run end at about 2260 s); take yours from
 your run's `bypass` windows and the part of the UV you want to fit.
 
@@ -393,7 +393,7 @@ match experiment". For other fraction metrics, see the CADET-Process documentati
 `export_cadet()` returns the warnings as `source: message`. `pycorn export` writes them to
 `warnings.csv`. The sources:
 
-- **`cadet`**: building the experiment from the run. Examples: guesses (a wavelength taken from a
+- **`cadet`**: building the model view from the run. Examples: guesses (a wavelength taken from a
   curve name), missing values (no tubing volume, no extinction coefficient for the primary UV),
   and sample inlets or caller values that weren't used. Column geometry notes (the run's values
   versus yours, a geometry that disagrees with the run's Vc) come as `cadet: column: ...`.
@@ -434,7 +434,7 @@ match experiment". For other fraction metrics, see the CADET-Process documentati
   The mixer and tubing take `INIT_C` the same way, on their unit numbers (`/meta/UNIT_NAMES`).
 - pycorn doesn't compare the measured UV with the simulated outlet or fit anything; CADET-Process
   does (see "Comparing with your data and fitting").
-- Offline assays (load composition, fraction results) go in through `build_experiment()`, not
+- Offline assays (load composition, fraction results) go in through `model_view()`, not
   through `export_cadet()` or `pycorn export` (see "Your offline assays").
 - CADET-Process 0.12 runs on CADET-Core 5 only. CADET-Core 6 is an alpha (6.0.0a5), so its
   field names may change.

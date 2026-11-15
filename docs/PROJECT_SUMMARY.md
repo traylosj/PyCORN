@@ -89,7 +89,7 @@ PyCORN/
 |   |-- uv_calibration.py     extinction coefficient from sample sent to the column by-pass (issue #1)
 |   |-- run_log_sections.py   Process sections from the executed run log
 |   |-- method_hints.py       The method as hints only: planned vs executed
-|   |-- exporters/cadet/      build_experiment() -> CadetExperiment (SI); calibration,
+|   |-- exporters/cadet/      model_view() -> ModelView (SI); calibration,
 |   |                         buffer readings; CADET-Process and CADET-Core 5/6 writers;
 |   |                         api.py: export_cadet()
 |   |-- sql/                  Query files shipped with the package:
@@ -163,7 +163,7 @@ Details: [`sql/CONNECTOR_GUIDE.md`](../sql/CONNECTOR_GUIDE.md).
 
 ## CADET Export
 
-`pycorn.exporters.cadet.build_experiment(run, ...)` returns a `CadetExperiment` in SI units,
+`pycorn.exporters.cadet.model_view(run, ...)` returns a `ModelView` in SI units,
 built from what the run executed (`run_log_sections()`), not from the method. UV is
 exported as AU/cm; mg/ml and salt need caller-given calibration. Buffer conductivity and pH
 are read where the column is by-passed. The method is read only as hints
@@ -171,7 +171,7 @@ are read where the column is by-passed. The method is read only as hints
 against what ran, plus sample-application, BufferPro, variables and documentation; nothing
 from the method changes a section. `pycorn.export_cadet(run, folder, core_version=...)` (or
 `pycorn export --cadet` / `--cadet-core 5|6`) writes CADET-Process CSVs with
-`experiment.json`, and a CADET-Core 5.1.2 or 6.0 input file. Model values go in through
+`model_view.json`, and a CADET-Core 5.1.2 or 6.0 input file. Model values go in through
 `core_overrides`, in CADET's own names; missing ones are filled with listed placeholders.
 Details: [`docs/CADET_GUIDE.md`](CADET_GUIDE.md).
 
