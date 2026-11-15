@@ -453,7 +453,7 @@ JSON_MAP = [
     ("instrument, column", "instrument model; Vc with its source", "UNICORN", "#path", [("3.6.1", None), ("3.6.1.2", None)]),
     ("procedure", "level PR: the result; chromatograms; links to campaign, series, stage, loads, fractions, pools (all caller's except fraction IDs)", "UNICORN + caller", "#above", [("3.1", None), ("3.4", None)]),
     ("unit_procedures[]", "level UP: label, boundary_source (cycles are the caller's)", "caller", "#above", [("3.3", None)]),
-    ("  .operations[]", "level OP: id, display_name, original, instance, state, process_operation, start/end, column_volume set point and actual", "UNICORN + PyCORN", "#levels", [("3.5", None), ("3.8", None)]),
+    ("  .operations[]", "level OP: id, label, label_source, original, instance, state, process_operation, start/end, column_volume set point and actual", "UNICORN + PyCORN", "#levels", [("3.5", None), ("3.8", None)]),
     ("    .phases[]", "level PH: one per UNICORN block; equipment_module", "UNICORN", "#levels", [("3.5", None), ("3.6.1", None)]),
     ("      .sections[]", "level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass", "UNICORN + volume axis", "#tables", [("3.5", None), ("3.7", None), ("3.8", None)]),
     ("states[]", "ISA-88 state bands: held, holding, restarting, paused", "PyCORN", "#levels", [("3.7", None)]),
@@ -466,7 +466,8 @@ JSON_MAP = [
 
 KEY_GLOSSARY = [
     ("level", "procedure, unit_procedure, operation, phase, section", "ISA-88 levels; section is CADET-Core's word", "table-17"),
-    ("element_id", "PR, UP1, OP3, OP3/PH1, OP3/PH1/SE2", "the same key in tables, CADET and JSON, so they join", "table-17"),
+    ("element_id", "PR, UP1, OP3, OP3/PH1, OP3/PH1/SE2", "the same key in tables, CADET and JSON, so they join; never shown", "table-17"),
+    ("label, label_source", "Elution / UNICORN; Load / User input", "the name shown; the user may override it (BatchML Label)", "table-17"),
     ("original", "level, text (and state for a pause or hold)", "UNICORN's own words, never lost", "table-17"),
     ("instance", "1, 2, ...", "which repeat of a phase that ran more than once", "table-17"),
     ("state", "running, held, paused, holding, restarting, stopping", "ISA-88 states: UNICORN Pause = Held, Hold = Paused", "table-17"),
@@ -579,7 +580,8 @@ def analyze(path):
                            repeats=1, a=0.0, b=r["end_elapsed_s"], start_volume=None, end_volume=None, start_cv=None,
                            end_cv=None, volume_unit=None, synthetic=True, display_name="Manual run (no phases)")]
     for i, op in enumerate(ops, 1):
-        op["id"] = "OP%d" % i
+        op["id"] = "OP%d" % i  # positional key, never shown: the label carries the name
+        op["label"] = op["name"]
         op["wa"], op["wb"] = wall(op["a"]), wall(op["b"])
     A["ops"] = ops
     A["chroms"] = run.describe_chromatograms()
@@ -590,19 +592,54 @@ def analyze(path):
         A["system_type"] = str(m["value"].iloc[0]) if len(m) else ""
     rd = frames.get("run_details")
     A["batch_id_present"] = bool(rd is not None and len(rd) and rd.astype(str).apply(lambda col: col.str.contains("Batch ID", case=False, na=False)).any().any())
-    A["steps"] = build_steps(S, r["entries"], ops)
+    A["steps"] = build_steps(S, ops)
+    A["lead_in"] = lead_in(S)
     A["states"] = build_states(S, rows)
     A["blocks"] = build_blocks(S)
     return A
 
 
-def build_steps(S, entries, ops):
-    """Display steps: the proposal's rule (sections joined, previous phase's set points folded within 10 s)."""
-    kinds = {"flow": "system_flow", "b": "gradient"}
-    all_pieces, all_steps = [], []
+STEP_KEYS = ("flow", "b_pct", "slope", "feed", "bypass", "held")
+
+
+def _differs(sliver, target):
+    """What a short piece had that the step it joins does not, in words."""
+    out = []
+    if sliver["flow"] != target["flow"]:
+        out.append("%s ml/min" % f(sliver["flow"], 2))
+    if sliver["b_pct"] != target["b_pct"] or sliver["slope"] != target["slope"]:
+        out.append("%s %%B" % f(sliver["b_pct"], 1))
+    for key, word in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")):
+        if sliver[key] != target[key]:
+            out.append("%s %s" % (word, "on" if sliver[key] else "off"))
+    return ", ".join(out) or "same values"
+
+
+def sec_ranges(secs):
+    """Section numbers as '#3-6, #8': the '#' column of the sections table."""
+    secs, out, i = sorted(secs), [], 0
+    while i < len(secs):
+        j = i
+        while j + 1 < len(secs) and secs[j + 1] == secs[j] + 1:
+            j += 1
+        out.append("#%d" % secs[i] if i == j else "#%d-%d" % (secs[i], secs[j]))
+        i = j + 1
+    return ", ".join(out)
+
+
+def build_steps(S, ops):
+    """
+    Display steps (local/DISPLAY_STEPS_PROPOSAL.md, rules 1 to 3). One step per operation, split only
+    where flow, %B, feed, by-pass or Hold changes. Every pause is its own Held row. A running piece
+    under CUTOFF_S joins the step after it when it starts the operation or follows a pause, else
+    the step before it, unless it has a Hold, feed or by-pass the step lacks (those are never
+    hidden). Each step keeps `parts`: the sections it joined,
+    `absorbed` for the short pieces, and `notes` for what was absorbed.
+    """
+    all_steps = []
     for op in ops:
         pieces = []
-        for s in S:
+        for i, s in enumerate(S):
             a, b = max(s.elapsed_start_s, op["a"]), min(s.elapsed_end_s, op["b"])
             if s.paused:
                 if not op["a"] - 1e-6 <= s.elapsed_start_s < op["b"] - 1e-6:
@@ -613,37 +650,93 @@ def build_steps(S, entries, ops):
             wb = s.start_s + (b - s.elapsed_start_s)
             pieces.append(dict(a=a, b=b, wa=wa, wb=wb, flow=0.0 if s.paused else (s.column_flow_ml_min or 0.0),
                                b_pct=s.percent_b[0] or 0.0, slope=s.percent_b[1], feed=bool(s.feed),
-                               bypass=bool(s.bypass), paused=s.paused, held=s.held, op=op["id"], notes=[], fold_s=0.0))
-        for key, kind in kinds.items():
-            first = next((e["elapsed_s"] for e in entries if e["kind"] == kind
-                          and op["a"] - 1e-6 <= e["elapsed_s"] < op["b"] - 1e-6), None)
-            if first is None or first - op["a"] > CUTOFF_S:
-                continue
-            after = next((x for x in pieces if x["a"] >= first - 1e-6 and not x["paused"]), None)
-            if after is None:
-                continue
-            for x in pieces:
-                if x["b"] <= first + 1e-6 and not x["paused"]:
-                    field = "flow" if key == "flow" else "b_pct"
-                    if x[field] != after[field]:
-                        x["fold_s"] = x["b"] - x["a"]
-                        x["notes"].append("first %.1f s at %s %s (previous phase's set point)"
-                                          % (x["b"] - x["a"], f(x[field], 2), "ml/min" if key == "flow" else "%B"))
-                    x[field] = after[field]
+                               bypass=bool(s.bypass), paused=s.paused, held=s.held, op=op["id"], notes=[],
+                               n_sections=1, parts=[dict(sec=i, a=a, b=b, wa=wa, wb=wb, absorbed=False)]))
+            pieces[-1]["parts"][0]["vals"] = {c: pieces[-1][c] for c in STEP_KEYS}
         steps = []
-        for x in pieces:
-            if steps and not x["paused"] and not steps[-1]["paused"] and all(
-                    steps[-1][k] == x[k] for k in ("flow", "b_pct", "slope", "feed", "bypass", "held")):
-                steps[-1]["b"], steps[-1]["wb"] = x["b"], x["wb"]
-                steps[-1]["notes"] += x["notes"]
-                steps[-1]["n_sections"] += 1
-            else:
-                y = dict(x)
-                y["n_sections"] = 1
-                steps.append(y)
-        all_pieces += pieces
+
+        def join_equal():
+            """Rule 1: neighbouring running steps with the same values are one step."""
+            k = 1
+            while k < len(steps):
+                x, y = steps[k - 1], steps[k]
+                if not x["paused"] and not y["paused"] and all(x[c] == y[c] for c in STEP_KEYS):
+                    x["b"], x["wb"] = y["b"], y["wb"]
+                    x["parts"] += y["parts"]
+                    x["notes"] += y["notes"]
+                    x["n_sections"] += y["n_sections"]
+                    del steps[k]
+                else:
+                    k += 1
+
+        steps.extend(pieces)
+        join_equal()
+        absorbing = True
+        while absorbing:  # rule 3
+            absorbing = False
+            for k, st in enumerate(steps):
+                if st["paused"] or st["b"] - st["a"] >= CUTOFF_S:
+                    continue
+                before = steps[k - 1] if k and not steps[k - 1]["paused"] else None
+                after = steps[k + 1] if k + 1 < len(steps) and not steps[k + 1]["paused"] else None
+                starts = k == 0 or steps[k - 1]["paused"]
+                target = (after or before) if starts else (before or after)
+                # feed, by-pass and Hold are never hidden: the step it joins must have them on too
+                if target is None or any(st[c] and not target[c] for c in ("feed", "bypass", "held")):
+                    continue
+                for p in st["parts"]:
+                    p["absorbed"] = True
+                if target is after:
+                    target["a"], target["wa"] = st["a"], st["wa"]
+                    target["parts"] = st["parts"] + target["parts"]
+                else:
+                    target["b"], target["wb"] = st["b"], st["wb"]
+                    target["parts"] = target["parts"] + st["parts"]
+                target["n_sections"] += st["n_sections"]
+                del steps[k]
+                join_equal()
+                absorbing = True
+                break
+        for st in steps:  # one note per run of absorbed sections
+            runs, cur = [], []
+            for p in st["parts"]:
+                if p["absorbed"]:
+                    cur.append(p)
+                elif cur:
+                    runs.append(cur)
+                    cur = []
+            if cur:
+                runs.append(cur)
+            for run in runs:
+                where = "first" if run[0] is st["parts"][0] else "last" if run[-1] is st["parts"][-1] else "middle"
+                diffs = []
+                for p in run:
+                    diffs += [d for d in _differs(p["vals"], st).split(", ") if d not in diffs and d != "same values"]
+                st["notes"].append("%s %.1f s (section%s %s) absorbed: %s" % (
+                    where, run[-1]["b"] - run[0]["a"], "s" if len(run) > 1 else "",
+                    sec_ranges([p["sec"] for p in run]), ", ".join(diffs) or "same values"))
         all_steps += steps
     return all_steps
+
+
+def lead_in(S):
+    """
+    Rule 4 (CADET model view): the unpaused sections before the first flow that moves volume,
+    with no feed, no by-pass and no %B ramp, merge into one zero-flow section. Returns the
+    section numbers, the time range and the start of the last one (the valves at its end carry
+    on), or None when fewer than two lead in or no flow follows.
+    """
+    n = 0
+    while n < len(S):
+        s = S[n]
+        idle = (not s.paused and not s.feed and not s.bypass and not s.percent_b[1]
+                and ((s.column_flow_ml_min or 0.0) == 0.0 or s.end_s - s.start_s <= 1e-6))
+        if not idle:
+            break
+        n += 1
+    if n < 2 or n == len(S):
+        return None
+    return dict(secs=list(range(n)), start_s=S[0].start_s, end_s=S[n - 1].end_s, last_start_s=S[n - 1].start_s)
 
 
 def build_blocks(S):
@@ -742,6 +835,19 @@ def axis_ticks(svg, A, X, y):
     svg.text(W - RM, y + 10, "wall-clock time (min, pauses included)", 11, INK2, "end")
 
 
+def _windows(S, pred):
+    """(start, end) of each stretch of neighbouring unpaused sections for which `pred(section)` holds."""
+    out = []
+    for s in S:
+        if s.paused or not pred(s):
+            continue
+        if out and abs(out[-1][1] - s.start_s) < 1e-6:
+            out[-1] = (out[-1][0], s.end_s)
+        else:
+            out.append((s.start_s, s.end_s))
+    return out
+
+
 def fig_levels(A):
     S, ops, X = A["S"], A["ops"], xmap(A)
     svg = Svg(W)
@@ -784,10 +890,10 @@ def fig_levels(A):
     top, h = row("Operation", "UNICORN: phase (%d)" % len(ops))
     for i, op in enumerate(ops):
         w = X(op["wb"]) - X(op["wa"])
-        tip = "%s %s: %.1f - %.1f s (method time %.1f - %.1f)" % (op["id"], op["display_name"], op["wa"], op["wb"], op["a"], op["b"])
+        tip = "%s (element_id %s):%.1f - %.1f s (method time %.1f - %.1f)" % (op["display_name"], op["id"], op["wa"], op["wb"], op["a"], op["b"])
         svg.rect(X(op["wa"]), top, w - 1, h, LEVEL_FILLS[i % 2], 3, tip,
                  dash="4 3" if op["synthetic"] else None, stroke="#8d8c88" if op["synthetic"] else None)
-        label = "%s %s" % (op["id"], op["display_name"])
+        label = op["display_name"]
         if w > 110:
             svg.text(X(op["wa"]) + 5, top + 17, label, 11)
         elif w > 8:
@@ -802,42 +908,59 @@ def fig_levels(A):
         if w > 80:
             svg.text(X(bl["wa"]) + 5, top + 17, bl["name"], 10.5)
 
-    top, h = row("", "", h=44)
+    top, h = row("", "", h=68)
     svg.text(L - 12, top - 8, "Activities", 12, INK, "end", "600")
+    bar = 20  # bar height of the three activity rows (feed, by-pass, fractions), one row every 24
     for s in S:
         if s.paused:
             continue
         if s.feed:
-            svg.rect(X(s.start_s), top, X(s.end_s) - X(s.start_s), 12, C_FEED, 2,
+            svg.rect(X(s.start_s), top, X(s.end_s) - X(s.start_s), bar, C_FEED, 2,
                      "sample feed: valve %s, %.1f - %.1f s" % (s.injection_valve, s.start_s, s.end_s))
         elif s.sample_use == "to_bypass":
-            svg.rect(X(s.start_s), top, X(s.end_s) - X(s.start_s), 12, "#b9d9c9", 2,
+            svg.rect(X(s.start_s), top, X(s.end_s) - X(s.start_s), bar, "#b9d9c9", 2,
                      "sample sent to the by-pass: %.1f - %.1f s" % (s.start_s, s.end_s))
         if s.bypass:
-            svg.rect(X(s.start_s), top + 15, X(s.end_s) - X(s.start_s), 12, C_BYPASS, 2,
+            svg.rect(X(s.start_s), top + 24, X(s.end_s) - X(s.start_s), bar, C_BYPASS, 2,
                      "column by-passed: %.1f - %.1f s (column flow 0)" % (s.start_s, s.end_s))
+    for pred, name, row_y, ink in ((lambda s: s.feed, "feed", 0, "#ffffff"),
+                                   (lambda s: s.sample_use == "to_bypass" and not s.feed, "sample to by-pass", 0, INK),
+                                   (lambda s: s.bypass, "by-pass", 24, "#ffffff")):
+        for a, b in _windows(S, pred):
+            if X(b) - X(a) > 7 * len(name) + 10:
+                svg.text(X(a) + 5, top + row_y + 14, name, 11.5, ink)
+            else:  # too narrow for the word: write it beside the bar, with the length
+                svg.text(X(b) + 6, top + row_y + 14, "%s %s s" % (name, f(b - a, 0)), 11.5, INK)
     try:
         for fr in event_tables.rows(A["ch"], "fraction"):
             if fr["pseudo"]:
                 continue
             a, b = A["wall"](fr["start_time"] * 60), A["wall"](fr["end_time"] * 60)
-            svg.rect(X(a), top + 30, X(b) - X(a), 12, C_FRAC, 1, "fraction %s: %.1f - %.1f s, %s ml"
+            svg.rect(X(a), top + 48, X(b) - X(a), bar, C_FRAC, 1, "fraction %s: %.1f - %.1f s, %s ml"
                      % (fr["name"], a, b, f(fr["length_volume"], 2)))
+            if X(b) - X(a) > 7 * len(str(fr["name"])) + 4:
+                svg.text((X(a) + X(b)) / 2, top + 62, fr["name"], 10.5, "#ffffff", "middle")
     except Exception:  # noqa: BLE001
         pass
-    svg.text(L - 12, top + 11, "feed", 9.5, INK2, "end")
-    svg.text(L - 12, top + 26, "by-pass", 9.5, INK2, "end")
-    svg.text(L - 12, top + 41, "fractions", 9.5, INK2, "end")
+    svg.text(L - 12, top + 14, "feed", 12, INK, "end")
+    svg.text(L - 12, top + 38, "by-pass", 12, INK, "end")
+    svg.text(L - 12, top + 62, "fractions", 12, INK, "end")
 
     top, h = row("Section", "%d; CADET-Process: Phase" % len([s for s in S if not s.paused]))
     for i, s in enumerate(S):
         if s.paused:
             svg.diamond(X(s.start_s), top + 6, "pause %.1f s at %.1f s wall clock" % (s.end_s - s.start_s, s.start_s))
             continue
-        tip = "SE: %.1f - %.1f s | flow set %s ml/min (column %s) | %%B %s | valve %s | inlets %s | %s" % (
-            s.start_s, s.end_s, f(s.system_flow_ml_min, 3), f(s.column_flow_ml_min, 3), f(s.percent_b[0], 1),
+        tip = "section #%d: %.1f - %.1f s | flow set %s ml/min (column %s) | %%B %s | valve %s | inlets %s | %s" % (
+            i, s.start_s, s.end_s, f(s.system_flow_ml_min, 3), f(s.column_flow_ml_min, 3), f(s.percent_b[0], 1),
             s.injection_valve, s.inlets, "; ".join(s.changes))
         svg.rect(X(s.start_s), top, X(s.end_s) - X(s.start_s) - 1, h, STEP_FILLS[i % 2], 0, tip)
+    li = A["lead_in"]
+    if li:
+        svg.rect(X(li["start_s"]) - 1, top - 2, X(li["end_s"]) - X(li["start_s"]) + 2, h + 4, "none", 2,
+                 "CADET model view, rule 4: sections %s have no flow and merge into one zero-flow section "
+                 "(%.1f - %.1f s). The valves as set at %.1f s carry into the first flow section."
+                 % (sec_ranges(li["secs"]), li["start_s"], li["end_s"], li["last_start_s"]), stroke=C_BYPASS, dash="3 2")
 
     svg.line(20, y - 14, W - RM, y - 14, INK2, 1, "4 4")
     svg.text(20, y - 2, "Display (not in the record: computed from the sections each time)", 10.5, INK2)
@@ -847,30 +970,94 @@ def fig_levels(A):
     n = 0
     for st in steps:
         if st["paused"]:
-            svg.diamond(X(st["wa"]), top + 8, "pause")
+            svg.diamond(X(st["wa"]), top + 8, "pause (Held): %.1f - %.1f s, section %s" % (
+                st["wa"], st["wb"], sec_ranges([p["sec"] for p in st["parts"]])))
             continue
         n += 1
         w = X(st["wb"]) - X(st["wa"])
-        tip = "step %d (%s): %.1f - %.1f s | %s ml/min | %s %%B | %d section(s)%s" % (
-            n, st["op"], st["wa"], st["wb"], f(st["flow"], 3), f(st["b_pct"], 1), st["n_sections"],
+        listing = "; ".join("#%d %.1f-%.1f s%s" % (p["sec"], p["wa"], p["wb"], " (absorbed)" if p["absorbed"] else "") for p in st["parts"])
+        tip = "step %d (%s): %.1f - %.1f s | %s ml/min | %s %%B | joins %d section(s): %s%s" % (
+            n, st["op"], st["wa"], st["wb"], f(st["flow"], 3), f(st["b_pct"], 1), st["n_sections"], listing,
             " | " + "; ".join(st["notes"]) if st["notes"] else "")
         svg.rect(X(st["wa"]), top, w - 1, h, STEP_FILLS[n % 2], 0, tip)
-        if st["notes"]:
-            svg.rect(X(st["wa"]), top, max(X(st["wa"] + st["fold_s"]) - X(st["wa"]), 4), 7, C_PREV, 0, tip)
+        for p in st["parts"]:
+            if p["absorbed"]:
+                svg.rect(X(p["wa"]), top, max(X(p["wb"]) - X(p["wa"]) - 1, 3), h, C_PREV, 0, tip, opacity=0.8)
+        for p in st["parts"][1:]:  # every place two original sections were joined
+            svg.line(X(p["wa"]), top - 3, X(p["wa"]), top + h + 3, INK, 1.2, "2 2" if not p["absorbed"] else None)
         if w > 70:
             svg.text(X(st["wa"]) + 4, top + 12, "%s ml/min" % f(st["flow"], 2), 10)
             svg.text(X(st["wa"]) + 4, top + 25, "%s %%B" % f(st["b_pct"], 0), 10)
+        if w > 26:
+            svg.text(X(st["wa"]) + 2, top + h + 12, sec_ranges([p["sec"] for p in st["parts"]]), 9, INK2)
 
     axis_ticks(svg, A, X, y + 8)
     y += 26
     lx = L
-    for fill, name in ((STEP_FILLS[1], "section / display step"), (C_PREV, "orange tick: previous phase's set point folded into this step"),
+    for fill, name in ((STEP_FILLS[1], "section / display step"), (C_PREV, "orange: short piece (under 10 s) absorbed into the step it touches"),
                        (C_FEED, "feed"), (C_BYPASS, "column by-pass"), (C_FRAC, "fraction")):
         svg.rect(lx, y, 13, 11, fill, 2)
         svg.text(lx + 19, y + 10, name, 10.5, INK2)
         lx += 28 + 6.3 * len(name)
+    y += 18
+    lx = L
+    svg.line(lx + 6, y - 2, lx + 6, y + 13, INK, 1.2, "2 2")
+    svg.text(lx + 19, y + 10, "dashed line: two sections with the same values joined (numbers under a step: the sections it joins, as in the sections table)", 10.5, INK2)
+    y += 18
+    svg.rect(L, y, 13, 11, "none", 2, stroke=C_BYPASS, dash="3 2")
+    svg.text(L + 19, y + 10, "dashed box on the Section row: CADET merges these no-flow sections before the first flow into one (rule 4)", 10.5, INK2)
     y += 30
     svg.y = y
+    return svg.out()
+
+
+def fig_joins(A):
+    """
+    Where original sections were joined, one row per display step that joined more than one.
+    The cells are the sections, equal width (not to time scale): the figure above is to time scale,
+    where a 1 s piece is invisible.
+    """
+    steps = [st for st in A["steps"] if not st["paused"] and len(st["parts"]) > 1]
+    if not steps:
+        return "<p class='lead'>No display step joined more than one section in this run.</p>"
+    cw, ch, gap, left = 190, 50, 8, 330
+    width = left + max(len(st["parts"]) for st in steps) * (cw + gap) + 20
+    svg = Svg(max(width, 900))
+    y = 24
+    svg.text(20, y, "Where original sections were joined - %s" % A["file"], 15, weight="600")
+    y += 18
+    svg.text(20, y, "Each cell is one original section (# as in the sections table), not to time scale. "
+                    "Blue: same values as the step. Orange: a short piece absorbed into the step.", 11.5, INK2)
+    y += 22
+    n = 0
+    for st in A["steps"]:
+        if st["paused"]:
+            continue
+        n += 1
+        if len(st["parts"]) < 2:
+            continue
+        flags = ", ".join(w for k, w in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")) if st[k])
+        op = next((o for o in A["ops"] if o["id"] == st["op"]), None)
+        svg.text(20, y + 14, "Step %d: %s" % (n, op["display_name"] if op else st["op"]), 12.5, INK, weight="600")
+        svg.text(20, y + 31, "%.1f - %.1f s, %s ml/min, %s %%B%s" % (st["wa"], st["wb"], f(st["flow"], 2), f(st["b_pct"], 0),
+                                                              (", " + flags) if flags else ""), 11, INK2)
+        svg.text(20, y + 46, "%d sections joined, %d absorbed" % (len(st["parts"]), len([p for p in st["parts"] if p["absorbed"]])), 11, INK2)
+        x = left
+        for p in st["parts"]:
+            tip = "section #%d: %.1f - %.1f s (%.1f s)%s" % (p["sec"], p["wa"], p["wb"], p["b"] - p["a"],
+                                                           " absorbed: " + _differs(p["vals"], st) if p["absorbed"] else "")
+            if p["absorbed"]:
+                svg.rect(x, y, cw, ch, C_PREV, 3, tip, opacity=0.85)
+            else:
+                svg.rect(x, y, cw, ch, STEP_FILLS[1], 3, tip)
+            ink = "#ffffff" if p["absorbed"] else INK
+            svg.text(x + 7, y + 17, "#%d   %s s" % (p["sec"], f(p["b"] - p["a"], 1)), 12, ink, weight="600")
+            svg.text(x + 7, y + 34, ("absorbed: " + _differs(p["vals"], st)) if p["absorbed"] else "same values", 10.5, ink)
+            x += cw + gap
+        svg.line(left, y + ch + 6, x - gap, y + ch + 6, INK, 1.5)
+        svg.text(left, y + ch + 19, "= display step %d" % n, 10.5, INK2)
+        y += ch + 34
+    svg.y = y + 4
     return svg.out()
 
 
@@ -1497,7 +1684,7 @@ def ops_table(A):
         record_vals[op["id"]] = dict(set=set_ml, actual=act_ml, feed_set=feed_set, feed_actual=feed_act)
         diff = (act_ml - set_ml) / set_ml * 100.0 if set_ml > 0.0005 else None
         vu = op.get("volume_unit") or "ml"
-        out_rows.append([op["id"], op["display_name"], op["instance"], op["original"], f(op["a"] / 60, 3), f(op["b"] / 60, 3),
+        out_rows.append([op["id"], op["label"], op["instance"], op["original"], f(op["a"] / 60, 3), f(op["b"] / 60, 3),
                          f((op["b"] - op["a"]), 1), f(op["start_volume"], 2) if op["start_volume"] is not None else "-",
                          f(op["end_volume"], 2) if op["end_volume"] is not None else "-",
                          f(op["start_cv"], 2) if op["start_cv"] is not None else "-",
@@ -1506,7 +1693,7 @@ def ops_table(A):
                          f(feed_set, 3) if feed_set else "-", f(feed_act, 3) if feed_set else "-",
                          "(empty: caller maps)"])
     A["op_values"] = record_vals
-    return table(["id", "display name", "instance", "UNICORN text (original)", "start min", "end min", "length s", "start vol",
+    return table(["element_id", "label", "instance", "UNICORN text (original)", "start min", "end min", "length s", "start vol",
                   "end vol", "start CV", "end CV", "column vol set point (ml)", "column vol actual (ml)", "diff",
                   "feed set (ml)", "feed actual (ml)", "process_operation"], out_rows, "wide")
 
@@ -1515,8 +1702,9 @@ def steps_table(A):
     rows = []
     n = 0
     for st in A["steps"]:
+        secs = sec_ranges([p["sec"] for p in st["parts"]])
         if st["paused"]:
-            rows.append(["-", st["op"], f(st["wa"], 1), f(st["wb"], 1), "-", "-", "-", "Held (pause)", "-"])
+            rows.append(["-", st["op"], f(st["wa"], 1), f(st["wb"], 1), "-", "-", secs, "-", "Held (pause), never joined", "-"])
             continue
         n += 1
         flags = []
@@ -1526,10 +1714,19 @@ def steps_table(A):
             flags.append("by-pass")
         if st["held"]:
             flags.append("Hold")
+        absorbed = [p["sec"] for p in st["parts"] if p["absorbed"]]
+        same = [p["sec"] for p in st["parts"] if not p["absorbed"]]
+        if len(st["parts"]) == 1:
+            how = "one section, not joined"
+        else:
+            how = "%d sections, same values: %s" % (len(same), sec_ranges(same)) if len(same) > 1 else "%d sections" % len(st["parts"])
+            if absorbed:
+                how += "; short pieces absorbed: %s" % sec_ranges(absorbed)
+        cell = H("<b>%s</b>" % E(how)) if absorbed else how
         rows.append([n, st["op"], f(st["wa"], 1), f(st["wb"], 1), f(st["flow"], 3), f(st["b_pct"], 1) + (" (ramp %.3f %%/s)" % st["slope"] if abs(st["slope"]) > 0 else ""),
-                     st["n_sections"], ", ".join(flags) or "-", "; ".join(st["notes"]) or "-"])
-    return table(["step", "operation", "start s", "end s", "column flow ml/min", "%B", "sections joined", "activity", "note (folded set point)"],
-                 rows, "wide")
+                     secs, ", ".join(flags) or "-", cell, "; ".join(st["notes"]) or "-"])
+    return table(["step", "operation", "start s", "end s", "column flow ml/min", "%B", "original sections (# in the sections table)", "activity",
+                  "how they were joined", "note (what was absorbed)"], rows, "wide")
 
 
 def sections_table(A):
@@ -1712,25 +1909,27 @@ def record(A):
                                    chromatograms=[OrderedDict(name=c["name"], kind=c["kind"]) for c in A["chroms"]],
                                    links=OrderedDict(campaign_id=None, series=None, process_stage=None, loads=[], fractions=[],
                                                      pools=[], note="all caller-supplied except fraction IDs (run + tube)"))
-    ups = OrderedDict(level="unit_procedure", element_id="UP1", label="", boundary_source="default", operations=[])
+    ups = OrderedDict(level="unit_procedure", element_id="UP1", label="", label_source="", boundary_source="default", operations=[])
     blocks_by_op = {}
     for k, (s, row) in enumerate(zip(S, rows)):
         mid = s.elapsed_start_s
         op = next((o for o in ops if o["a"] - 1e-6 <= mid < o["b"] - 1e-6), ops[-1])
         blocks_by_op.setdefault(op["id"], []).append((k, s, row))
     for op in ops:
-        o = OrderedDict(level="operation", element_id=op["id"], display_name=op["display_name"], original=OrderedDict(level="phase", text=op["original"]),
+        o = OrderedDict(level="operation", element_id=op["id"], label=op["label"], label_source="UNICORN", original=OrderedDict(level="phase", text=op["original"]),
                         instance=op["instance"], state="running", process_operation="",
                         start=OrderedDict(wall_s=round(op["wa"], 3), method_s=round(op["a"], 3)),
                         end=OrderedDict(wall_s=round(op["wb"], 3), method_s=round(op["b"], 3)),
                         column_volume=[val(A["op_values"][op["id"]]["set"], "mL", "set_point", "calculated", "run_log"),
                                        val(A["op_values"][op["id"]]["actual"], "mL", "actual", "calculated", "volume_axis")],
                         phases=[])
-        phases = OrderedDict()
+        phases = []
         for k, s, row in blocks_by_op.get(op["id"], []):
             pname = s.block or "(no block)"
-            ph = phases.setdefault(pname, OrderedDict(level="phase", element_id="%s/PH%d" % (op["id"], len(phases) + 1),
-                                                       original=OrderedDict(level="block", text=pname), equipment_module="system_pump", sections=[]))
+            if not phases or phases[-1]["original"]["text"] != pname:  # each run of a block is its own phase
+                phases.append(OrderedDict(level="phase", element_id="%s/PH%d" % (op["id"], len(phases) + 1), label=pname, label_source="UNICORN",
+                                          original=OrderedDict(level="block", text=pname), equipment_module="system_pump", sections=[]))
+            ph = phases[-1]
             sec = OrderedDict(level="section", element_id="%s/SE%d" % (ph["element_id"], len(ph["sections"]) + 1), state="held" if s.paused else ("paused" if s.held else "running"),
                               start=OrderedDict(wall_s=round(s.start_s, 3), method_s=round(s.elapsed_start_s, 3)), end=OrderedDict(wall_s=round(s.end_s, 3), method_s=round(s.elapsed_end_s, 3)))
             if s.paused:
@@ -1745,7 +1944,7 @@ def record(A):
                 sec["inlets"] = {k2: OrderedDict(position=v2, state=(s.inlet_states.get(k2) or {}).get("state")) for k2, v2 in (s.inlets or {}).items()}
                 sec["bypass"] = s.bypass
             ph["sections"].append(sec)
-        o["phases"] = list(phases.values())
+        o["phases"] = phases
         ups["operations"].append(o)
     rec["unit_procedures"] = [ups]
     rec["states"] = [OrderedDict(state=b["state"], start_wall_s=round(b["wa"], 3), end_wall_s=round(b["wb"], 3), how_found=b["why"]) for b in A["states"]]
@@ -1786,7 +1985,9 @@ def record(A):
                            state="held" if st["paused"] else "running",
                            column_flow=None if st["paused"] else val(st["flow"], "mL/min", "set_point", "logged", "run_log"),
                            percent_b=None if st["paused"] else val(st["b_pct"], "%", "set_point", "logged", "run_log"),
-                           sections_joined=st.get("n_sections", 0), folded_note="; ".join(st["notes"]) or None) for st in A["steps"]]))
+                           sections_joined=st.get("n_sections", 0), sections=[p["sec"] for p in st["parts"]],
+                           absorbed_sections=[p["sec"] for p in st["parts"] if p["absorbed"]],
+                           absorbed_note="; ".join(st["notes"]) or None) for st in A["steps"]]))
     rec["warnings"] = list(OrderedDict.fromkeys(list(A["r"]["warnings"]) + list(A["dwarn"]) + (list(A["view"].warnings) if A["view"] else [])))
     rec["not_known"] = [x["fact"] for x in A["inv"]["facts"] if x["status"] in ("missing", "caller")]
     return rec
@@ -1818,7 +2019,11 @@ def check_list(A):
         items.append("Repeated phases (%s) are named with an instance number: acceptable display wording (Decide 23)?" % ", ".join(sorted({o["display_name"] for o in rep})))
     fold = [x for x in A["steps"] if x["notes"]]
     if fold:
-        items.append("%d display step(s) fold a previous-phase set point (orange): check the note wording and the 10 s rule (Decide 18)." % len(fold))
+        items.append("%d display step(s) absorb a short piece (orange, under 10 s): check the note wording and the 10 s rule (Decide 18)." % len(fold))
+    if A["lead_in"]:
+        li = A["lead_in"]
+        items.append("CADET model view, rule 4: sections %s (%.1f to %.1f s, no flow) merge into one zero-flow section: right for the time axis?" % (
+            sec_ranges(li["secs"]), li["start_s"], li["end_s"]))
     states = {}
     for s in S:
         for line, st in (s.inlet_states or {}).items():
@@ -1985,6 +2190,8 @@ def page(A, inv, rec_name):
     parts.append('<h2 id="levels">1. Levels, states and display steps</h2><p class="lead">Operation = UNICORN phase, phase = '
                  'UNICORN block, section = one executed instruction. State follows ISA-88 (Pause is Held, Hold is Paused).</p>%s<div class="fig">%s</div>' % (
                      docs(rs("3.5"), rst(6), rsf(7), rs("3.7"), rst(11), rst(12), rsf(10), rst(22), rst(23), decide(23), decide(18)), safe("levels", fig_levels, A)))
+    parts.append('<h3>Where sections were joined</h3><p class="lead">The same display steps with every original section as a cell. '
+                 'Long runs hide the short pieces in the figure above.</p><div class="fig">%s</div>' % safe("joins", fig_joins, A))
     parts.append('<h2 id="setact">2. Set point next to actual</h2><p class="lead">What the method set, what the pump delivered, what UNICORN measured. '
                  'Measured traces break at pauses: no data is stored while the run is held.</p>%s<div class="fig">%s</div>' % (
                      docs(rs("3.8"), rst(13), rst(18), decide(6), decide(15), decide(18), ref("Scope row 8", RM_, "Scope decisions for CADET")), safe("setact", fig_setpoint_actual, A)))
@@ -1992,9 +2199,16 @@ def page(A, inv, rec_name):
         docs(ref("Finding curves by role", UG, "Finding Curves: by Role, Not by Name"), ref("Axes", UG, "Axes"), rs("5")), safe("curves", fig_curves, A)))
     parts.append('<h2 id="tables">4. Tables</h2>' + docs(rs("5"), rst(17), rst(18), rst(21), ref("Export guide", EG, "Phase window statistics")))
     parts.append("<h3>Operations, with set point and actual volumes</h3>" + safe("ops", ops_table, A))
-    parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Sections joined where flow, %B, feed and activity are equal. Orange rows in the figure are the folded ones.</p>" + safe("steps", steps_table, A))
+    parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per operation, split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
+                 "Rule 3: a piece under 10 s joins the step after it at the start of an operation or after a pause, else the step before it. A Hold, feed or by-pass is never hidden: a short piece that has one joins only a step that has it too. "
+                 "Bold rows absorbed such a piece (orange in the figure). The sections table below has the same # numbers.</p>" + safe("steps", steps_table, A))
     parts.append("<h3>States other than Running</h3>" + safe("states", states_html, A))
-    parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + safe("sections", sections_table, A))
+    li = A["lead_in"]
+    li_note = ("<p class='lead'>Rule 4 (CADET model view): sections %s (%.1f - %.1f s) have no flow, no feed, no by-pass and no ramp. "
+               "They merge into one zero-flow section, so the time axis and the signals stay aligned. The valves as set at %.1f s carry into "
+               "the first flow section. Pauses and later zero-flow stretches are not merged.</p>" % (
+                   sec_ranges(li["secs"]), li["start_s"], li["end_s"], li["last_start_s"])) if li else ""
+    parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + li_note + safe("sections", sections_table, A))
     parts.append("<h3>Material: loads, fractions, pools</h3>" + safe("materials", materials_html, A))
     parts.append('<h2 id="path">5. Flow path and the volumes on it</h2><p class="lead">Which volumes UNICORN stores, which it does not. CADET needs the red ones from the caller.</p>%s<div class="fig">%s</div>' % (
         docs(rs("3.6.1"), rs("3.6.1.1"), rst(7), rsf("8a"), rsf("8b"), rs("3.6.1.2"), ref("D19, D21, D27, D28", RM_, "Decisions"), ref("CADET guide: model values", CG, "Your model values")),

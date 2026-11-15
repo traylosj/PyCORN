@@ -43,12 +43,14 @@
    "level": "unit_procedure",
    "element_id": "UP1",
    "label": "",
+   "label_source": "",
    "boundary_source": "default",
    "operations": [
     {
      "level": "operation",
      "element_id": "OP1",
-     "display_name": "Manual run (no phases)",
+     "label": "Manual run (no phases)",
+     "label_source": "UNICORN",
      "original": {
       "level": "phase",
       "text": "(none: no method, no Phase lines)"
@@ -84,6 +86,8 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
+       "label": "(no block)",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "(no block)"
@@ -3204,28 +3208,6 @@
    "steps": [
     {
      "start_wall_s": 0.0,
-     "end_wall_s": 3.7,
-     "operation": "OP1",
-     "state": "running",
-     "column_flow": {
-      "value": 10.0,
-      "unit_of_measure": "mL/min",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "percent_b": {
-      "value": 100.0,
-      "unit_of_measure": "%",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "sections_joined": 3,
-     "folded_note": "first 0.2 s at 0 ml/min (previous phase's set point); first 0.2 s at 0 %B (previous phase's set point); first 1.2 s at 0 ml/min (previous phase's set point)"
-    },
-    {
-     "start_wall_s": 3.7,
      "end_wall_s": 145.9,
      "operation": "OP1",
      "state": "running",
@@ -3243,8 +3225,21 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 3,
-     "folded_note": null
+     "sections_joined": 6,
+     "sections": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "absorbed_sections": [
+      0,
+      1,
+      2
+     ],
+     "absorbed_note": "first 3.7 s (sections #0-2) absorbed: 0 ml/min, 0 %B, feed off"
     },
     {
      "start_wall_s": 145.9,
@@ -3254,32 +3249,14 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      6
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 234.914,
-     "end_wall_s": 239.314,
-     "operation": "OP1",
-     "state": "running",
-     "column_flow": {
-      "value": 10.0,
-      "unit_of_measure": "mL/min",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "percent_b": {
-      "value": 100.0,
-      "unit_of_measure": "%",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "sections_joined": 1,
-     "folded_note": null
-    },
-    {
-     "start_wall_s": 239.314,
      "end_wall_s": 302.014,
      "operation": "OP1",
      "state": "running",
@@ -3297,8 +3274,15 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 1,
-     "folded_note": null
+     "sections_joined": 2,
+     "sections": [
+      7,
+      8
+     ],
+     "absorbed_sections": [
+      7
+     ],
+     "absorbed_note": "first 4.4 s (section #7) absorbed: 100 %B"
     },
     {
      "start_wall_s": 302.014,
@@ -3320,7 +3304,19 @@
       "source": "run_log"
      },
      "sections_joined": 9,
-     "folded_note": null
+     "sections": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 546.714,
@@ -3342,7 +3338,13 @@
       "source": "run_log"
      },
      "sections_joined": 3,
-     "folded_note": null
+     "sections": [
+      18,
+      19,
+      20
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 600.814,
@@ -3352,7 +3354,11 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      21
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 836.914,
@@ -3374,7 +3380,14 @@
       "source": "run_log"
      },
      "sections_joined": 4,
-     "folded_note": null
+     "sections": [
+      22,
+      23,
+      24,
+      25
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 906.914,
@@ -3384,7 +3397,11 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      26
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 922.914,
@@ -3406,7 +3423,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      27
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 927.014,
@@ -3416,7 +3437,11 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      28
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 943.914,
@@ -3438,7 +3463,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      29
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 954.014,
@@ -3448,7 +3477,11 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      30
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 1010.914,
@@ -3470,7 +3503,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      31
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 1018.314,
@@ -3480,7 +3517,11 @@
      "column_flow": null,
      "percent_b": null,
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      32
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 1065.914,
@@ -3502,7 +3543,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      33
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     }
    ]
   }

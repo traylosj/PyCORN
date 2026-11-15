@@ -403,7 +403,7 @@ run into **sections**, the word CADET-Core uses for the stretches of its input
 
 | Level | UNICORN | CADET-Process 0.13 | In the PyCORN batch history | Row in [Figure 7](#figure-7) |
 |---|---|---|---|---|
-| Operation (ISA-88.01 5.1.2.3: "a major processing sequence that takes the material being processed from one state to another") | a UNICORN **phase** (Equilibration, Sample Application, ...) | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats, each occurrence identified, as ISA-88.01 5.3.3.2 asks), logged text, display name | "Operation" |
+| Operation (ISA-88.01 5.1.2.3: "a major processing sequence that takes the material being processed from one state to another") | a UNICORN **phase** (Equilibration, Sample Application, ...) | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats, each occurrence identified, as ISA-88.01 5.3.3.2 asks), logged text, label | "Operation" |
 | Phase (ISA-88.01 3.34: "the lowest level of procedural element") | a UNICORN **block**, and the activities running at once inside a phase (flow and gradient, sample feed, fractionation, watches) | none (activities are flow-sheet units) | `phase`: one per equipment activity, with the equipment module that carries it out | "Phase", and "Phase activity" shows one activity, the sample feed |
 | Section (not ISA-88, CADET-Core's word) | the stretch from one executed instruction to the next: the settings (flow, %B or its ramp, valves, feed, state) don't change inside it | **`Phase`** (one flow, linear composition) and `ValveEvent` | `section`: the PyCORN batch history's lowest level, as the model gets it | "Section" |
 
@@ -965,7 +965,7 @@ For scripts, the same values as JSON. Each value has a `kind` (`set_point` or `a
 are several):
 
 ```json
-{"level": "operation", "element_id": "OP2", "display_name": "Sample Application",
+{"level": "operation", "element_id": "OP2", "label": "Sample Application", "label_source": "UNICORN",
  "original": {"level": "phase", "text": "Phase Sample Application"},
  "instance": 1, "state": "running",
  "column_flow": [
@@ -1039,7 +1039,7 @@ Masking replaces names that can identify people or projects, as every output doe
 |---|---|---|---|
 | Run | the result name as UNICORN stores it | none: the key is UNICORN's Batch ID (§5) | - |
 | Unit procedure | No label when the run has one. When cycles are marked: "Cycle n", "Before cycles", "After cycles". By chromatogram: the chromatogram's name. | `UP1`, `UP2`, ... when there is more than one. Cycles 1 to N count cycles only. | - |
-| Operation | the UNICORN phase name as logged | `OP1`, `OP2`, ... A repeat shows as `Equilibration (2)` (`instance`, Decide 23). | - |
+| Operation | `label`: the UNICORN phase name as logged, unless the user gives one. A repeat shows as `Equilibration (2)` (`instance`, Decide 23). | `OP1`, `OP2`, ... | - |
 | Phase | the equipment module (`system_pump`, `sample_feed`, ...) | `PH1`, `PH2`, ... within the operation | - |
 | Section | none: its `element_id` | `SE1`, `SE2`, ... within the phase | - |
 | Chromatogram | UNICORN's name | UNICORN's order | - |
@@ -1132,7 +1132,9 @@ Fields with a fixed list of allowed values follow it too:
 | `element_id` | ISA-88's "procedural element" (ISA-88.01 6.4.1.1), shortened. The `OP3/PH1/SE2` form is PyCORN's own. | e.g. `OP3/PH1/SE2`: operation 3, its phase 1, that phase's section 2. `UP2/OP3/PH1/SE2` when the run has more than one unit procedure. | A key that names the same element in every output (tables, CADET, JSON), so they can be joined. ISA-88 asks for the "identification of procedural elements with which the data is associated" (ISA-88.01 6.4.1.1). Not called `path`: in ISA-88 a path is "the order of equipment ... used ... in the production of a specific batch" (ISA-88.01 3.32) |
 | `original` | Key: PyCORN's own. Values: UNICORN's words. | UNICORN's `level` (`phase`, `block` or `instruction`), its `text` (the run-log text), and for a pause or hold its `state` (`pause`, `hold`) | UNICORN's own words for the element |
 | `instance` | PyCORN's own word, for ISA-88's rule that each occurrence is identified (ISA-88.01 5.3.3.2) | 1, 2, ... | which repeat this is, when a UNICORN phase runs more than once (Equilibration twice) |
-| `label`, `boundary_source` | PyCORN's own. `chromatogram` is UNICORN's word. | `label`: the caller's text as given (e.g. "Cycle 2", "Prime"), or empty. `boundary_source`: `caller` (the user's rule) or `chromatogram` (one chromatogram per unit procedure). | Unit procedures only, when a run has more than one: their names and how their boundaries were set, e.g. for cycles (§3.3, §3.9) |
+| `label` | BatchML's `ProcedureChartElement/Label` (`BatchML-GeneralRecipe.xsd`): the text shown on a procedure chart element, beside its `ID` and `Description`. BatchML has it on recipe charts only. The PyCORN batch history uses it for the elements of a run. | UNICORN's name as logged (phase, block, chromatogram), or the user's text (e.g. "Load", "Cycle 2", "Prime"). Empty when there is nothing to name. | The name shown in tables, figures and overlays. Runs from different equipment line up by label and its occurrence, counted at display. `element_id` never changes with it. |
+| `label_source` | PyCORN's own, with the origins of `pycorn/export_tables.py` | `UNICORN`, `User input` | where the label came from. ISA-88 and BatchML record no source for a name. |
+| `boundary_source` | PyCORN's own. `chromatogram` is UNICORN's word. | `caller` (the user's rule) or `chromatogram` (one chromatogram per unit procedure) | Unit procedures only, when a run has more than one: how their boundaries were set, e.g. for cycles (§3.3, §3.9) |
 | `chromatogram` | UNICORN's word (Allotrope uses it for one signal, §12) | the chromatogram the element was recorded in | results with several chromatograms (§3.4) |
 | `state` | ISA-88: key and values are its example procedural states (ISA-88.01 5.7.2.1, Table 2) | `running`, `held`, `paused`, `holding`, `restarting`, `stopping` | pauses, holds and the pump's ramps around them (§3.7) |
 | `start`, `end` | Plain words. The axes are PyCORN's (`axes.py`). Method time is UNICORN's axis. | the element's start and end on every axis: wall clock (s from method start, pauses included), method time (s, pauses excluded), volume (ml), column volumes (CV), and date and time (UTC) | placing the element on any axis a reader uses |

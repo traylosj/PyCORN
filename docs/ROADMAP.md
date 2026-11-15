@@ -549,7 +549,13 @@ during pauses, as it should), and runs without a column build with a warning.
 - **M16 Tubing dispersion** (1172, 1253): CADET stalls at zero axial dispersion (about 1e-4 for
   1 mm ID by the Taylor expression), and mixed inner diameters skew volumes. Applies to D27's
   mixer and tubing blocks; D28 says never mirror CADET parameters, so this is a note in
-  CADET_GUIDE and a check that we never write 0, not a default.
+  CADET_GUIDE and a check that we never write 0, not a default. Proposed (owner, 2026-11-15):
+  dispersion is left to CADET: PyCORN writes no dispersion value and never calculates one.
+  The tubing **inner diameter** is an equipment fact, like the tubing volume: UNICORN stores
+  none, so it comes from the caller, per piece of tubing (column to UV, pump to column,
+  injection valve to column), with its source, and no default. With a volume and a diameter
+  the length is volume / cross section, which a tube unit needs. The mixer is a stirred tank
+  and takes no diameter. Open: the `--tubing-diameter` option.
 - **M17 UV wavelength choice** (723): a lower-absorbance wavelength (295 nm) keeps peaks in the
   linear range (about 1500 mAU). D8 takes 280 nm primary and the caller can name another; the
   open part is a warning when the primary channel passes the caller's limit and another channel
@@ -1502,7 +1508,10 @@ track". Open items stay in the proposal's §11.
   for all later work, so words that clash with a standard the PyCORN batch history maps to
   are renamed while only the proposal uses most of them. Checked against the BatchML schemas
   (`BatchML-BatchProductionRecord.xsd`, `BatchML-BatchInformation.xsd`, `B2MML-Common.xsd`).
-  Kept as they are: `display_name` (OPC UA's DisplayName), `instance`, `state`, `level`.
+  Kept as they are: `instance`, `state`, `level`. `display_name` (OPC UA's DisplayName)
+  became `label` (owner, 2026-11-15): BatchML's `ProcedureChartElement/Label`, on every
+  element, overridable by the user, with `label_source` (`UNICORN`, `User input`).
+  `element_id` stays positional (`OP3/PH1/SE2`) and is never shown.
 
   | # | Old | New | Why | Where the old name was used |
   |---|---|---|---|---|

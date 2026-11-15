@@ -43,12 +43,14 @@
    "level": "unit_procedure",
    "element_id": "UP1",
    "label": "",
+   "label_source": "",
    "boundary_source": "default",
    "operations": [
     {
      "level": "operation",
      "element_id": "OP1",
-     "display_name": "Method Settings",
+     "label": "Method Settings",
+     "label_source": "UNICORN",
      "original": {
       "level": "phase",
       "text": "Phase Method Settings"
@@ -84,6 +86,8 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
+       "label": "(no block)",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "(no block)"
@@ -214,7 +218,8 @@
     {
      "level": "operation",
      "element_id": "OP2",
-     "display_name": "Run",
+     "label": "Run",
+     "label_source": "UNICORN",
      "original": {
       "level": "phase",
       "text": "Phase Run"
@@ -250,6 +255,8 @@
       {
        "level": "phase",
        "element_id": "OP2/PH1",
+       "label": "PurgeB",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "PurgeB"
@@ -432,6 +439,8 @@
       {
        "level": "phase",
        "element_id": "OP2/PH2",
+       "label": "Purge",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "Purge"
@@ -570,6 +579,8 @@
       {
        "level": "phase",
        "element_id": "OP2/PH3",
+       "label": "Equilibrate",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "Equilibrate"
@@ -625,6 +636,8 @@
       {
        "level": "phase",
        "element_id": "OP2/PH4",
+       "label": "SampleLoad",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "SampleLoad"
@@ -812,6 +825,8 @@
       {
        "level": "phase",
        "element_id": "OP2/PH5",
+       "label": "Wash",
+       "label_source": "UNICORN",
        "original": {
         "level": "block",
         "text": "Wash"
@@ -1784,32 +1799,16 @@
       "source": "run_log"
      },
      "sections_joined": 3,
-     "folded_note": null
+     "sections": [
+      0,
+      1,
+      2
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 2.6,
-     "end_wall_s": 3.5,
-     "operation": "OP2",
-     "state": "running",
-     "column_flow": {
-      "value": 8.0,
-      "unit_of_measure": "mL/min",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "percent_b": {
-      "value": 99.2,
-      "unit_of_measure": "%",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "sections_joined": 3,
-     "folded_note": "first 0.5 s at 0 ml/min (previous phase's set point); first 0.5 s at 0 %B (previous phase's set point); first 0.2 s at 0 %B (previous phase's set point)"
-    },
-    {
-     "start_wall_s": 3.5,
      "end_wall_s": 79.5,
      "operation": "OP2",
      "state": "running",
@@ -1827,12 +1826,26 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 4,
-     "folded_note": null
+     "sections_joined": 7,
+     "sections": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+     ],
+     "absorbed_sections": [
+      3,
+      4,
+      5
+     ],
+     "absorbed_note": "first 0.9 s (sections #3-5) absorbed: 0 %B, by-pass off, 8 ml/min"
     },
     {
      "start_wall_s": 79.5,
-     "end_wall_s": 381.1,
+     "end_wall_s": 381.9,
      "operation": "OP2",
      "state": "running",
      "column_flow": {
@@ -1849,30 +1862,17 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 3,
-     "folded_note": null
-    },
-    {
-     "start_wall_s": 381.1,
-     "end_wall_s": 381.9,
-     "operation": "OP2",
-     "state": "running",
-     "column_flow": {
-      "value": 0.07,
-      "unit_of_measure": "mL/min",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "percent_b": {
-      "value": 99.2,
-      "unit_of_measure": "%",
-      "kind": "set_point",
-      "basis": "logged",
-      "source": "run_log"
-     },
-     "sections_joined": 1,
-     "folded_note": null
+     "sections_joined": 4,
+     "sections": [
+      10,
+      11,
+      12,
+      13
+     ],
+     "absorbed_sections": [
+      13
+     ],
+     "absorbed_note": "last 0.8 s (section #13) absorbed: 0.07 ml/min"
     },
     {
      "start_wall_s": 381.9,
@@ -1894,7 +1894,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      14
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
      "start_wall_s": 460.4,
@@ -1916,7 +1920,11 @@
       "source": "run_log"
      },
      "sections_joined": 1,
-     "folded_note": null
+     "sections": [
+      15
+     ],
+     "absorbed_sections": [],
+     "absorbed_note": null
     }
    ]
   }
