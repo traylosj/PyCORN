@@ -676,16 +676,17 @@ what %B (or %Q), and it measures conductivity, pH and UV. It doesn't record what
 or the load contain. That comes from the caller, per inlet position or line, as the CADET
 export takes it today (`buffers=`, `feed=`, see [`CADET_GUIDE.md`](CADET_GUIDE.md)).
 
-<a id="table-10"></a>**Table 10.** Composition as set point, actual and calculated values (the kinds of §3.8, with their
-ontology terms in [Table 25](#table-25)), with where each comes from (-: not available).
+<a id="table-10"></a>**Table 10.** Composition as set point and actual values (the kinds of §3.8, with their
+ontology terms in [Table 25](#table-25)), the basis of each in brackets, and where each comes
+from (-: not available).
 
-| Quantity | Set point | Actual | Calculated |
-|---|---|---|---|
-| Buffer, per section | inlet position and %B or %Q (run log, known / assumed / not known, Decide 22) | - | per component, mol/m^3: the caller's buffer contents mixed by the executed %B or %Q |
-| Load, per feed | the feed section: valve or inlet (run log) | its volume (volume axis) | per component amount: the caller's concentration x the actual volume |
-| Buffer conductivity and pH | - | read where the column is by-passed, checked against the outlet (D22) | - |
-| Salt | - | the conductivity curve | mol/m^3, only through the caller's calibration (the by-pass readings give its points) |
-| Protein at the outlet | - | the UV curve, AU/cm | mg/ml, only with the caller's extinction coefficient, with its accuracy note |
+| Quantity | Set point | Actual |
+|---|---|---|
+| Buffer, per section | Inlet position and %B or %Q (logged: run log, known / assumed / not known, Decide 22). Per component, mol/m^3: the caller's buffer contents mixed by the logged %B or %Q (calculated). | - |
+| Load, per feed | the feed section: valve or inlet (logged: run log) | Its volume (measured: volume axis). Per component amount: the caller's concentration x that volume (calculated). |
+| Buffer conductivity and pH | - | read where the column is by-passed, checked against the outlet (measured, D22) |
+| Salt | - | The conductivity curve (measured). mol/m^3 only through the caller's calibration, whose points the by-pass readings give (calculated). |
+| Protein at the outlet | - | The UV curve, AU/cm (measured). mg/ml only with the caller's extinction coefficient, with its accuracy note (calculated). |
 
 Which value each output uses:
 
@@ -700,7 +701,7 @@ Which value each output uses:
   §9).
   Measured properties are compared with them and the difference reported, never swapped in
   silently. A component left out of a buffer is 0, as the CADET export does today.
-- **Scripts and agents:** all of them, each with its kind and source.
+- **Scripts and agents:** all of them, each with its kind, basis and source.
 
 #### 3.6.3.2 Buffer provenance: recipe, preparation, lot and measurement (proposed)
 
@@ -714,36 +715,36 @@ measurement ([Figure 9a](#figure-9a), [Table 10a](#table-10a)), all from the cal
 ```mermaid
 flowchart LR
     subgraph before["Before the run: from the caller"]
-        raw(["Raw-material lots<br/>NaCl, Tris, water"]) --> prep["Preparation<br/>as made: calculated"]
+        raw(["Raw-material lots<br/>NaCl, Tris, water"]) --> prep["Preparation<br/>as made: actual,<br/>calculated"]
         recipe["Recipe<br/>target: set point"] -. prescribes .-> prep
         prep --> lotA(["Buffer lot A<br/>material ID"])
-        test["Release test<br/>pH, conductivity:<br/>actual, offline"] -. tests .-> lotA
+        test["Release test<br/>pH, conductivity:<br/>actual, measured offline"] -. tests .-> lotA
         lotB(["Buffer lot B<br/>its own recipe,<br/>preparation, tests"])
     end
     subgraph during["During the run: from UNICORN"]
-        inA["Inlet A1"] --> mix["Blend per section<br/>%B or %Q as logged<br/>calculated"]
+        inA["Inlet A1"] --> mix["Blend per section<br/>%B or %Q as logged:<br/>set point, calculated"]
         inB["Inlet B1"] --> mix
-        mix --> byp["By-pass reading<br/>conductivity, pH:<br/>actual, in the run (D22)"]
+        mix --> byp["By-pass reading<br/>conductivity, pH:<br/>actual, measured (D22)"]
         mix --> col["Column"]
     end
     lotA -- one lot per inlet --> inA
     lotB --> inB
 ```
 
-<a id="figure-9a"></a>**Figure 9a.** A buffer's provenance, from raw materials to the column, with the kind of
-value (§3.8) each step gives.
+<a id="figure-9a"></a>**Figure 9a.** A buffer's provenance, from raw materials to the column, with the kind and
+basis of value (§3.8) each step gives.
 
 <a id="table-10a"></a>**Table 10a.** The four layers of a buffer's provenance, their terms in each standard, and the
-kind of value each gives (§3.8). IOF terms are from the biopharma module's `master`.
+kind and basis of value each gives (§3.8). IOF terms are from the biopharma module's `master`.
 
-| Layer | What it holds | ISA-88 | ISA-95 / B2MML | IOF | Kind of value |
+| Layer | What it holds | ISA-88 | ISA-95 / B2MML | IOF | Kind, basis |
 |---|---|---|---|---|---|
-| Recipe | Target composition (components and concentrations), target pH and conductivity, a version | The buffer preparation's master recipe. Its formula lists the process inputs (raw materials and quantities) and the process output, the buffer (ISA-88.01 5.3.2). | `MaterialDefinition` with its properties. A `TestSpecification` holds the acceptance limits. | `InputSpecification`. `BufferSolution`, a `Solution` whose constituents have `SoluteRole` or `SolventRole`. `MolarConcentration`, `MassConcentration`. | set point |
-| Preparation | One making of the buffer: amounts weighed or dispensed, raw-material and stock lots used, final volume, when | A batch in its own right, with its own batch history. Its control recipe "may have been modified to account for actual raw material qualities" (ISA-88.01 5.3.1.4). | The genealogy from raw-material lots to the buffer lot (`AssemblyLot`, `AssemblyRelationship`) | `SolutionPreparationProcess`, a planned process whose output is a `Solution`. `StockSolutionRole`, `WorkingSolutionRole`. | calculated (as made) |
-| Lot | The prepared buffer as one identified amount: ID, quantity, status, expiry | Lot (ISA-88.01 3.28) | `MaterialLot`: `Status`, `Disposition`, `Quantity`, `StorageLocation`. The expiry is on its `TestResult`. | No lot class | material ID |
-| Measurement | Tests of the prepared lot: pH, conductivity, osmolality, a titration | Quality control information, common to batches rather than part of one (ISA-88.01 5.5.2) | `TestResult` with `PropertyMeasurement`, checked against the `TestSpecification` | `MeasurementProcess`, whose output is a `MeasurementInformationContentEntity` | actual (offline) |
+| Recipe | Target composition (components and concentrations), target pH and conductivity, a version | The buffer preparation's master recipe. Its formula lists the process inputs (raw materials and quantities) and the process output, the buffer (ISA-88.01 5.3.2). | `MaterialDefinition` with its properties. A `TestSpecification` holds the acceptance limits. | `InputSpecification`. `BufferSolution`, a `Solution` whose constituents have `SoluteRole` or `SolventRole`. `MolarConcentration`, `MassConcentration`. | set point, given |
+| Preparation | One making of the buffer: amounts weighed or dispensed, raw-material and stock lots used, final volume, when | A batch in its own right, with its own batch history. Its control recipe "may have been modified to account for actual raw material qualities" (ISA-88.01 5.3.1.4). | The genealogy from raw-material lots to the buffer lot (`AssemblyLot`, `AssemblyRelationship`) | `SolutionPreparationProcess`, a planned process whose output is a `Solution`. `StockSolutionRole`, `WorkingSolutionRole`. | actual, calculated (as made) |
+| Lot | The prepared buffer as one identified amount: ID, quantity, status, expiry | Lot (ISA-88.01 3.28) | `MaterialLot`: `Status`, `Disposition`, `Quantity`, `StorageLocation`. The expiry is on its `TestResult`. | No lot class | an identifier, not a value: material ID |
+| Measurement | Tests of the prepared lot: pH, conductivity, osmolality, a titration | Quality control information, common to batches rather than part of one (ISA-88.01 5.5.2) | `TestResult` with `PropertyMeasurement`, checked against the `TestSpecification` | `MeasurementProcess`, whose output is a `MeasurementInformationContentEntity` | actual, measured (offline) |
 
-**As made and measured are different kinds of value.** As made is calculated from the
+**As made and measured are both actual, on a different basis.** As made is calculated from the
 preparation record: 5.844 g NaCl made up to 1.000 L gives 100.0 mM. It gives a
 concentration per component, with every weighing and volume error in it. Measured comes
 from an instrument applied to the finished buffer: a pH meter, a conductivity meter, an
@@ -753,7 +754,7 @@ or the as-made record. Measured properties check them.
 
 **Several values side by side.** One buffer's salt can have a recipe target, an as-made
 value, a release test, the by-pass reading in the run (D22) and the outlet's conductivity
-curve, the last three through a calibration. Each keeps its kind and source, wherever it is
+curve, the last three through a calibration. Each keeps its kind, basis and source, wherever it is
 held (TBD, §9). A difference
 points at a wrong entry, an inlet position that was assumed, a lot past its expiry, the
 wrong bottle on the inlet, or the delay through mixer and column.
@@ -892,7 +893,7 @@ sub-segments, only where the volume axis shows them ([Table 12](#table-12)).
 
 The ramp's length is inferred: UNICORN logs when a Pause, Continue or End was issued, not
 when the pump reached rest or the set flow. Each transient carries the actual flow as a
-value with source `volume_axis` and quality `fitted`. The set point never changes in it.
+value of kind `actual`, basis `fitted`, source `volume_axis`. The set point never changes in it.
 Display adds "ramped n s" to the phase's note. The model gives each transient its own
 section with a linear flow term. An agent sees the state and both flows.
 
@@ -900,39 +901,49 @@ section with a linear flow term. An agent sees the state and both flows.
 
 <a id="figure-10"></a>**Figure 10.** Flow ramps and ISA-88 states around a Pause and a Hold (schematic, `tools/draw_transient_states.py`).
 
-### 3.8 Set point, actual and calculated values
+### 3.8 Set point and actual values, and how each was obtained
 
-The PyCORN batch history stores a value such as a flow or a volume with up to three numbers:
+The PyCORN batch history stores a value such as a flow or a volume as a set point, an
+actual, or both. The `kind` says which:
 
-- **set point**: the value set in the method, as the run log shows it;
-- **actual**: the value measured during the run (for flow and volume: UNICORN's volume axis);
-- **calculated**: a value PyCORN computes from other values, such as set point flow x time.
+- **set point** (`set_point`): what was planned, as the method sets it and the run log shows it;
+- **actual** (`actual`): what happened (for flow and volume: UNICORN's volume axis).
 
-They can differ, so the PyCORN batch history keeps all three, each with its source.
+This is ISA-88's comparison of recipe data with actual values (ISA-88.01 5.5.1, 6.4.3.1), and
+ISA-95's split of a requirement from its actual (`MaterialRequirement`, `MaterialActual`).
+They can differ, so the PyCORN batch history keeps both.
+
+Each number also says how it was obtained, its `basis`: `logged`, `measured`, `calculated`,
+`fitted`, `inferred`, `assumed`, `given` (by the caller), `default` or `not_known`
+([Table 18](#table-18)). Calculated is a basis, not a third kind. ISA-88 lists calculations
+as a function on batch history, "creating new batch data" (ISA-88.01 6.4.2), and a
+calculated number stays on the side of what it was calculated from. Set point flow x time is
+a set point. Salt from the conductivity curve is an actual. Neither ISA-88 nor BatchML
+defines a field for set point and actual. `kind` is PyCORN's key, with ISA-88's words as its
+values.
 
 **Volumes measured offline.** A collected fraction, pool or flow-through can be measured
-after the run, by volume or by mass. That is another actual value, with source `caller`.
+after the run, by volume or by mass. That is another actual, basis `measured`, source `caller`.
 For now the volume UNICORN reports on its volume axis is the number every calculation and
 every display uses (owner, 2026-11-15). A measured mass may later take precedence over it,
 converted with the caller's density. Such a measurement is rare.
 
 Method variables are what ISA-88 calls **process parameters**, part of the recipe's formula
 (ISA-88.01 3.46, 5.3.2.2): they belong to the method, and one may be "used as set points, comparison
-values, or in conditional logic". Phase lengths, volumes and statistics measured from the
-run are actual or calculated values: they belong to the PyCORN batch history.
+values, or in conditional logic". Phase lengths, volumes and statistics measured or
+calculated from the run are actual values: they belong to the PyCORN batch history.
 
 Example: the Sample Application phase of `samples/u73_blank.zip`. UNICORN runs a phase's
 first instructions one after another, so the previous phase's flow set point stays active
 for the first 2.4 s of the new phase ([Table 13](#table-13)).
 
-<a id="table-13"></a>**Table 13.** Column flow and sample volume at that phase start: set point, calculated and
-actual (empty: not applicable).
+<a id="table-13"></a>**Table 13.** Column flow and sample volume at that phase start: set point and actual, with
+the basis of each in brackets.
 
 | | Column flow | Sample volume |
 |---|---|---|
-| Set point (run log) | 1 ml/min, after 5 ml/min (previous phase) for the first 2.4 s | |
-| Calculated (set point flow x time) | | 0.417 ml |
-| Actual (volume axis) | about 2.5 ml/min during the 0.6 s in which the injection valve is already at Inject and the flow set point is still 5 ml/min | 0.389 ml |
+| Set point (run log) | 1 ml/min, after 5 ml/min (previous phase) for the first 2.4 s (logged) | 0.417 ml (calculated: set point flow x time) |
+| Actual (volume axis) | about 2.5 ml/min during the 0.6 s in which the injection valve is already at Inject and the flow set point is still 5 ml/min (calculated: the volume axis's slope) | 0.389 ml (measured) |
 
 The two sample volumes differ because of those 0.6 s: the set point was 5 ml/min, the actual
 flow about 2.5 ml/min.
@@ -942,24 +953,25 @@ Which value each output uses:
 - **Excel and the web page:** the set point flow with a note, `1 ml/min (first 2.4 s at 5)`,
   and the actual sample volume, `0.39 ml` (Decide 18, settled 2026-11-15: the volume axis).
 - **CADET:** the actual value (0.389 ml).
-- **Scripts and agents:** all three, each with its source.
+- **Scripts and agents:** all of them, each with its kind, basis and source.
 
-For scripts, the same values as JSON. Each value has a `kind` (`set_point`, `actual` or
-`calculated`), a `source`, and a `quality` (how certain it is):
+For scripts, the same values as JSON. Each value has a `kind` (`set_point` or `actual`), a
+`basis` (how it was obtained) and a `source` (where its inputs came from, a list when there
+are several):
 
 ```json
 {"level": "operation", "element_id": "OP2", "display_name": "Sample Application",
  "original": {"level": "phase", "text": "Phase Sample Application"},
  "instance": 1, "state": "running",
  "column_flow": [
-   {"value": 1.0, "unit": "mL/min", "kind": "set_point", "source": "run_log", "quality": "exact"},
-   {"value": 5.0, "unit": "mL/min", "kind": "set_point", "source": "run_log", "quality": "exact",
+   {"value": 1.0, "unit": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log"},
+   {"value": 5.0, "unit": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log",
     "held_over": {"duration_s": 2.4}},
-   {"value": 2.5, "unit": "mL/min", "kind": "actual", "source": "volume_axis", "quality": "exact",
+   {"value": 2.5, "unit": "mL/min", "kind": "actual", "basis": "calculated", "source": "volume_axis",
     "span_s": [315.7, 316.3]}],
  "feed_volume": [
-   {"value": 0.417, "unit": "mL", "kind": "calculated", "source": "run_log"},
-   {"value": 0.389, "unit": "mL", "kind": "actual", "source": "volume_axis"}]}
+   {"value": 0.417, "unit": "mL", "kind": "set_point", "basis": "calculated", "source": "run_log"},
+   {"value": 0.389, "unit": "mL", "kind": "actual", "basis": "measured", "source": "volume_axis"}]}
 ```
 
 The previous phase's set points at the start of every phase of that run are drawn in
@@ -1069,8 +1081,8 @@ result, the same name in another folder).
 The PyCORN batch history is built from **segments**. A segment is one stretch of the run at one level: a
 unit procedure, an operation or a phase (ISA-88), or a section below them (§3.2-3.5).
 Segments nest: an operation holds its phases, a phase its sections. Each segment carries the same set
-of fields, and each number in it (a flow, a volume, a %B) is stored as a value with its
-set point, actual and calculated numbers (§3.8).
+of fields, and each number in it (a flow, a volume, a %B) is stored as a set point, an
+actual, or both, each with its basis and source (§3.8).
 
 "Segment" is not a level of its own: it is the word for any of these stretches, and its
 `level` field says which. One operation, as segments (schematic):
@@ -1123,9 +1135,15 @@ Fields with a fixed list of allowed values follow it too:
 | Field | Name from | Values |
 |---|---|---|
 | `value`, `unit` | plain words, with unit codes from UCUM | The number at full precision (rounding happens only in display), and its UCUM unit code: `mL/min`, `%`, `mL`, `s`. Column volumes are `{CV}` (UCUM writes a unit it doesn't define in braces). |
-| `kind` | Key: PyCORN's own. Values: ISA-88's words (set points ISA-88.01 5.3.2.2, actual values ISA-88.01 6.4.3.1, calculations ISA-88.01 6.4.2, §12). | `set_point` (set in the method), `actual` (measured), `calculated` (computed from other values) (§3.8) |
-| `source` | PyCORN's own. `run_log` and `volume_axis` name UNICORN's run log and volume axis. `caller` is the user. | Where the number came from: `run_log`, `volume_axis`, `curve` (a measured curve, such as UV), `system_configuration` (the instrument set-up stored with the result, such as the installed valves), `method_hint` (the method, used only as a hint, never as what ran), `caller` (given by the user), `default` (a stated default) or `not_known`. |
-| `quality` | PyCORN's own. Not the good / bad / uncertain quality of OPC and process historians (rename to `basis` proposed, §11). | How certain it is: `exact` (logged or measured as is), `inferred` (worked out from other evidence, e.g. a pause the run log doesn't show), `fitted` (an actual fitted to the volume axis, e.g. a pump ramp around a pause), `assumed` (shown as such, e.g. `B1 (assumed)` for an inlet position not stored) or `folded` (display only: the previous phase's set point folded into the phase, with its length under `held_over`). |
+| `kind` | Key: PyCORN's own (neither ISA-88 nor BatchML has such a field). Values: ISA-88's words (set points ISA-88.01 5.3.2.2, actual values ISA-88.01 6.4.3.1). | `set_point` (planned: set in the method, or calculated from set points) or `actual` (what happened: measured, or calculated from measurements) (§3.8) |
+| `basis` | PyCORN's own. Not `quality`, which in OPC, process historians and BatchML (`DataValue/Quality`) is whether a reading can be trusted. | How the number was obtained: `logged` (as the run log shows it), `measured` (as an instrument read it), `calculated` (from other values, ISA-88.01 6.4.2), `fitted` (fitted to the volume axis, e.g. a pump ramp around a pause), `inferred` (worked out from other evidence, e.g. a pause the run log doesn't show), `assumed` (shown as such, e.g. `B1 (assumed)` for an inlet position not stored), `given` (by the caller), `default` (a stated default) or `not_known`. |
+| `source` | PyCORN's own. `run_log` and `volume_axis` name UNICORN's run log and volume axis. `caller` is the user. Matches BatchML's `DataSource` per data series. | Where the inputs came from, a list when there are several: `run_log`, `volume_axis`, `curve` (a measured curve, such as UV), `system_configuration` (the instrument set-up stored with the result, such as the installed valves), `method_hint` (the method, used only as a hint, never as what ran), `caller` (the user) or `default`. |
+
+Three provenance words, kept apart: `origin` per table and column (UNICORN or PyCORN, in
+every export today), `source` per value (where its inputs came from), and `source_system`
+once per PyCORN batch history (§5). ISA-88's categories of batch information (continuous,
+event, recipe, analysis data, ISA-88.01 5.5.1) follow from `source` and `basis` and are not
+stored.
 
 **Taken from BatchML (proposed).** BatchML's batch production record already has a place
 for several things PyCORN reads from a result. The PyCORN batch history uses BatchML's structure for them
@@ -1194,7 +1212,7 @@ CADET-Process's `ReferenceIO` carries time, values and flow, with no units or me
 CADET-RDM (Lanzrath et al., *Comput. Chem. Eng.* 212 (2026) 109690) versions simulation
 inputs and outputs rather than measured data. An unmerged CADET-Process branch adds a
 loader for another vendor's files (Knauer), so vendor-neutral input is where this is going.
-The PyCORN batch history's JSON (neutral keys, UCUM units, a source and quality on every value, §5)
+The PyCORN batch history's JSON (neutral keys, UCUM units, a kind, basis and source on every value, §5)
 is a ready proposal for such a standard when one is started.
 
 <a id="table-20"></a>**Table 20.** The PyCORN batch history's parts and their counterparts in CADET-Process 0.13 and CADET-GUI (none or -: no counterpart).
@@ -1226,7 +1244,7 @@ PyCORN by guessing):
   A1-A4/B1-B4. `bypass_units` is fixed, so a column by-pass partway through a run has no
   counterpart.
 - `ReferenceIO` has no unit or metadata, and every `calibration` function returns a new one:
-  the PyCORN batch history's `unit`, `source`, `quality` stay in `experiment.json` beside it.
+  the PyCORN batch history's `unit`, `kind`, `basis`, `source` stay in `experiment.json` beside it.
 - CADET-GUI reads `.csv` only, forces a volume axis in mL even for a `min` export, can't save
   a time-axis run with markers, and converts with one typed flow. An import built on the PyCORN batch history would
   carry time in s, markers from operations, units, and the injection time as a number.
@@ -1289,8 +1307,8 @@ Each step adds to what exists: today's outputs stay byte-identical until a step 
 otherwise.
 
 1. **PyCORN batch history** (`pycorn/run_record.py`): built from `run_log_sections`, the timeline, the
-   system configuration and the curves. It holds ISA-88 levels, states, tags, and set point /
-   actual / calculated values with source and quality. Tests: today's phase table, sections and CADET
+   system configuration and the curves. It holds ISA-88 levels, states, tags, and set point and
+   actual values with basis and source. Tests: today's phase table, sections and CADET
    inputs re-derived from the PyCORN batch history equal today's outputs.
 2. **Rules** (`pycorn/display_rules.py`): the decided phase-start rule and the other display
    rules as they are decided. One function per view.
@@ -1331,7 +1349,7 @@ otherwise.
   and the contents it mixes). Allotrope's liquid chromatography ASM (REC/2024/03) has no
   mobile-phase, buffer or gradient field, only detector data. (Its tabular schema was
   searched as text. The shared schemas it references were not read.) The PyCORN batch history's per-section
-  composition, with its source and quality, would be the proposal to raise with both.
+  composition, with its kind, basis and source, would be the proposal to raise with both.
 - **Buffer provenance and components** (§3.6.3.2, §3.6.3.3): where PyCORN's scope stops,
   for the buffer layers and for the component fields alike. It could hold IDs only (lot,
   recipe), IDs with the values a model needs (composition with its kind, measured
@@ -1351,8 +1369,8 @@ otherwise.
 - Multi-column continuous chromatography on one skid is not supported.
 - `process_operation` stays empty without a caller mapping: UNICORN's names are free text.
 - The volume axis counts as "actual" only because the survey (review 3.4) shows it is the
-  flow the pump delivered. Otherwise it would be a calculated value and the run log the
-  model's source.
+  flow the pump delivered. Otherwise it would be a set point calculated from the run log's
+  flows, and the run log the model's source.
 - CADET-Process's `instruments` and CADET-GUI are unreleased. §6 is rechecked when
   0.13.0 ships.
 
@@ -1382,6 +1400,12 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 - Names (2026-11-15): "§N" for this document's parts, since `section` is the PyCORN batch
   history's lowest level. `original` for UNICORN's words, not `native`, which in protein
   chromatography is a folded protein's state.
+- Value fields (2026-11-15, §3.8, [Table 18](#table-18)): `kind` is `set_point` or `actual`
+  only, `calculated` is a `basis`, `quality` becomes `basis` (`exact` splits into `logged` and
+  `measured`, `not_known` moves from `source`, `folded` goes), `source` may list several.
+  When built, the `pauses` table's `quality` column and the run-level `timeline_quality` are
+  renamed outputs (CHANGELOG first). The timeline's `ambiguous` and `unresolved` describe the
+  whole timeline, not one value, and get their own field.
 - Unknowns said in plain words, never guessed. Masking rules (Track 9). Full values in code,
   rounding at display only.
 
@@ -1395,7 +1419,7 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 | 2 | keys | Yes: `phase_number`, `section_number`, and the `element_id` tag |
 | 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (§5). Display tables and CSV keep UNICORN's words only. |
 | 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (§3.7). |
-| 13 | inferred pauses | Same rows, with `quality = inferred`. Display marks them ("about 40 s, not logged"). |
+| 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). |
 | 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display |
 | 16 | by-pass | An equipment state of the column valve module, with a note in display |
 | 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. |
@@ -1463,13 +1487,10 @@ name is used today.
 
 | # | Now | Proposed | Why | Where it is used today |
 |---|---|---|---|---|
-| R1 | `quality` (on a value) | `basis` | In OPC, process historians and BatchML (`DataValue/Quality`), quality is whether a reading can be trusted (good, bad, uncertain). In PyCORN's export it says how the number was obtained. Values: `exact` becomes `logged` or `measured` (a measurement isn't exact). `folded` goes, since display steps are not stored in the PyCORN batch history (§3.5) and folding is a display note. | The `pauses` table column `quality`, and `timeline_quality` in the export's run-level table (a renamed output: CHANGELOG first). The timeline's `ambiguous` and `unresolved` describe the whole timeline, not one value, and get their own field. |
 | R2 | `segment` | `element` | ISA-95 / B2MML, which §7 maps materials to, has the **process segment** (`SegmentRequirement`, `SegmentResponse`), a different thing. The PyCORN batch history already has `element_id`, after ISA-88's "procedural element" (ISA-88.01 3.36). Batch history entries identify it (ISA-88.01 6.4.1.1), and BatchML references it from events and data series as `ProceduralElementReference`. BatchML never uses "element" alone (`RecipeElement`, `EquipmentElement`, `EquipmentProceduralElement`), so the PyCORN batch history defines `element` once as the procedural element. A chromatogram is then a field (`chromatogram`), not "a `chromatogram` segment" (§3.4): it is no level | This document, and a local variable in `run_log_sections.py` (not an output) |
 | R3 | `unit` (on a value) | `unit_of_measure` | In ISA-88 a unit is the system (ISA-88.01 3.60), and the PyCORN batch history names it. BatchML keeps the two apart as `UnitOfMeasure` and an `EquipmentID` at `EquipmentElementLevel` `Unit`. The values stay UCUM codes (BatchML's `UnitOfMeasure` is a free code) | this document |
 | R4 | `held_over` | `start_lag` | `held` is now the ISA-88 state of a UNICORN Pause (§3.7). The note is about the previous phase's set points lasting a few seconds into a phase (§3.5), not about Held. ISA-88 has no term for this. Not `carried_over`: in chromatography carryover is sample from an earlier injection in a later run, and in GMP cleaning validation it is residue from one batch in the next. `start_lag` is the name the decision already has ("phase start lag", review 3.4). Defined as set points logged after the phase start, not the gradient delay (dwell volume) between mixer and column, nor a process-control first-order lag | this document, the phase start decision of 2026-11-12, `ROADMAP.md`, `RUN_STRUCTURE_REVIEW.md` |
 | R5 | "tag" in the text ("tags every segment", "the `element_id` tag") | "marks", "key" | In historians, OPC and BatchML (`TagSpecification` in a `DataSet`) a tag is one recorded data series, which is a curve in UNICORN and PyCORN. ISA-88 says "not in equipment-specific tags" (ISA-88.01 6.4.3) | this document |
-| R6 | `source` beside `origin` and `source_system` | keep, defined together | Three provenance words: `origin` per table and column (UNICORN or PyCORN, already in every export), `source` per value (where the number came from), `basis` per value (how it was obtained). `not_known` moves from `source` to `basis`. §5 says this in one sentence. Both match BatchML: `Origin` in a list header (where a list came from), `DataSource` per data series (`TagSpecification`) | `origin` in `export_tables.py` and `pycorn schema`, and `source` in the `pauses` table |
-| R7 | `kind: calculated` beside `basis` | to decide | `kind` is PyCORN's key. Its values are ISA-88's words (set points ISA-88.01 5.3.2.2, actual values ISA-88.01 6.4.3.1, calculations ISA-88.01 6.4.2), but ISA-88 defines no such category. ISA-88.01 6.4.2 lists calculations as a function on batch history, and BatchML's `DataSet` has no set point / actual field either. `basis` is how the number was obtained. A fitted ramp is `kind: actual`, `basis: fitted`. A calculated volume is `kind: calculated`, and its basis would be `calculated` too. Either keep both (one value in two fields), or limit `kind` to set point and actual and make `calculated` a basis only. | this document |
 
 Kept as they are: `display_name` (the same meaning as OPC UA's DisplayName),
 `instance`, `state`, `level`. "Event" and "experiment" have their own proposals above.
@@ -1523,12 +1544,12 @@ flowchart LR
 | model | the CADET model, and the "model view" of the PyCORN batch history | not ISA-88's process or physical models, which this plan calls by those full names |
 | buffer | The liquid on one inlet. What it contains comes from the caller (§3.6.3.1, §3.6.3.2). | CHMO `buffer solution` (CHMO:0001462); AFO `buffer solution role`, `mobile phase` (a role); IOF `BufferSolution`; in ISA-88's formula, a process input (ISA-88.01 5.3.2.2) |
 | buffer recipe, preparation, lot | What the buffer should be, one making of it, and the identified amount on the inlet (§3.6.3.2). From the caller. | Recipe: the preparation's master recipe and formula (ISA-88.01 5.3.2), ISA-95 `MaterialDefinition`, IOF `InputSpecification`. Preparation: IOF `SolutionPreparationProcess`, ISA-95 `AssemblyLot` for its inputs. Lot: ISA-88.01 3.28, ISA-95 `MaterialLot`. Its tests: ISA-95 `TestResult`, IOF `MeasurementProcess`. |
-| as made | A buffer's composition calculated from its preparation record (amounts weighed, final volume), as distinct from the recipe's target and from a measured property (§3.6.3.2) | `calculated` kind (§3.8) |
+| as made | A buffer's composition calculated from its preparation record (amounts weighed, final volume), as distinct from the recipe's target and from a measured property (§3.6.3.2) | `actual` kind, `calculated` basis (§3.8) |
 | component, composition | a species the caller names (salt, protein, impurity) and how much of it is in a buffer, a load or a section (§3.6.3.1). CADET-Process calls the set a `ComponentSystem`. | ChEBI for the substance when the caller names one (e.g. `sodium chloride`, CHEBI:26710); ChEBI `mixture` (CHEBI:60004) for a buffer as a whole; AFO `component role`, `has ingredient`. No class for a mix that changes section by section: CHMO `gradient elution` (CHMO:0002877) names the method, not the mix |
 | concentration | per component, in mol/m^3 or kg/m^3 (UCUM `mol/m3`, `kg/m3`) | CHMO `amount concentration` (CHMO:0002822), `mass concentration` (CHMO:0002821); AFO `molar concentration`, `mass concentration` (results); PATO `concentration of` (PATO:0000033) |
 | conductivity, pH, UV | measured curves, found by role (`curve_roles.py`) | PATO `electrical conductivity` (PATO:0001757); AFO `electric conductivity` (a result), `electrolytic conductivity measurement`; CHMO `pH measurement` (CHMO:0002354); UO `pH` (UO:0000196); AFO `absorbance` (a result) |
 | extinction coefficient | given by the caller, to turn UV into a concentration (§3.6.3.1) | AFO `molar attenuation coefficient` (AFR_0002767), `protein attenuation coefficient` (AFR_0002766) |
-| set point, actual, calculated | set in the method, measured, calculated by PyCORN (§3.8) | ISA-88's words: a process parameter "may be used as set points" (ISA-88.01 5.3.2.2), "actual values" (ISA-88.01 6.4.3.1), "calculations ... creating new batch data" (ISA-88.01 6.4.2); IOF and IAO measurement information for actuals |
+| set point, actual (kinds); calculated (a basis) | planned, what happened, and a number computed from either side (§3.8) | ISA-88's words: a process parameter "may be used as set points" (ISA-88.01 5.3.2.2), "actual values" (ISA-88.01 6.4.3.1), "calculations ... creating new batch data" (ISA-88.01 6.4.2); IOF and IAO measurement information for actuals |
 
 ## References
 
