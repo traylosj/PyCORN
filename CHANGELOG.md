@@ -28,7 +28,7 @@ place, with no aliases:
 | `CadetExperiment`, `ExperimentSection` | `ModelView`, `ModelSection` |
 | `pycorn/exporters/cadet/experiment.py` | `pycorn/exporters/cadet/view.py` |
 
-Why: `docs/RUN_STRUCTURE_RECORD.md` §11.
+Why: `docs/ROADMAP.md`, "Decisions", "Run structure and the PyCORN batch history".
 
 **Changed outputs: the CADET export's flows.** Where UNICORN's volume axis differs from the
 logged flow x time by more than 0.01 ml and 1 % of a section, the CADET section is now split

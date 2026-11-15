@@ -749,8 +749,9 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
     Held, UNICORN Hold = ISA-88 Paused)
 - **Gap found:** `pycorn export` passes no loop or sample path volume to the CADET feed (its
   `--loop-volume` is for the by-pass UV only). Review 3.8, Decide 19.
-- **Settled, not built** (owner, 2026-11-15; `docs/RUN_STRUCTURE_RECORD.md` §11, Table 22):
-  Decide 2, 3, 11, 13, 14, 16 and 24 as proposed there.
+- **Settled, not built** (owner, 2026-11-15): Decide 2, 3, 11, 13, 14, 16 and 24, Decide
+  18, the value fields and the renames. See "Decisions", "Run structure and the PyCORN batch
+  history".
 - **Open:** the other Decide items in the review, and a new shareable sample with a ramp
   (review section 6). This topic replaces open owner question 6 and roadmap item
   8. Owner, 2026-11-10: how phases are shown and exported is a critical enabler for CADET
@@ -1029,6 +1030,8 @@ Every owner decision, grouped by track. IDs where they exist; dates are 2026-11-
 - Every roadmap item is built only when the owner asks (owner, 2026-11-08).
 - The README stays short; details go in the guides (owner).
 - Shared samples are anonymized (`tools/anonymize_zip.py`).
+- **Renamed outputs change in place** (owner, 2026-11-15): no aliases, no second file. The
+  rename comes first in the CHANGELOG.
 - **Outputs stay atomic** (owner, 2026-11-10): match UNICORN's outputs where it makes
   sense, but the outputs are mainly for programmers and programs, so they must not get
   harder to use. One kind of row per table, one value per column, its unit in its own
@@ -1464,6 +1467,57 @@ raw kept; an unknown layout warns.
   executed run of the block with the valve period (set-points, pauses out, by-pass in).
 - Block rows: base through 'SameAsMain'; CV against the logged Vc; 'as_planned' within 5 %;
   cause 'next_breakpoint', 'watch_in_block', 'hold_or_pause'. Phases get no row.
+
+### Run structure and the PyCORN batch history
+
+Decisions for [`docs/RUN_STRUCTURE_RECORD.md`](RUN_STRUCTURE_RECORD.md) (the proposal) and
+the review's Decide items. Earlier ones (2026-11-09 to 2026-11-14: units in column names,
+inlets, tracks, phase start lag, CADET flow source) are under "Run structure" in "Status by
+track". Open items stay in the proposal's §11.
+
+- **Volumes** (owner, 2026-11-15; Decide 18): the volume UNICORN reports on its volume axis
+  is the number for every calculation and every display, the feed volume included. A volume
+  or mass measured offline may later take precedence (proposal §3.8).
+- **Names in the proposal** (owner, 2026-11-15): "§N" for the proposal's parts, since
+  `section` is the PyCORN batch history's lowest level. `original` for UNICORN's words, not
+  `native`, which in protein chromatography is a folded protein's state.
+- **Value fields** (owner, 2026-11-15; proposal §3.8, Table 18): `kind` is `set_point` or
+  `actual` only, `calculated` is a `basis`, `quality` becomes `basis` (`exact` splits into
+  `logged` and `measured`, `not_known` moves from `source`, `folded` goes), `source` may list
+  several. When built, the `pauses` table's `quality` column and the run-level
+  `timeline_quality` are renamed in place (CHANGELOG first). The timeline's `ambiguous` and
+  `unresolved` describe the whole timeline, not one value, and get their own field.
+- **Renames before anything is built** (owner, 2026-11-15). The proposal defines the names
+  for all later work, so words that clash with a standard the PyCORN batch history maps to
+  are renamed while only the proposal uses most of them. Checked against the BatchML schemas
+  (`BatchML-BatchProductionRecord.xsd`, `BatchML-BatchInformation.xsd`, `B2MML-Common.xsd`).
+  Kept as they are: `display_name` (OPC UA's DisplayName), `instance`, `state`, `level`.
+
+  | # | Old | New | Why | Where the old name was used |
+  |---|---|---|---|---|
+  | R2 | `segment` | `element` | ISA-95 / B2MML, which the proposal maps materials to, has the **process segment** (`SegmentRequirement`, `SegmentResponse`), a different thing. The PyCORN batch history already has `element_id`, after ISA-88's "procedural element" (ISA-88.01 3.36). Batch history entries identify it (ISA-88.01 6.4.1.1), and BatchML references it from events and data series as `ProceduralElementReference`. BatchML never uses "element" alone (`RecipeElement`, `EquipmentElement`, `EquipmentProceduralElement`), so the PyCORN batch history defines `element` once as the procedural element. A chromatogram is then a field (`chromatogram`), not a level | the proposal, and a local variable in `run_log_sections.py` (not an output, not renamed: it holds sections before they are merged) |
+  | R3 | `unit` (on a value) | `unit_of_measure` | In ISA-88 a unit is the system (ISA-88.01 3.60), and the PyCORN batch history names it. BatchML keeps the two apart as `UnitOfMeasure` and an `EquipmentID` at `EquipmentElementLevel` `Unit`. The values stay UCUM codes (BatchML's `UnitOfMeasure` is a free code) | the proposal |
+  | R4 | `held_over` | `start_lag` | `held` is now the ISA-88 state of a UNICORN Pause. The note is about the previous phase's set points lasting a few seconds into a phase, not about Held. ISA-88 has no term for this. Not `carried_over`: in chromatography carryover is sample from an earlier injection in a later run, and in GMP cleaning validation it is residue from one batch in the next. `start_lag` is the name the decision already has ("phase start lag", review 3.4). Defined as set points logged after the phase start, not the gradient delay (dwell volume) between mixer and column, nor a process-control first-order lag | the proposal, the phase start decision of 2026-11-12, this roadmap, `RUN_STRUCTURE_REVIEW.md` |
+  | R5 | "tag" in the text ("tags every segment", "the `element_id` tag") | "marks", "key" | In historians, OPC and BatchML (`TagSpecification` in a `DataSet`) a tag is one recorded data series, which is a curve in UNICORN and PyCORN. ISA-88 says "not in equipment-specific tags" (ISA-88.01 6.4.3) | the proposal |
+
+- **The CADET export's "experiment" is the model view** (owner, 2026-11-15; built). In OBI,
+  Allotrope and IOF an experiment is a planned study across runs. PyCORN used the word for
+  one run's data for CADET (`CadetExperiment`, `build_experiment()`, `ExperimentSection`,
+  `experiment.json`). That object's `events` are UNICORN log entries, while CADET-Process's
+  events are planned parameter changes. Now `ModelView`, `model_view(run)`, `ModelSection`,
+  `model_view.json`, `logged_events`, module `pycorn/exporters/cadet/view.py`. The proposal's
+  vendor-neutral keys come into the JSON with its plan step 6.
+- **Decide items settled** (owner, 2026-11-15; they follow from decisions already made):
+
+  | # | Item | Answer | Follows from |
+  |---|---|---|---|
+  | 2 | keys | `phase_number`, `section_number`, and the `element_id` key. A step number joins them if option C of the words below the phase is chosen (proposal §11) | `element_id` |
+  | 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (proposal §5). Display tables and CSV keep UNICORN's words only. | the proposal's naming rule |
+  | 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (proposal §3.7). | the state mapping, Decide 6's fitted pieces |
+  | 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). | the value fields |
+  | 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display | the state mapping |
+  | 16 | by-pass | An equipment state of the column valve module, with a note in display | the physical model (proposal §3.6.1) |
+  | 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. | `element_id` |
 
 ### Usability for non-programmers
 

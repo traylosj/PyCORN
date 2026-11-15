@@ -677,7 +677,7 @@ or the load contain. That comes from the caller, per inlet position or line, as 
 export takes it today (`buffers=`, `feed=`, see [`CADET_GUIDE.md`](CADET_GUIDE.md)).
 
 <a id="table-10"></a>**Table 10.** Composition as set point and actual values (the kinds of §3.8, with their
-ontology terms in [Table 25](#table-25)), the basis of each in brackets, and where each comes
+ontology terms in [Table 24](#table-24)), the basis of each in brackets, and where each comes
 from (-: not available).
 
 | Quantity | Set point | Actual |
@@ -1321,7 +1321,7 @@ otherwise.
 5. **`pycorn record --json`** (and `inspect` gains the PyCORN batch history's operation list), masked by
    default.
 6. **Model view** reads `actual` values (the decided CADET flow source), with §5's
-   vendor-neutral keys in `model_view.json` (the names were changed on 2026-11-15, §11).
+   vendor-neutral keys in `model_view.json` (the names: ROADMAP, "Decisions").
 7. When CADET-Process 0.13.0 ships: the model view as `PhasedProcess` steps on an
    `LCFlowSheet` (needed for `characterization`, which takes an `LCProcess`), replacing
    PyCORN's own flow sheet and event compiler, after raising the gaps in §6.
@@ -1377,63 +1377,23 @@ otherwise.
 - CADET-Process's `instruments` and CADET-GUI are unreleased. §6 is rechecked when
   0.13.0 ships.
 
-## 11. Decisions this builds on, and the open Decide items
+## 11. Open decisions
 
 This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topics
-3.1-3.12, Decide 1-26).
+3.1-3.12, Decide 1-26). The decisions it builds on are in
+[`ROADMAP.md`](ROADMAP.md): "Decisions" (CADET export D1-D30, "Run structure and the PyCORN
+batch history") and "Status by track", "Run structure". This section lists only what is
+still open.
 
-**Decisions already made** that the design keeps (ROADMAP "Decisions", the review):
+**Open Decide items with a proposed answer**: [Table 22](#table-22).
 
-- Sections from what ran in the run log (D13). The method only as hints (D17). Each
-  instruction holds until the next.
-- Column flow by valve position (D14). Feed by valve, caller loop and path volumes, never
-  assumed (D16-D21, D27). No defaults that mirror CADET parameters (D28).
-- Wall clock for the model, pauses as zero-flow stretches (D5, D7). Hold freezes %B.
-- Units in column names, SI for the model (review 3.3). X-axis picker and tracks on the page.
-- Inlets from the stored system configuration: known / assumed / not known (Decide 22).
-- Phase start lag (2026-11-12): display folds flow, %B and %Q within 10 s and 1 % of the
-  phase, with a `start_lag` note. Valves and feed never fold. Phase start and end never
-  move. M22 windows from a phase start skip the held-over seconds. CADET never folds.
-- CADET flow source (2026-11-14, Decide 6, review 3.4): run log for structure and timing,
-  the method-flow entry for which pump, the volume axis for the amount where it differs by
-  more than 0.01 ml and 1 %, a fitted ramp inside such a section, then D14's zeroing.
-- Volumes (2026-11-15, Decide 18): the volume UNICORN reports on its volume axis is the
-  number for every calculation and every display, the feed volume included. A volume or
-  mass measured offline may later take precedence (§3.8).
-- Names (2026-11-15): "§N" for this document's parts, since `section` is the PyCORN batch
-  history's lowest level. `original` for UNICORN's words, not `native`, which in protein
-  chromatography is a folded protein's state.
-- Value fields (2026-11-15, §3.8, [Table 18](#table-18)): `kind` is `set_point` or `actual`
-  only, `calculated` is a `basis`, `quality` becomes `basis` (`exact` splits into `logged` and
-  `measured`, `not_known` moves from `source`, `folded` goes), `source` may list several.
-  When built, the `pauses` table's `quality` column and the run-level `timeline_quality` are
-  renamed in place (CHANGELOG first). The timeline's `ambiguous` and `unresolved` describe the
-  whole timeline, not one value, and get their own field.
-- Renames (2026-11-15, [Table 24](#table-24)): `element` for any stretch of the run at one
-  level (was `segment`), `unit_of_measure` on a value (was `unit`), `start_lag` for the
-  previous phase's set points at a phase start (was `held_over`), and "marks" or "key" in
-  the text (was "tag"). The CADET export's "experiment" names become model view names.
-  Renamed outputs change in place: no aliases, no second file, the rename first in the
-  CHANGELOG.
-- Unknowns said in plain words, never guessed. Masking rules (Track 9). Full values in code,
-  rounding at display only.
+<a id="table-22"></a>**Table 22.** Open Decide items (numbered as in the review), the proposed answer to each, and what it touches today.
 
-**Decide items the frame settles**: [Table 22](#table-22). Settled on 2026-11-15 where the answer follows from decisions already made. The rest stay open.
-
-<a id="table-22"></a>**Table 22.** Decide items (numbered as in the review), the answer to each, and whether it is settled or open.
-
-| # | Item | Answer | Status |
+| # | Item | Proposed answer | Today |
 |---|---|---|---|
-| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). | Open (with the words below the phase, [Table 23](#table-23)) |
-| 2 | keys | Yes: `phase_number`, `section_number`, and the `element_id` key | Settled. A step number joins them if option C of [Table 23](#table-23) is chosen. |
-| 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (§5). Display tables and CSV keep UNICORN's words only. | Settled (§5's naming rule) |
-| 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (§3.7). | Settled (the state mapping, and Decide 6's fitted pieces) |
-| 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). | Settled (the value fields of 2026-11-15) |
-| 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display | Settled (the state mapping) |
-| 16 | by-pass | An equipment state of the column valve module, with a note in display | Settled |
-| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. | Open. Display keeps the set flow today (Decide 6), and which flow users see is Decide 15. |
-| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. | Open. Tables keep the logged name today, and M22's interim phase rule waits on it (Decide 9, 23). |
-| 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. | Settled |
+| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). | Goes with the words below the phase ([Table 23](#table-23)) |
+| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. | Display keeps the set flow (Decide 6), and which flow users see is Decide 15. |
+| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. | Tables keep the logged name, and M22's interim phase rule waits on it (Decide 9, 23). |
 
 **Display choices still the owner's**: 12 phase length with or without pauses (proposal:
 both), 15 which flow users see, 17 feed wording, 21 the gradient
@@ -1441,15 +1401,6 @@ wording rule, 25 section-lane chart, 26 summary beside or instead of today's seq
 
 **Tooling gap:** Decide 19, `pycorn export --loop-volume` / `--sample-path-volume` for the
 CADET feed (one flag or two).
-
-**Decided (2026-11-15): the word "experiment" in the CADET export.** In OBI, Allotrope
-and IOF an experiment is a planned study across runs. PyCORN used the word for one run's
-data for CADET (`CadetExperiment`, `build_experiment()`, `ExperimentSection`,
-`experiment.json`). That object's `events` are UNICORN log entries, while CADET-Process's
-events are planned parameter changes. The object is the model view, so it is named so:
-`ModelView`, `model_view(run)`, `ModelSection`, `model_view.json`, `logged_events`. The
-names change in place, with no aliases and no second file, and the rename comes first in
-the CHANGELOG. §5's vendor-neutral keys come into the JSON with plan step 6.
 
 **New decision for the owner: the words below the phase.** ISA-88 points to "the steps and
 transitions as described in IEC 848: 1988" as "one method of defining subdivisions of a
@@ -1485,28 +1436,9 @@ against the run log on the example results. BatchML uses "step" a third way: a `
 its procedure logic invokes a recipe element (a unit procedure, operation or phase). So a
 display row called "step" would match neither standard.
 
-**Decided (2026-11-15): renames before anything is built.** This document defines the
-names for all later work, so words that clash with a standard the PyCORN batch history maps to are renamed
-now, while only this document uses most of them. The names were checked against the BatchML
-schemas (`BatchML-BatchProductionRecord.xsd`, `BatchML-BatchInformation.xsd`,
-`B2MML-Common.xsd`, see References). The renames are in [Table 24](#table-24), applied throughout this document.
-
-<a id="table-24"></a>**Table 24.** Renames: the old and new name, why, and where the old
-name was used.
-
-| # | Old | New | Why | Where the old name was used |
-|---|---|---|---|---|
-| R2 | `segment` | `element` | ISA-95 / B2MML, which §7 maps materials to, has the **process segment** (`SegmentRequirement`, `SegmentResponse`), a different thing. The PyCORN batch history already has `element_id`, after ISA-88's "procedural element" (ISA-88.01 3.36). Batch history entries identify it (ISA-88.01 6.4.1.1), and BatchML references it from events and data series as `ProceduralElementReference`. BatchML never uses "element" alone (`RecipeElement`, `EquipmentElement`, `EquipmentProceduralElement`), so the PyCORN batch history defines `element` once as the procedural element. A chromatogram is then a field (`chromatogram`), not "a `chromatogram` segment" (§3.4): it is no level | This document, and a local variable in `run_log_sections.py` (not an output) |
-| R3 | `unit` (on a value) | `unit_of_measure` | In ISA-88 a unit is the system (ISA-88.01 3.60), and the PyCORN batch history names it. BatchML keeps the two apart as `UnitOfMeasure` and an `EquipmentID` at `EquipmentElementLevel` `Unit`. The values stay UCUM codes (BatchML's `UnitOfMeasure` is a free code) | this document |
-| R4 | `held_over` | `start_lag` | `held` is now the ISA-88 state of a UNICORN Pause (§3.7). The note is about the previous phase's set points lasting a few seconds into a phase (§3.5), not about Held. ISA-88 has no term for this. Not `carried_over`: in chromatography carryover is sample from an earlier injection in a later run, and in GMP cleaning validation it is residue from one batch in the next. `start_lag` is the name the decision already has ("phase start lag", review 3.4). Defined as set points logged after the phase start, not the gradient delay (dwell volume) between mixer and column, nor a process-control first-order lag | this document, the phase start decision of 2026-11-12, `ROADMAP.md`, `RUN_STRUCTURE_REVIEW.md` |
-| R5 | "tag" in the text ("tags every segment", "the `element_id` tag") | "marks", "key" | In historians, OPC and BatchML (`TagSpecification` in a `DataSet`) a tag is one recorded data series, which is a curve in UNICORN and PyCORN. ISA-88 says "not in equipment-specific tags" (ISA-88.01 6.4.3) | this document |
-
-Kept as they are: `display_name` (the same meaning as OPC UA's DisplayName),
-`instance`, `state`, `level`. "Experiment" and the model view's `events` are decided above.
-
 ## 12. Words used in this document, and their ontology terms
 
-[Table 25](#table-25) maps the words to the ontologies a lab or plant may already use: IOF (Industrial Ontologies Foundry, biopharma module, `master` at `50a88d4`,
+[Table 24](#table-24) maps the words to the ontologies a lab or plant may already use: IOF (Industrial Ontologies Foundry, biopharma module, `master` at `50a88d4`,
 2026-10-15; classes under `https://spec.industrialontologies.org/ontology/construct/`), OBI
 and IAO (biomedical investigations, information artifacts), Allotrope (AFO, and its
 liquid chromatography data model ASM), and for composition ChEBI (substances), CHMO
@@ -1523,7 +1455,7 @@ flowchart LR
 
 <a id="figure-12"></a>**Figure 12.** Plan, what ran, and the record, in ontology terms.
 
-<a id="table-25"></a>**Table 25.** Each word, what it means in PyCORN, and its ISA-88 and ontology terms.
+<a id="table-24"></a>**Table 24.** Each word, what it means in PyCORN, and its ISA-88 and ontology terms.
 
 | Word | In PyCORN | Ontology terms |
 |---|---|---|
@@ -1539,7 +1471,7 @@ flowchart LR
 | display step (name open) | Sections joined for people, previous-phase set points folded with a note (§3.5). Not stored in the PyCORN batch history. | None. Not an IEC 60848 / IEC 61131-3 step (§11). |
 | cycle | One pass of the sequence on one column (§3.3). Held as a unit procedure, named by the caller's label, not as a field. | PyCORN's own term, with no class in IOF, OBI or Allotrope |
 | series, study | Linked results (§3.1). A designed series (DoE scouting) is a study. | OBI study design execution; IOF `StudyDesignRun` per result, `DesignPoint` for its planned factor levels; BatchML `CampaignID` |
-| experiment | Kept for a planned study across runs, as the ontologies use it. The CADET export's object was renamed the model view (§11). | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
+| experiment | Kept for a planned study across runs, as the ontologies use it. The CADET export's object was renamed the model view (ROADMAP, "Decisions"). | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
 | chromatogram | UNICORN's container of curves and event logs for (part of) a run (§3.4) | Allotrope chromatogram = one signal against time or volume, i.e. one PyCORN curve. No IOF class. |
 | curve, signal | one measured or calculated trace | ISA-88 continuous data (ISA-88.01 5.5.1); IAO measurement datum; Allotrope chromatogram data cube |
 | event | a UNICORN log entry (run log, injection, fraction) | ISA-88 event data, e.g. "start and stop times of procedural elements" (ISA-88.01 5.5.1). Not CADET-Process's events, which are planned parameter changes in a simulation. |
