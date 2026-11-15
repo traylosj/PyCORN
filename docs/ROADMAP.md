@@ -1510,8 +1510,10 @@ track". Open items stay in the proposal's §11.
   (`BatchML-BatchProductionRecord.xsd`, `BatchML-BatchInformation.xsd`, `B2MML-Common.xsd`).
   Kept as they are: `instance`, `state`, `level`. `display_name` (OPC UA's DisplayName)
   became `label` (owner, 2026-11-15): BatchML's `ProcedureChartElement/Label`, on every
-  element, overridable by the user, with `label_source` (`UNICORN`, `User input`).
-  `element_id` stays positional (`OP3/PH1/SE2`) and is never shown.
+  element, overridable by the user, with `label_source` (`UNICORN`, `PyCORN`, `User input`).
+  `element_id` stays positional (`OP3/PH1/SE2`) and is never shown. A phase is an equipment
+  activity (System flow, Sample feed, Fractionation; Table 6), not a UNICORN block; block
+  names stay in each section's `original`.
 
   | # | Old | New | Why | Where the old name was used |
   |---|---|---|---|---|

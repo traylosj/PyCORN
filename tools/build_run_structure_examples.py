@@ -454,7 +454,7 @@ JSON_MAP = [
     ("procedure", "level PR: the result; chromatograms; links to campaign, series, stage, loads, fractions, pools (all caller's except fraction IDs)", "UNICORN + caller", "#above", [("3.1", None), ("3.4", None)]),
     ("unit_procedures[]", "level UP: label, boundary_source (cycles are the caller's)", "caller", "#above", [("3.3", None)]),
     ("  .operations[]", "level OP: id, label, label_source, original, instance, state, process_operation, start/end, column_volume set point and actual", "UNICORN + PyCORN", "#levels", [("3.5", None), ("3.8", None)]),
-    ("    .phases[]", "level PH: one per UNICORN block; equipment_module", "UNICORN", "#levels", [("3.5", None), ("3.6.1", None)]),
+    ("    .phases[]", "level PH: one per equipment activity (system flow, sample feed, fractionation; may overlap); label (PyCORN's words), equipment_module; block names stay in each section's original", "PyCORN", "#levels", [("3.5", None), ("3.6.1", None)]),
     ("      .sections[]", "level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass", "UNICORN + volume axis", "#tables", [("3.5", None), ("3.7", None), ("3.8", None)]),
     ("states[]", "ISA-88 state bands: held, holding, restarting, paused", "PyCORN", "#levels", [("3.7", None)]),
     ("materials", "loads (set point and actual volume), buffers (inlet line, positions, %B range; contents and lot null = caller), fractions (ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
@@ -1911,6 +1911,7 @@ def record(A):
                                                      pools=[], note="all caller-supplied except fraction IDs (run + tube)"))
     ups = OrderedDict(level="unit_procedure", element_id="UP1", label="", label_source="", boundary_source="default", operations=[])
     blocks_by_op = {}
+    fractions = [x for x in event_tables.rows(A["ch"], "fraction") if not x["pseudo"] and x["end_time"] is not None]
     for k, (s, row) in enumerate(zip(S, rows)):
         mid = s.elapsed_start_s
         op = next((o for o in ops if o["a"] - 1e-6 <= mid < o["b"] - 1e-6), ops[-1])
@@ -1923,18 +1924,28 @@ def record(A):
                         column_volume=[val(A["op_values"][op["id"]]["set"], "mL", "set_point", "calculated", "run_log"),
                                        val(A["op_values"][op["id"]]["actual"], "mL", "actual", "calculated", "volume_axis")],
                         phases=[])
-        phases = []
+        # phases are equipment activities (Table 6), not UNICORN blocks: the system pump's flow and
+        # gradient over the whole operation, plus the sample feed and fractionation where they run
+        # (they may overlap). Block names stay in each section's original.
+        ph = OrderedDict(level="phase", element_id="%s/PH1" % op["id"], label="System flow", label_source="PyCORN",
+                         equipment_module="system_pump", start=o["start"], end=o["end"], sections=[])
+        others = []
+        feed = None
         for k, s, row in blocks_by_op.get(op["id"], []):
-            pname = s.block or "(no block)"
-            if not phases or phases[-1]["original"]["text"] != pname:  # each run of a block is its own phase
-                phases.append(OrderedDict(level="phase", element_id="%s/PH%d" % (op["id"], len(phases) + 1), label=pname, label_source="UNICORN",
-                                          original=OrderedDict(level="block", text=pname), equipment_module="system_pump", sections=[]))
-            ph = phases[-1]
+            if s.feed and not s.paused:
+                if feed is None:
+                    feed = OrderedDict(level="phase", label="Sample feed", label_source="PyCORN", equipment_module="sample_feed",
+                                       start=OrderedDict(wall_s=round(s.start_s, 3), method_s=round(s.elapsed_start_s, 3)))
+                    others.append(feed)
+                feed["end"] = OrderedDict(wall_s=round(s.end_s, 3), method_s=round(s.elapsed_end_s, 3))
+            elif not s.paused:
+                feed = None
             sec = OrderedDict(level="section", element_id="%s/SE%d" % (ph["element_id"], len(ph["sections"]) + 1), state="held" if s.paused else ("paused" if s.held else "running"),
                               start=OrderedDict(wall_s=round(s.start_s, 3), method_s=round(s.elapsed_start_s, 3)), end=OrderedDict(wall_s=round(s.end_s, 3), method_s=round(s.elapsed_end_s, 3)))
             if s.paused:
-                sec["original"] = OrderedDict(level="instruction", state="pause", text="; ".join(s.changes))
+                sec["original"] = OrderedDict(level="instruction", block=s.block or None, state="pause", text="; ".join(s.changes))
             else:
+                sec["original"] = OrderedDict(level="instruction", block=s.block or None, text="; ".join(s.changes))
                 sec["column_flow"] = [val(s.column_flow_ml_min, "mL/min", "set_point", "logged", "run_log")]
                 if row and row["fitted"]:
                     sec["column_flow"].append(val(row["axis_ml"] / ((s.end_s - s.start_s) / 60.0) if s.end_s > s.start_s else None, "mL/min", "actual", "fitted", "volume_axis",
@@ -1944,7 +1955,16 @@ def record(A):
                 sec["inlets"] = {k2: OrderedDict(position=v2, state=(s.inlet_states.get(k2) or {}).get("state")) for k2, v2 in (s.inlets or {}).items()}
                 sec["bypass"] = s.bypass
             ph["sections"].append(sec)
-        o["phases"] = phases
+        collected = [(fr["start_time"] * 60, fr["end_time"] * 60) for fr in fractions if fr["end_time"] * 60 > op["a"] and fr["start_time"] * 60 < op["b"]]
+        if collected:
+            a, b = max(op["a"], min(x[0] for x in collected)), min(op["b"], max(x[1] for x in collected))
+            others.append(OrderedDict(level="phase", label="Fractionation", label_source="PyCORN", equipment_module="fraction_collector",
+                                      start=OrderedDict(wall_s=round(A["wall"](a), 3), method_s=round(a, 3)),
+                                      end=OrderedDict(wall_s=round(A["wall"](b), 3), method_s=round(b, 3))))
+        others.sort(key=lambda p: p["start"]["method_s"])
+        o["phases"] = [ph]
+        for n, p in enumerate(others, 2):
+            o["phases"].append(OrderedDict([("level", "phase"), ("element_id", "%s/PH%d" % (op["id"], n))] + [(k2, v2) for k2, v2 in p.items() if k2 != "level"]))
         ups["operations"].append(o)
     rec["unit_procedures"] = [ups]
     rec["states"] = [OrderedDict(state=b["state"], start_wall_s=round(b["wa"], 3), end_wall_s=round(b["wb"], 3), how_found=b["why"]) for b in A["states"]]

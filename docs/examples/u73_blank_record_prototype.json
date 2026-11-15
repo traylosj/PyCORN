@@ -86,13 +86,17 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 0.0,
+        "method_s": 0.0
+       },
+       "end": {
+        "wall_s": 4.3,
+        "method_s": 4.3
+       },
        "sections": [
         {
          "level": "section",
@@ -105,6 +109,11 @@
          "end": {
           "wall_s": 1.0,
           "method_s": 1.0
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Phase Method Settings"
          },
          "column_flow": [
           {
@@ -145,6 +154,11 @@
           "wall_s": 1.4,
           "method_s": 1.4
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Wavelength 280 {nm} Off {nm} Off {nm}"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -183,6 +197,11 @@
          "end": {
           "wall_s": 2.7,
           "method_s": 2.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Injection valve Manual load"
          },
          "column_flow": [
           {
@@ -223,6 +242,11 @@
           "wall_s": 3.5,
           "method_s": 3.5
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Column position 5 Down flow"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -261,6 +285,11 @@
          "end": {
           "wall_s": 4.3,
           "method_s": 4.3
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet A A1"
          },
          "column_flow": [
           {
@@ -338,13 +367,17 @@
       {
        "level": "phase",
        "element_id": "OP2/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 4.3,
+        "method_s": 4.3
+       },
+       "end": {
+        "wall_s": 366.87,
+        "method_s": 313.9
+       },
        "sections": [
         {
          "level": "section",
@@ -357,6 +390,11 @@
          "end": {
           "wall_s": 4.7,
           "method_s": 4.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "System flow 5.000 {ml/min} Pre column pressure; End Phase; Phase Equilibration; Inlet A A1"
          },
          "column_flow": [
           {
@@ -416,6 +454,11 @@
          "end": {
           "wall_s": 5.5,
           "method_s": 5.5
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 0.0 {%B} 0.00 {CV}; System flow 5.000 {ml/min} Pre column pressure"
          },
          "column_flow": [
           {
@@ -478,26 +521,14 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (continue_without_pause, 53.0 s)"
          }
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH2",
-       "label": "Hold until UV stable signal",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Hold until UV stable signal"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP2/PH2/SE1",
+         "element_id": "OP2/PH1/SE4",
          "state": "running",
          "start": {
           "wall_s": 58.47,
@@ -506,6 +537,11 @@
          "end": {
           "wall_s": 60.97,
           "method_s": 8.0
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Hold until UV stable signal",
+          "text": "Block Hold until UV stable signal"
          },
          "column_flow": [
           {
@@ -571,23 +607,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH3",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP2/PH3/SE1",
+         "element_id": "OP2/PH1/SE5",
          "state": "running",
          "start": {
           "wall_s": 60.97,
@@ -596,6 +619,11 @@
          "end": {
           "wall_s": 61.17,
           "method_s": 8.2
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End_Block"
          },
          "column_flow": [
           {
@@ -643,23 +671,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH4",
-       "label": "Equilibrate",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Equilibrate"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP2/PH4/SE1",
+         "element_id": "OP2/PH1/SE6",
          "state": "running",
          "start": {
           "wall_s": 61.17,
@@ -668,6 +683,11 @@
          "end": {
           "wall_s": 366.67,
           "method_s": 313.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Equilibrate",
+          "text": "Block Equilibrate"
          },
          "column_flow": [
           {
@@ -727,23 +747,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH5",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP2/PH5/SE1",
+         "element_id": "OP2/PH1/SE7",
          "state": "running",
          "start": {
           "wall_s": 366.67,
@@ -752,6 +759,11 @@
          "end": {
           "wall_s": 366.87,
           "method_s": 313.9
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End_Block"
          },
          "column_flow": [
           {
@@ -829,13 +841,17 @@
       {
        "level": "phase",
        "element_id": "OP3/PH1",
-       "label": "Inject",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Inject"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 366.87,
+        "method_s": 313.9
+       },
+       "end": {
+        "wall_s": 391.67,
+        "method_s": 338.7
+       },
        "sections": [
         {
          "level": "section",
@@ -848,6 +864,11 @@
          "end": {
           "wall_s": 368.67,
           "method_s": 315.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Inject",
+          "text": "End Phase; Phase Sample Application; Block Prepare sample loading; End_Block; Block Inject; Inlet A A1; Gradient 0.0 {%B} 0.00 {ml}"
          },
          "column_flow": [
           {
@@ -920,6 +941,11 @@
           "wall_s": 369.27,
           "method_s": 316.3
          },
+         "original": {
+          "level": "instruction",
+          "block": "Inject",
+          "text": "Injection valve Inject"
+         },
          "column_flow": [
           {
            "value": 5.0,
@@ -979,62 +1005,10 @@
           "wall_s": 390.47,
           "method_s": 337.5
          },
-         "column_flow": [
-          {
-           "value": 1.0,
-           "unit_of_measure": "mL/min",
-           "kind": "set_point",
-           "basis": "logged",
-           "source": "run_log"
-          }
-         ],
-         "percent_b": [
-          {
-           "value": 0.0,
-           "unit_of_measure": "%",
-           "kind": "set_point",
-           "basis": "logged",
-           "source": "run_log",
-           "slope_per_s": 0.0
-          }
-         ],
-         "injection_valve": {
-          "value": "Inject",
-          "original": "Inject",
-          "sample_use": "feed"
-         },
-         "inlets": {
-          "A": {
-           "position": "A1",
-           "state": "known"
-          }
-         },
-         "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP3/PH2",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
-        {
-         "level": "section",
-         "element_id": "OP3/PH2/SE1",
-         "state": "running",
-         "start": {
-          "wall_s": 390.47,
-          "method_s": 337.5
-         },
-         "end": {
-          "wall_s": 391.27,
-          "method_s": 338.3
+         "original": {
+          "level": "instruction",
+          "block": "Inject",
+          "text": "System flow 1.000 {ml/min} Pre column pressure"
          },
          "column_flow": [
           {
@@ -1070,7 +1044,56 @@
         },
         {
          "level": "section",
-         "element_id": "OP3/PH2/SE2",
+         "element_id": "OP3/PH1/SE4",
+         "state": "running",
+         "start": {
+          "wall_s": 390.47,
+          "method_s": 337.5
+         },
+         "end": {
+          "wall_s": 391.27,
+          "method_s": 338.3
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End_Block"
+         },
+         "column_flow": [
+          {
+           "value": 1.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Inject",
+          "original": "Inject",
+          "sample_use": "feed"
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP3/PH1/SE5",
          "state": "running",
          "start": {
           "wall_s": 391.27,
@@ -1079,6 +1102,11 @@
          "end": {
           "wall_s": 391.67,
           "method_s": 338.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Injection valve Manual load"
          },
          "column_flow": [
           {
@@ -1113,6 +1141,21 @@
          "bypass": false
         }
        ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP3/PH2",
+       "label": "Sample feed",
+       "label_source": "PyCORN",
+       "equipment_module": "sample_feed",
+       "start": {
+        "wall_s": 368.67,
+        "method_s": 315.7
+       },
+       "end": {
+        "wall_s": 391.27,
+        "method_s": 338.3
+       }
       }
      ]
     },
@@ -1156,13 +1199,17 @@
       {
        "level": "phase",
        "element_id": "OP4/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 391.67,
+        "method_s": 338.7
+       },
+       "end": {
+        "wall_s": 517.07,
+        "method_s": 464.1
+       },
        "sections": [
         {
          "level": "section",
@@ -1175,6 +1222,11 @@
          "end": {
           "wall_s": 392.67,
           "method_s": 339.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End Phase; Phase Column Wash; Inlet A A1; Gradient 0.0 {%B} 0.00 {CV}"
          },
          "column_flow": [
           {
@@ -1207,23 +1259,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP4/PH2",
-       "label": "Wash",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Wash"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP4/PH2/SE1",
+         "element_id": "OP4/PH1/SE2",
          "state": "running",
          "start": {
           "wall_s": 392.67,
@@ -1232,6 +1271,11 @@
          "end": {
           "wall_s": 517.07,
           "method_s": 464.1
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Wash",
+          "text": "System flow 5.000 {ml/min} Pre column pressure; Block Wash"
          },
          "column_flow": [
           {
@@ -1336,13 +1380,17 @@
       {
        "level": "phase",
        "element_id": "OP5/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 517.07,
+        "method_s": 464.1
+       },
+       "end": {
+        "wall_s": 884.77,
+        "method_s": 831.8
+       },
        "sections": [
         {
          "level": "section",
@@ -1355,6 +1403,11 @@
          "end": {
           "wall_s": 517.47,
           "method_s": 464.5
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End_Block; End Phase; Phase Elution; Inlet A A1"
          },
          "column_flow": [
           {
@@ -1400,6 +1453,11 @@
           "wall_s": 518.07,
           "method_s": 465.1
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 100.0 {%B} 0.00 {CV}"
+         },
          "column_flow": [
           {
            "value": 5.0,
@@ -1431,23 +1489,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP5/PH2",
-       "label": "Start frac (Elution)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Start frac (Elution)"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP5/PH2/SE1",
+         "element_id": "OP5/PH1/SE3",
          "state": "running",
          "start": {
           "wall_s": 518.07,
@@ -1456,6 +1501,11 @@
          "end": {
           "wall_s": 519.57,
           "method_s": 466.6
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Start frac (Elution)",
+          "text": "System flow 2.500 {ml/min} Pre column pressure; Block Start frac (Elution)"
          },
          "column_flow": [
           {
@@ -1521,23 +1571,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP5/PH3",
-       "label": "Isocratic",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Isocratic"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP5/PH3/SE1",
+         "element_id": "OP5/PH1/SE4",
          "state": "running",
          "start": {
           "wall_s": 519.57,
@@ -1546,6 +1583,11 @@
          "end": {
           "wall_s": 884.57,
           "method_s": 831.6
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Isocratic",
+          "text": "End_Block; Block Isocratic"
          },
          "column_flow": [
           {
@@ -1578,23 +1620,10 @@
           }
          },
          "bypass": false
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP5/PH4",
-       "label": "Stop frac (Elution)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Stop frac (Elution)"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP5/PH4/SE1",
+         "element_id": "OP5/PH1/SE5",
          "state": "running",
          "start": {
           "wall_s": 884.57,
@@ -1603,6 +1632,11 @@
          "end": {
           "wall_s": 884.77,
           "method_s": 831.8
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Stop frac (Elution)",
+          "text": "End_Block; Block Stop frac (Elution)"
          },
          "column_flow": [
           {
@@ -1680,13 +1714,17 @@
       {
        "level": "phase",
        "element_id": "OP6/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 884.77,
+        "method_s": 831.8
+       },
+       "end": {
+        "wall_s": 1255.37,
+        "method_s": 1149.5
+       },
        "sections": [
         {
          "level": "section",
@@ -1699,6 +1737,11 @@
          "end": {
           "wall_s": 885.17,
           "method_s": 832.2
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "End_Block; End Phase; Phase Equilibration; Inlet A A1"
          },
          "column_flow": [
           {
@@ -1744,6 +1787,11 @@
           "wall_s": 885.77,
           "method_s": 832.8
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 0.0 {%B} 0.00 {CV}"
+         },
          "column_flow": [
           {
            "value": 2.5,
@@ -1787,6 +1835,11 @@
          "end": {
           "wall_s": 894.57,
           "method_s": 841.6
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "System flow 5.000 {ml/min} Pre column pressure"
          },
          "column_flow": [
           {
@@ -1873,26 +1926,14 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (continue_without_pause, 52.9 s)"
          }
-        }
-       ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP6/PH2",
-       "label": "Equilibrate_1",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "Equilibrate_1"
-       },
-       "equipment_module": "system_pump",
-       "sections": [
+        },
         {
          "level": "section",
-         "element_id": "OP6/PH2/SE1",
+         "element_id": "OP6/PH1/SE5",
          "state": "running",
          "start": {
           "wall_s": 947.47,
@@ -1901,6 +1942,11 @@
          "end": {
           "wall_s": 1255.37,
           "method_s": 1149.5
+         },
+         "original": {
+          "level": "instruction",
+          "block": "Equilibrate_1",
+          "text": "Block Equilibrate_1"
          },
          "column_flow": [
           {
@@ -1962,6 +2008,21 @@
          "bypass": false
         }
        ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP6/PH2",
+       "label": "Fractionation",
+       "label_source": "PyCORN",
+       "equipment_module": "fraction_collector",
+       "start": {
+        "wall_s": 894.37,
+        "method_s": 841.4
+       },
+       "end": {
+        "wall_s": 1255.37,
+        "method_s": 1149.5
+       }
       }
      ]
     }

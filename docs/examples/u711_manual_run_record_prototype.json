@@ -86,13 +86,17 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
-       "label": "(no block)",
-       "label_source": "UNICORN",
-       "original": {
-        "level": "block",
-        "text": "(no block)"
-       },
+       "label": "System flow",
+       "label_source": "PyCORN",
        "equipment_module": "system_pump",
+       "start": {
+        "wall_s": 0.0,
+        "method_s": 0.0
+       },
+       "end": {
+        "wall_s": 1076.914,
+        "method_s": 614.4
+       },
        "sections": [
         {
          "level": "section",
@@ -105,6 +109,11 @@
          "end": {
           "wall_s": 0.2,
           "method_s": 0.2
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": ""
          },
          "column_flow": [
           {
@@ -144,6 +153,11 @@
          "end": {
           "wall_s": 1.4,
           "method_s": 1.4
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 100.0 {%B} 0.00 {min}"
          },
          "column_flow": [
           {
@@ -210,6 +224,11 @@
          "end": {
           "wall_s": 3.7,
           "method_s": 3.7
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "System flow 10.000 {ml/min} Off"
          },
          "column_flow": [
           {
@@ -289,6 +308,11 @@
           "wall_s": 7.9,
           "method_s": 7.9
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Injection valve Inject"
+         },
          "column_flow": [
           {
            "value": 10.0,
@@ -354,6 +378,11 @@
          "end": {
           "wall_s": 12.2,
           "method_s": 12.2
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Sample flow 10.000 {ml/min} Off"
          },
          "column_flow": [
           {
@@ -421,6 +450,11 @@
           "wall_s": 145.9,
           "method_s": 145.9
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Column position Position 1 Down flow"
+         },
          "column_flow": [
           {
            "value": 10.0,
@@ -462,6 +496,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 89.0 s)"
          }
@@ -477,6 +512,11 @@
          "end": {
           "wall_s": 239.314,
           "method_s": 150.3
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": ""
          },
          "column_flow": [
           {
@@ -531,6 +571,11 @@
          "end": {
           "wall_s": 302.014,
           "method_s": 213.0
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 50.0 {%B} 0.00 {min}"
          },
          "column_flow": [
           {
@@ -604,6 +649,11 @@
           "wall_s": 322.214,
           "method_s": 233.2
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Column position By-pass Down flow"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -642,6 +692,11 @@
          "end": {
           "wall_s": 355.214,
           "method_s": 266.2
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Sample inlet S3"
          },
          "column_flow": [
           {
@@ -713,6 +768,11 @@
          "end": {
           "wall_s": 358.014,
           "method_s": 269.0
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet A A2"
          },
          "column_flow": [
           {
@@ -807,6 +867,11 @@
           "wall_s": 425.614,
           "method_s": 336.6
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet B B2"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -858,6 +923,11 @@
          "end": {
           "wall_s": 429.914,
           "method_s": 340.9
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Sample flow 0.000 {ml/min} Off"
          },
          "column_flow": [
           {
@@ -937,6 +1007,11 @@
          "end": {
           "wall_s": 437.114,
           "method_s": 348.1
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Injection valve Manual load"
          },
          "column_flow": [
           {
@@ -1023,6 +1098,11 @@
           "wall_s": 490.714,
           "method_s": 401.7
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet B B3"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -1107,6 +1187,11 @@
          "end": {
           "wall_s": 492.314,
           "method_s": 403.3
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet B B4"
          },
          "column_flow": [
           {
@@ -1199,6 +1284,11 @@
           "wall_s": 546.714,
           "method_s": 457.7
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet A A3"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -1250,6 +1340,11 @@
          "end": {
           "wall_s": 550.414,
           "method_s": 461.4
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Gradient 0.0 {%B} 0.00 {min}"
          },
          "column_flow": [
           {
@@ -1335,6 +1430,11 @@
          "end": {
           "wall_s": 598.614,
           "method_s": 509.6
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet A A4"
          },
          "column_flow": [
           {
@@ -1433,6 +1533,11 @@
           "wall_s": 600.814,
           "method_s": 511.8
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Inlet A A1"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -1508,6 +1613,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 236.1 s)"
          }
@@ -1523,6 +1629,11 @@
          "end": {
           "wall_s": 841.514,
           "method_s": 516.4
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": ""
          },
          "column_flow": [
           {
@@ -1576,6 +1687,11 @@
           "wall_s": 894.714,
           "method_s": 569.6
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "System flow 5.000 {ml/min} Off"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -1627,6 +1743,11 @@
          "end": {
           "wall_s": 899.214,
           "method_s": 574.1
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "System flow 10.000 {ml/min} Off"
          },
          "column_flow": [
           {
@@ -1713,6 +1834,11 @@
           "wall_s": 906.914,
           "method_s": 581.8
          },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Outlet valve Out 1"
+         },
          "column_flow": [
           {
            "value": 0.0,
@@ -1767,6 +1893,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 16.0 s)"
          }
@@ -1782,6 +1909,11 @@
          "end": {
           "wall_s": 927.014,
           "method_s": 585.9
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": ""
          },
          "column_flow": [
           {
@@ -1852,6 +1984,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 16.9 s)"
          }
@@ -1867,6 +2000,11 @@
          "end": {
           "wall_s": 954.014,
           "method_s": 596.0
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Outlet valve Out 2"
          },
          "column_flow": [
           {
@@ -1937,6 +2075,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 56.9 s)"
          }
@@ -1952,6 +2091,11 @@
          "end": {
           "wall_s": 1018.314,
           "method_s": 603.4
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Outlet valve Out 3"
          },
          "column_flow": [
           {
@@ -2022,6 +2166,7 @@
          },
          "original": {
           "level": "instruction",
+          "block": null,
           "state": "pause",
           "text": "pause (pause_text, 47.6 s)"
          }
@@ -2037,6 +2182,11 @@
          "end": {
           "wall_s": 1076.914,
           "method_s": 614.4
+         },
+         "original": {
+          "level": "instruction",
+          "block": null,
+          "text": "Outlet valve Out 4"
          },
          "column_flow": [
           {
@@ -2118,6 +2268,36 @@
          "bypass": true
         }
        ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP1/PH2",
+       "label": "Sample feed",
+       "label_source": "PyCORN",
+       "equipment_module": "sample_feed",
+       "start": {
+        "wall_s": 3.7,
+        "method_s": 3.7
+       },
+       "end": {
+        "wall_s": 302.014,
+        "method_s": 213.0
+       }
+      },
+      {
+       "level": "phase",
+       "element_id": "OP1/PH3",
+       "label": "Fractionation",
+       "label_source": "PyCORN",
+       "equipment_module": "fraction_collector",
+       "start": {
+        "wall_s": 899.214,
+        "method_s": 574.1
+       },
+       "end": {
+        "wall_s": 1076.914,
+        "method_s": 614.4
+       }
       }
      ]
     }

@@ -232,7 +232,7 @@ ul.warn{font-size:12px;columns:1}
 <tr><td>9</td><td>Planned vs run (method hints)</td><td><span class="badge" style="background:#c9a100" title="stored, but not safe to use as a value (text, template, name)">Hint only</span></td><td>Equilibrate: planned 5 CV, ran 5.06 (as_planned); Inject: planned 4.5 ml, ran 4.55 (as_planned); Wash: planned 3 CV, ran 3.06 (as_planned); Isocratic: planned 5 CV, ran 5.1 (as_planned); Equilibrate_1: planned 5 CV, ran 5.1 (as_planned)</td><td>Not stored by UNICORN as a result. Display aid or analysis?</td><td><a class="doc" href="../ROADMAP.md#scope-decisions-for-cadet-open-review-of-2026-11-15" title="ROADMAP.md">roadmap table</a> <a class="doc" href="../ROADMAP.md#method-hints-d17-d20-d23" title="ROADMAP.md">ROADMAP</a> <a class="doc" href="../USER_GUIDE.md#method-hints" title="USER_GUIDE.md">USER_GUIDE</a></td></tr>
 <tr><td>10</td><td>Warnings (checks of curves against the run log)</td><td><span class="badge" style="background:#2a78d6" title="PyCORN works it out from stored data">Derived</span></td><td>22 warning(s) in total on this page&#x27;s inputs (listed at the end).</td><td>Borderline: a check of PyCORN&#x27;s own reading, so it may stay.</td><td><a class="doc" href="../ROADMAP.md#scope-decisions-for-cadet-open-review-of-2026-11-15" title="ROADMAP.md">roadmap table</a> <a class="doc" href="../CADET_GUIDE.md#warnings" title="CADET_GUIDE.md">CADET_GUIDE</a> <a class="doc" href="../USER_GUIDE.md#warnings-and-what-to-check" title="USER_GUIDE.md">USER_GUIDE</a></td></tr>
 </tbody></table>
-<h2 id="record">8. The JSON: what is in it</h2><p class="docs">Explained in: <a class="doc" href="../RUN_STRUCTURE_RECORD.md#5-the-pycorn-batch-historys-fields" title="RUN_STRUCTURE_RECORD.md">proposal §5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-17" title="RUN_STRUCTURE_RECORD.md">Table 17</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-18" title="RUN_STRUCTURE_RECORD.md">Table 18</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-19" title="RUN_STRUCTURE_RECORD.md">Table 19</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#7-outputs-what-changes-whats-new" title="RUN_STRUCTURE_RECORD.md">proposal §7</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#8-plan" title="RUN_STRUCTURE_RECORD.md">proposal §8</a></p><p class="lead">The whole prototype record: <a href="u711_cadet_reference_record_prototype.json">u711_cadet_reference_record_prototype.json</a> (78305 bytes, 3243 lines). Nothing on this page is hidden from it except the curve values, the scope rows (analysis, not record) and the layout. Read it as: structure first (map and tree), then the exact text.</p>
+<h2 id="record">8. The JSON: what is in it</h2><p class="docs">Explained in: <a class="doc" href="../RUN_STRUCTURE_RECORD.md#5-the-pycorn-batch-historys-fields" title="RUN_STRUCTURE_RECORD.md">proposal §5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-17" title="RUN_STRUCTURE_RECORD.md">Table 17</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-18" title="RUN_STRUCTURE_RECORD.md">Table 18</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-19" title="RUN_STRUCTURE_RECORD.md">Table 19</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#7-outputs-what-changes-whats-new" title="RUN_STRUCTURE_RECORD.md">proposal §7</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#8-plan" title="RUN_STRUCTURE_RECORD.md">proposal §8</a></p><p class="lead">The whole prototype record: <a href="u711_cadet_reference_record_prototype.json">u711_cadet_reference_record_prototype.json</a> (80957 bytes, 3314 lines). Nothing on this page is hidden from it except the curve values, the scope rows (analysis, not record) and the layout. Read it as: structure first (map and tree), then the exact text.</p>
 <h3>Map: JSON path, what it holds, where it is on this page</h3>
 <table class=""><thead><tr><th>JSON path</th><th>holds</th><th>origin</th><th>shown above</th><th>explained in</th></tr></thead><tbody>
 <tr><td><code>record_version, source_system</code></td><td>which layout and which software wrote the data</td><td>PyCORN</td><td><a href="#record">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#5-the-pycorn-batch-historys-fields" title="RUN_STRUCTURE_RECORD.md">proposal §5</a></td></tr>
@@ -241,7 +241,7 @@ ul.warn{font-size:12px;columns:1}
 <tr><td><code>procedure</code></td><td>level PR: the result; chromatograms; links to campaign, series, stage, loads, fractions, pools (all caller&#x27;s except fraction IDs)</td><td>UNICORN + caller</td><td><a href="#above">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#31-across-results-linked-runs" title="RUN_STRUCTURE_RECORD.md">proposal §3.1</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#34-chromatograms-how-the-data-was-recorded" title="RUN_STRUCTURE_RECORD.md">proposal §3.4</a></td></tr>
 <tr><td><code>unit_procedures[]</code></td><td>level UP: label, boundary_source (cycles are the caller&#x27;s)</td><td>caller</td><td><a href="#above">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#33-inside-the-procedure-unit-procedures-and-cycles" title="RUN_STRUCTURE_RECORD.md">proposal §3.3</a></td></tr>
 <tr><td><code>  .operations[]</code></td><td>level OP: id, label, label_source, original, instance, state, process_operation, start/end, column_volume set point and actual</td><td>UNICORN + PyCORN</td><td><a href="#levels">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#35-inside-a-unit-procedure-operations-phases-sections" title="RUN_STRUCTURE_RECORD.md">proposal §3.5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#38-set-point-and-actual-values-and-how-each-was-obtained" title="RUN_STRUCTURE_RECORD.md">proposal §3.8</a></td></tr>
-<tr><td><code>    .phases[]</code></td><td>level PH: one per UNICORN block; equipment_module</td><td>UNICORN</td><td><a href="#levels">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#35-inside-a-unit-procedure-operations-phases-sections" title="RUN_STRUCTURE_RECORD.md">proposal §3.5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#361-physical-model-where-it-ran" title="RUN_STRUCTURE_RECORD.md">proposal §3.6.1</a></td></tr>
+<tr><td><code>    .phases[]</code></td><td>level PH: one per equipment activity (system flow, sample feed, fractionation; may overlap); label (PyCORN&#x27;s words), equipment_module; block names stay in each section&#x27;s original</td><td>PyCORN</td><td><a href="#levels">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#35-inside-a-unit-procedure-operations-phases-sections" title="RUN_STRUCTURE_RECORD.md">proposal §3.5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#361-physical-model-where-it-ran" title="RUN_STRUCTURE_RECORD.md">proposal §3.6.1</a></td></tr>
 <tr><td><code>      .sections[]</code></td><td>level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass</td><td>UNICORN + volume axis</td><td><a href="#tables">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#35-inside-a-unit-procedure-operations-phases-sections" title="RUN_STRUCTURE_RECORD.md">proposal §3.5</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#37-states-running-paused-held-and-the-transients-between" title="RUN_STRUCTURE_RECORD.md">proposal §3.7</a> <a class="doc" href="../RUN_STRUCTURE_RECORD.md#38-set-point-and-actual-values-and-how-each-was-obtained" title="RUN_STRUCTURE_RECORD.md">proposal §3.8</a></td></tr>
 <tr><td><code>states[]</code></td><td>ISA-88 state bands: held, holding, restarting, paused</td><td>PyCORN</td><td><a href="#levels">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#37-states-running-paused-held-and-the-transients-between" title="RUN_STRUCTURE_RECORD.md">proposal §3.7</a></td></tr>
 <tr><td><code>materials</code></td><td>loads (set point and actual volume), buffers (inlet line, positions, %B range; contents and lot null = caller), fractions (ID = run + tube); material IDs null = caller</td><td>UNICORN + caller</td><td><a href="#tables">on this page</a></td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#363-process-inputs-and-outputs-what-went-in-and-what-came-out" title="RUN_STRUCTURE_RECORD.md">proposal §3.6.3</a></td></tr>
@@ -264,7 +264,7 @@ ul.warn{font-size:12px;columns:1}
 <tr><td><code>basis</code></td><td>logged, measured, calculated, fitted, inferred, assumed, given, default, not_known</td><td>how the number was obtained</td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-18" title="RUN_STRUCTURE_RECORD.md">Table 18</a></td></tr>
 <tr><td><code>source</code></td><td>run_log, volume_axis, curve, system_configuration, method_hint, caller, default</td><td>where the inputs came from</td><td><a class="doc" href="../RUN_STRUCTURE_RECORD.md#table-18" title="RUN_STRUCTURE_RECORD.md">Table 18</a></td></tr>
 </tbody></table>
-<h3>Tree of this run's record</h3><p class='lead'>Click to open. Lists show their first item.</p><div class='tree'><details open><summary><b>record</b> <span class="ty">object, 14 keys</span></summary><div class="ind"><div class="leaf"><b>record_version</b> = <code>&quot;prototype (docs/RUN_STRUCTURE_RECORD.md section 5)&quot;</code></div><details open><summary><b>source_system</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>name</b> = <code>&quot;UNICORN&quot;</code></div><div class="leaf"><b>version</b> = <code>&quot;7.11.0.1097&quot;</code></div></div></details><div class="leaf"><b>batch_id</b> = <code>&quot;(UNICORN Batch ID: masked on this page)&quot;</code></div><div class="leaf"><b>instrument</b> = <code>&quot;AKTA pure 25&quot;</code></div><details open><summary><b>column</b> <span class="ty">object, 1 keys</span></summary><div class="ind"><details><summary><b>vc</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><div class="leaf"><b>value</b> = <code>5.027</code></div><div class="leaf"><b>unit_of_measure</b> = <code>&quot;mL&quot;</code></div><div class="leaf"><b>kind</b> = <code>&quot;set_point&quot;</code></div><div class="leaf"><b>basis</b> = <code>&quot;logged&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;curves&quot;</code></div></div></details></div></details><details open><summary><b>procedure</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;procedure&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;PR&quot;</code></div><details><summary><b>original</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;result&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;u711_cadet_reference.zip&quot;</code></div></div></details><details><summary><b>chromatograms</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>name</b> = <code>&quot;Chrom.1&quot;</code></div><div class="leaf"><b>kind</b> = <code>&quot;original&quot;</code></div></div></details></div></details><details><summary><b>links</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>campaign_id</b> = <code>null</code></div><div class="leaf"><b>series</b> = <code>null</code></div><div class="leaf"><b>process_stage</b> = <code>null</code></div><div class="leaf"><b>loads</b> <span class="ty">empty list</span></div><div class="leaf"><b>fractions</b> <span class="ty">empty list</span></div><div class="leaf"><b>pools</b> <span class="ty">empty list</span></div><div class="leaf"><b>note</b> = <code>&quot;all caller-supplied except fraction IDs (run + tube)&quot;</code></div></div></details></div></details><details open><summary><b>unit_procedures</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 6 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;unit_procedure&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;UP1&quot;</code></div><div class="leaf"><b>label</b> = <code>&quot;&quot;</code></div><div class="leaf"><b>label_source</b> = <code>&quot;&quot;</code></div><div class="leaf"><b>boundary_source</b> = <code>&quot;default&quot;</code></div><details><summary><b>operations</b> <span class="ty">list, 6 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 12 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;operation&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;OP1&quot;</code></div><div class="leaf"><b>label</b> = <code>&quot;Method Settings&quot;</code></div><div class="leaf"><b>label_source</b> = <code>&quot;UNICORN&quot;</code></div><details><summary><b>original</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><div class="leaf"><b>instance</b> = <code>1</code></div><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><div class="leaf"><b>process_operation</b> = <code>&quot;&quot;</code></div><details><summary><b>start</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>end</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>column_volume</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><details><summary><b>phases</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><i>...</i></div></details></div></details></div></details></div></details></div></details></div></details><details open><summary><b>states</b> <span class="ty">list, 30 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 4 keys</span></summary><div class="ind"><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><div class="leaf"><b>start_wall_s</b> = <code>0.0</code></div><div class="leaf"><b>end_wall_s</b> = <code>1.0</code></div><div class="leaf"><b>how_found</b> = <code>&quot;running&quot;</code></div></div></details></div></details><details open><summary><b>materials</b> <span class="ty">object, 4 keys</span></summary><div class="ind"><details><summary><b>loads</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;LOAD1&quot;</code></div><div class="leaf"><b>injection_valve</b> = <code>&quot;Inject&quot;</code></div><div class="leaf"><b>start_wall_s</b> = <code>369.1</code></div><div class="leaf"><b>end_wall_s</b> = <code>631.8</code></div><details><summary><b>volume</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><div class="leaf"><b>material_id</b> = <code>null</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;caller (UNICORN stores none)&quot;</code></div></div></details></div></details><details><summary><b>buffers</b> <span class="ty">list, 3 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 8 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;BUF:A&quot;</code></div><div class="leaf"><b>inlet_line</b> = <code>&quot;A&quot;</code></div><details><summary><b>positions</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><details><summary><b>percent_b_range</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] 0.0</div></div></details><div class="leaf"><b>contents</b> = <code>null</code></div><div class="leaf"><b>lot_id</b> = <code>null</code></div><div class="leaf"><b>material_id</b> = <code>null</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;caller (UNICORN stores none)&quot;</code></div></div></details></div></details><details><summary><b>fractions</b> <span class="ty">list, 4 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;FR:Waste&quot;</code></div><div class="leaf"><b>role</b> = <code>&quot;waste_or_flow_through&quot;</code></div><div class="leaf"><b>start_min</b> = <code>0.0</code></div><div class="leaf"><b>end_min</b> = <code>14.5767</code></div><details><summary><b>volume</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><div class="leaf"><b>material_id</b> = <code>&quot;RUN:Waste&quot;</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;derived (run + tube)&quot;</code></div></div></details></div></details><details><summary><b>pools</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>peak_tables</b> = <code>1</code></div><div class="leaf"><b>pool_tables</b> = <code>0</code></div></div></details></div></details><details open><summary><b>volumes</b> <span class="ty">object, 14 keys</span></summary><div class="ind"><details><summary><b>column</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Vc 5.027 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;Vc from curves&quot;</code></div></div></details><details><summary><b>mixer</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;0.6 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;stored: SystemData MixerInformation&quot;</code></div></div></details><details><summary><b>monitor_outlet</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;125 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;SystemSettingData&quot;</code></div></div></details><details><summary><b>monitor_frac</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;435 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;SystemSettingData&quot;</code></div></div></details><details><summary><b>ph</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Restrictor 48 \u00b5l; pH cell 76 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;pH valve: restrictor and cell volumes, SystemSettingData&quot;</code></div></div></details><details><summary><b>column_uv</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UNICORN stores no tubing volume between column and UV; tubing_volume= (D27)&quot;</code></div></div></details><details><summary><b>pump_mixer</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between pump and mixer&quot;</code></div></div></details><details><summary><b>mixer_inj</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between mixer and injection valve&quot;</code></div></div></details><details><summary><b>inj_column</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between injection valve and column&quot;</code></div></div></details><details><summary><b>inlet_line</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;inlet tubing volume not stored&quot;</code></div></div></details><details><summary><b>uv_ph</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UV to conductivity/pH tubing not stored&quot;</code></div></div></details><details><summary><b>loop</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;hint&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Superloop, 10 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;method text only; caller gives loop_volume (D19)&quot;</code></div></div></details><details><summary><b>sample_path</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;sample_path_volume from the caller (D21)&quot;</code></div></div></details><details><summary><b>uv</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;path 2.08 cm&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UV cell: path length stored; cell volume not stored&quot;</code></div></div></details></div></details><details open><summary><b>facts</b> <span class="ty">list, 73 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 6 keys</span></summary><div class="ind"><div class="leaf"><b>group</b> = <code>&quot;Volumes and flow path&quot;</code></div><div class="leaf"><b>fact</b> = <code>&quot;Column volume Vc&quot;</code></div><div class="leaf"><b>needed_by</b> = <code>&quot;both&quot;</code></div><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>value</b> = <code>&quot;Vc 5.027 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;source: curves&quot;</code></div></div></details></div></details><details open><summary><b>views</b> <span class="ty">object, 1 keys</span></summary><div class="ind"><details><summary><b>display</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>note</b> = <code>&quot;computed from the sections each time; never part of the stored record&quot;</code></div><details><summary><b>steps</b> <span class="ty">list, 10 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 10 keys</span></summary><div class="ind"><div class="leaf"><b>start_wall_s</b> = <code>0.0</code></div><div class="leaf"><b>end_wall_s</b> = <code>4.3</code></div><div class="leaf"><b>operation</b> = <code>&quot;OP1&quot;</code></div><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><details><summary><b>column_flow</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>percent_b</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details><div class="leaf"><b>sections_joined</b> = <code>5</code></div><details><summary><b>sections</b> <span class="ty">list, 5 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] 0</div></div></details><div class="leaf"><b>absorbed_sections</b> <span class="ty">empty list</span></div><div class="leaf"><b>absorbed_note</b> = <code>null</code></div></div></details></div></details></div></details></div></details><details open><summary><b>warnings</b> <span class="ty">list, 34 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] &quot;pause of 53.5 s at 5.5 s elapsed (continue_without_pause) i...</div></div></details><details open><summary><b>not_known</b> <span class="ty">list, 24 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] &quot;Void volume Vo&quot;</div></div></details></div></details></div>
+<h3>Tree of this run's record</h3><p class='lead'>Click to open. Lists show their first item.</p><div class='tree'><details open><summary><b>record</b> <span class="ty">object, 14 keys</span></summary><div class="ind"><div class="leaf"><b>record_version</b> = <code>&quot;prototype (docs/RUN_STRUCTURE_RECORD.md section 5)&quot;</code></div><details open><summary><b>source_system</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>name</b> = <code>&quot;UNICORN&quot;</code></div><div class="leaf"><b>version</b> = <code>&quot;7.11.0.1097&quot;</code></div></div></details><div class="leaf"><b>batch_id</b> = <code>&quot;(UNICORN Batch ID: masked on this page)&quot;</code></div><div class="leaf"><b>instrument</b> = <code>&quot;AKTA pure 25&quot;</code></div><details open><summary><b>column</b> <span class="ty">object, 1 keys</span></summary><div class="ind"><details><summary><b>vc</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><div class="leaf"><b>value</b> = <code>5.027</code></div><div class="leaf"><b>unit_of_measure</b> = <code>&quot;mL&quot;</code></div><div class="leaf"><b>kind</b> = <code>&quot;set_point&quot;</code></div><div class="leaf"><b>basis</b> = <code>&quot;logged&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;curves&quot;</code></div></div></details></div></details><details open><summary><b>procedure</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;procedure&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;PR&quot;</code></div><details><summary><b>original</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;result&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;u711_cadet_reference.zip&quot;</code></div></div></details><details><summary><b>chromatograms</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>name</b> = <code>&quot;Chrom.1&quot;</code></div><div class="leaf"><b>kind</b> = <code>&quot;original&quot;</code></div></div></details></div></details><details><summary><b>links</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>campaign_id</b> = <code>null</code></div><div class="leaf"><b>series</b> = <code>null</code></div><div class="leaf"><b>process_stage</b> = <code>null</code></div><div class="leaf"><b>loads</b> <span class="ty">empty list</span></div><div class="leaf"><b>fractions</b> <span class="ty">empty list</span></div><div class="leaf"><b>pools</b> <span class="ty">empty list</span></div><div class="leaf"><b>note</b> = <code>&quot;all caller-supplied except fraction IDs (run + tube)&quot;</code></div></div></details></div></details><details open><summary><b>unit_procedures</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 6 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;unit_procedure&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;UP1&quot;</code></div><div class="leaf"><b>label</b> = <code>&quot;&quot;</code></div><div class="leaf"><b>label_source</b> = <code>&quot;&quot;</code></div><div class="leaf"><b>boundary_source</b> = <code>&quot;default&quot;</code></div><details><summary><b>operations</b> <span class="ty">list, 6 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 12 keys</span></summary><div class="ind"><div class="leaf"><b>level</b> = <code>&quot;operation&quot;</code></div><div class="leaf"><b>element_id</b> = <code>&quot;OP1&quot;</code></div><div class="leaf"><b>label</b> = <code>&quot;Method Settings&quot;</code></div><div class="leaf"><b>label_source</b> = <code>&quot;UNICORN&quot;</code></div><details><summary><b>original</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><div class="leaf"><b>instance</b> = <code>1</code></div><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><div class="leaf"><b>process_operation</b> = <code>&quot;&quot;</code></div><details><summary><b>start</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>end</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>column_volume</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><details><summary><b>phases</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 8 keys</span></summary><div class="ind"><i>...</i></div></details></div></details></div></details></div></details></div></details></div></details><details open><summary><b>states</b> <span class="ty">list, 30 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 4 keys</span></summary><div class="ind"><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><div class="leaf"><b>start_wall_s</b> = <code>0.0</code></div><div class="leaf"><b>end_wall_s</b> = <code>1.0</code></div><div class="leaf"><b>how_found</b> = <code>&quot;running&quot;</code></div></div></details></div></details><details open><summary><b>materials</b> <span class="ty">object, 4 keys</span></summary><div class="ind"><details><summary><b>loads</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;LOAD1&quot;</code></div><div class="leaf"><b>injection_valve</b> = <code>&quot;Inject&quot;</code></div><div class="leaf"><b>start_wall_s</b> = <code>369.1</code></div><div class="leaf"><b>end_wall_s</b> = <code>631.8</code></div><details><summary><b>volume</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><div class="leaf"><b>material_id</b> = <code>null</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;caller (UNICORN stores none)&quot;</code></div></div></details></div></details><details><summary><b>buffers</b> <span class="ty">list, 3 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 8 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;BUF:A&quot;</code></div><div class="leaf"><b>inlet_line</b> = <code>&quot;A&quot;</code></div><details><summary><b>positions</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><details><summary><b>percent_b_range</b> <span class="ty">list, 2 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] 0.0</div></div></details><div class="leaf"><b>contents</b> = <code>null</code></div><div class="leaf"><b>lot_id</b> = <code>null</code></div><div class="leaf"><b>material_id</b> = <code>null</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;caller (UNICORN stores none)&quot;</code></div></div></details></div></details><details><summary><b>fractions</b> <span class="ty">list, 4 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 7 keys</span></summary><div class="ind"><div class="leaf"><b>element_id</b> = <code>&quot;FR:Waste&quot;</code></div><div class="leaf"><b>role</b> = <code>&quot;waste_or_flow_through&quot;</code></div><div class="leaf"><b>start_min</b> = <code>0.0</code></div><div class="leaf"><b>end_min</b> = <code>14.5767</code></div><details><summary><b>volume</b> <span class="ty">list, 1 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details></div></details><div class="leaf"><b>material_id</b> = <code>&quot;RUN:Waste&quot;</code></div><div class="leaf"><b>material_id_source</b> = <code>&quot;derived (run + tube)&quot;</code></div></div></details></div></details><details><summary><b>pools</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>peak_tables</b> = <code>1</code></div><div class="leaf"><b>pool_tables</b> = <code>0</code></div></div></details></div></details><details open><summary><b>volumes</b> <span class="ty">object, 14 keys</span></summary><div class="ind"><details><summary><b>column</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Vc 5.027 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;Vc from curves&quot;</code></div></div></details><details><summary><b>mixer</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;0.6 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;stored: SystemData MixerInformation&quot;</code></div></div></details><details><summary><b>monitor_outlet</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;125 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;SystemSettingData&quot;</code></div></div></details><details><summary><b>monitor_frac</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;435 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;SystemSettingData&quot;</code></div></div></details><details><summary><b>ph</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Restrictor 48 \u00b5l; pH cell 76 \u00b5l&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;pH valve: restrictor and cell volumes, SystemSettingData&quot;</code></div></div></details><details><summary><b>column_uv</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UNICORN stores no tubing volume between column and UV; tubing_volume= (D27)&quot;</code></div></div></details><details><summary><b>pump_mixer</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between pump and mixer&quot;</code></div></div></details><details><summary><b>mixer_inj</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between mixer and injection valve&quot;</code></div></div></details><details><summary><b>inj_column</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;no volume stored between injection valve and column&quot;</code></div></div></details><details><summary><b>inlet_line</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;inlet tubing volume not stored&quot;</code></div></div></details><details><summary><b>uv_ph</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UV to conductivity/pH tubing not stored&quot;</code></div></div></details><details><summary><b>loop</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;hint&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;Superloop, 10 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;method text only; caller gives loop_volume (D19)&quot;</code></div></div></details><details><summary><b>sample_path</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;missing&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;not stored&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;sample_path_volume from the caller (D21)&quot;</code></div></div></details><details><summary><b>uv</b> <span class="ty">object, 3 keys</span></summary><div class="ind"><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>text</b> = <code>&quot;path 2.08 cm&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;UV cell: path length stored; cell volume not stored&quot;</code></div></div></details></div></details><details open><summary><b>facts</b> <span class="ty">list, 73 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 6 keys</span></summary><div class="ind"><div class="leaf"><b>group</b> = <code>&quot;Volumes and flow path&quot;</code></div><div class="leaf"><b>fact</b> = <code>&quot;Column volume Vc&quot;</code></div><div class="leaf"><b>needed_by</b> = <code>&quot;both&quot;</code></div><div class="leaf"><b>status</b> = <code>&quot;stored&quot;</code></div><div class="leaf"><b>value</b> = <code>&quot;Vc 5.027 ml&quot;</code></div><div class="leaf"><b>source</b> = <code>&quot;source: curves&quot;</code></div></div></details></div></details><details open><summary><b>views</b> <span class="ty">object, 1 keys</span></summary><div class="ind"><details><summary><b>display</b> <span class="ty">object, 2 keys</span></summary><div class="ind"><div class="leaf"><b>note</b> = <code>&quot;computed from the sections each time; never part of the stored record&quot;</code></div><details><summary><b>steps</b> <span class="ty">list, 10 item(s); first shown</span></summary><div class="ind"><details><summary><b>[0]</b> <span class="ty">object, 10 keys</span></summary><div class="ind"><div class="leaf"><b>start_wall_s</b> = <code>0.0</code></div><div class="leaf"><b>end_wall_s</b> = <code>4.3</code></div><div class="leaf"><b>operation</b> = <code>&quot;OP1&quot;</code></div><div class="leaf"><b>state</b> = <code>&quot;running&quot;</code></div><details><summary><b>column_flow</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details><details><summary><b>percent_b</b> <span class="ty">object, 5 keys</span></summary><div class="ind"><i>...</i></div></details><div class="leaf"><b>sections_joined</b> = <code>5</code></div><details><summary><b>sections</b> <span class="ty">list, 5 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] 0</div></div></details><div class="leaf"><b>absorbed_sections</b> <span class="ty">empty list</span></div><div class="leaf"><b>absorbed_note</b> = <code>null</code></div></div></details></div></details></div></details></div></details><details open><summary><b>warnings</b> <span class="ty">list, 34 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] &quot;pause of 53.5 s at 5.5 s elapsed (continue_without_pause) i...</div></div></details><details open><summary><b>not_known</b> <span class="ty">list, 24 item(s); first shown</span></summary><div class="ind"><div class="leaf">[0] &quot;Void volume Vo&quot;</div></div></details></div></details></div>
 <h3>The exact JSON</h3>
 <details class="rawbox"><summary>Prototype record, complete <span class="src">u711_cadet_reference_record_prototype.json</span></summary><pre class="raw">{
  &quot;record_version&quot;: &quot;prototype (docs/RUN_STRUCTURE_RECORD.md section 5)&quot;,
@@ -354,13 +354,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP1/PH1&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 0.0,
+        &quot;method_s&quot;: 0.0
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 4.3,
+        &quot;method_s&quot;: 4.3
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -373,6 +377,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1.0,
           &quot;method_s&quot;: 1.0
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Phase Method Settings&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -413,6 +422,11 @@ ul.warn{font-size:12px;columns:1}
           &quot;wall_s&quot;: 1.4,
           &quot;method_s&quot;: 1.4
          },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Wavelength 280 {nm} Off {nm} Off {nm}&quot;
+         },
          &quot;column_flow&quot;: [
           {
            &quot;value&quot;: 0.0,
@@ -451,6 +465,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 2.7,
           &quot;method_s&quot;: 2.7
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Injection valve Manual load&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -491,6 +510,11 @@ ul.warn{font-size:12px;columns:1}
           &quot;wall_s&quot;: 3.5,
           &quot;method_s&quot;: 3.5
          },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Column position 5 Down flow&quot;
+         },
          &quot;column_flow&quot;: [
           {
            &quot;value&quot;: 0.0,
@@ -529,6 +553,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 4.3,
           &quot;method_s&quot;: 4.3
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Inlet A A1&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -606,13 +635,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP2/PH1&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 4.3,
+        &quot;method_s&quot;: 4.3
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 367.3,
+        &quot;method_s&quot;: 313.8
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -625,6 +658,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 4.7,
           &quot;method_s&quot;: 4.7
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;System flow 5.000 {ml/min} Pre column pressure; End Phase; Phase Equilibration; Inlet A A1&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -684,6 +722,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 5.5,
           &quot;method_s&quot;: 5.5
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Gradient 0.0 {%B} 0.00 {CV}; System flow 5.000 {ml/min} Pre column pressure&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -746,26 +789,14 @@ ul.warn{font-size:12px;columns:1}
          },
          &quot;original&quot;: {
           &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
           &quot;state&quot;: &quot;pause&quot;,
           &quot;text&quot;: &quot;pause (continue_without_pause, 53.5 s)&quot;
          }
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP2/PH2&quot;,
-       &quot;label&quot;: &quot;Hold until UV stable signal&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Hold until UV stable signal&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP2/PH2/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP2/PH1/SE4&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 59.0,
@@ -774,6 +805,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 61.5,
           &quot;method_s&quot;: 8.0
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Hold until UV stable signal&quot;,
+          &quot;text&quot;: &quot;Block Hold until UV stable signal&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -833,23 +869,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP2/PH3&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP2/PH3/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP2/PH1/SE5&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 61.5,
@@ -858,6 +881,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 61.7,
           &quot;method_s&quot;: 8.2
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End_Block&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -905,23 +933,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP2/PH4&quot;,
-       &quot;label&quot;: &quot;Equilibrate&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Equilibrate&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP2/PH4/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP2/PH1/SE6&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 61.7,
@@ -930,6 +945,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 367.1,
           &quot;method_s&quot;: 313.6
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Equilibrate&quot;,
+          &quot;text&quot;: &quot;Block Equilibrate&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -995,23 +1015,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP2/PH5&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP2/PH5/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP2/PH1/SE7&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 367.1,
@@ -1020,6 +1027,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 367.3,
           &quot;method_s&quot;: 313.8
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End_Block&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1097,13 +1109,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP3/PH1&quot;,
-       &quot;label&quot;: &quot;Inject&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Inject&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 367.3,
+        &quot;method_s&quot;: 313.8
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 632.2,
+        &quot;method_s&quot;: 578.7
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -1116,6 +1132,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 369.1,
           &quot;method_s&quot;: 315.6
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Inject&quot;,
+          &quot;text&quot;: &quot;End Phase; Phase Sample Application; Block Prepare sample loading; End_Block; Block Inject; Inlet A A1; Gradient 0.0 {%B} 0.00 {ml}&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1188,6 +1209,11 @@ ul.warn{font-size:12px;columns:1}
           &quot;wall_s&quot;: 369.7,
           &quot;method_s&quot;: 316.2
          },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Inject&quot;,
+          &quot;text&quot;: &quot;Injection valve Inject&quot;
+         },
          &quot;column_flow&quot;: [
           {
            &quot;value&quot;: 5.0,
@@ -1247,62 +1273,10 @@ ul.warn{font-size:12px;columns:1}
           &quot;wall_s&quot;: 631.0,
           &quot;method_s&quot;: 577.5
          },
-         &quot;column_flow&quot;: [
-          {
-           &quot;value&quot;: 1.0,
-           &quot;unit_of_measure&quot;: &quot;mL/min&quot;,
-           &quot;kind&quot;: &quot;set_point&quot;,
-           &quot;basis&quot;: &quot;logged&quot;,
-           &quot;source&quot;: &quot;run_log&quot;
-          }
-         ],
-         &quot;percent_b&quot;: [
-          {
-           &quot;value&quot;: 0.0,
-           &quot;unit_of_measure&quot;: &quot;%&quot;,
-           &quot;kind&quot;: &quot;set_point&quot;,
-           &quot;basis&quot;: &quot;logged&quot;,
-           &quot;source&quot;: &quot;run_log&quot;,
-           &quot;slope_per_s&quot;: 0.0
-          }
-         ],
-         &quot;injection_valve&quot;: {
-          &quot;value&quot;: &quot;Inject&quot;,
-          &quot;original&quot;: &quot;Inject&quot;,
-          &quot;sample_use&quot;: &quot;feed&quot;
-         },
-         &quot;inlets&quot;: {
-          &quot;A&quot;: {
-           &quot;position&quot;: &quot;A1&quot;,
-           &quot;state&quot;: &quot;known&quot;
-          }
-         },
-         &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP3/PH2&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
-        {
-         &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP3/PH2/SE1&quot;,
-         &quot;state&quot;: &quot;running&quot;,
-         &quot;start&quot;: {
-          &quot;wall_s&quot;: 631.0,
-          &quot;method_s&quot;: 577.5
-         },
-         &quot;end&quot;: {
-          &quot;wall_s&quot;: 631.8,
-          &quot;method_s&quot;: 578.3
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Inject&quot;,
+          &quot;text&quot;: &quot;System flow 1.000 {ml/min} Pre column pressure&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1338,7 +1312,56 @@ ul.warn{font-size:12px;columns:1}
         },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP3/PH2/SE2&quot;,
+         &quot;element_id&quot;: &quot;OP3/PH1/SE4&quot;,
+         &quot;state&quot;: &quot;running&quot;,
+         &quot;start&quot;: {
+          &quot;wall_s&quot;: 631.0,
+          &quot;method_s&quot;: 577.5
+         },
+         &quot;end&quot;: {
+          &quot;wall_s&quot;: 631.8,
+          &quot;method_s&quot;: 578.3
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End_Block&quot;
+         },
+         &quot;column_flow&quot;: [
+          {
+           &quot;value&quot;: 1.0,
+           &quot;unit_of_measure&quot;: &quot;mL/min&quot;,
+           &quot;kind&quot;: &quot;set_point&quot;,
+           &quot;basis&quot;: &quot;logged&quot;,
+           &quot;source&quot;: &quot;run_log&quot;
+          }
+         ],
+         &quot;percent_b&quot;: [
+          {
+           &quot;value&quot;: 0.0,
+           &quot;unit_of_measure&quot;: &quot;%&quot;,
+           &quot;kind&quot;: &quot;set_point&quot;,
+           &quot;basis&quot;: &quot;logged&quot;,
+           &quot;source&quot;: &quot;run_log&quot;,
+           &quot;slope_per_s&quot;: 0.0
+          }
+         ],
+         &quot;injection_valve&quot;: {
+          &quot;value&quot;: &quot;Inject&quot;,
+          &quot;original&quot;: &quot;Inject&quot;,
+          &quot;sample_use&quot;: &quot;feed&quot;
+         },
+         &quot;inlets&quot;: {
+          &quot;A&quot;: {
+           &quot;position&quot;: &quot;A1&quot;,
+           &quot;state&quot;: &quot;known&quot;
+          }
+         },
+         &quot;bypass&quot;: false
+        },
+        {
+         &quot;level&quot;: &quot;section&quot;,
+         &quot;element_id&quot;: &quot;OP3/PH1/SE5&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 631.8,
@@ -1347,6 +1370,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 632.2,
           &quot;method_s&quot;: 578.7
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Injection valve Manual load&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1381,6 +1409,21 @@ ul.warn{font-size:12px;columns:1}
          &quot;bypass&quot;: false
         }
        ]
+      },
+      {
+       &quot;level&quot;: &quot;phase&quot;,
+       &quot;element_id&quot;: &quot;OP3/PH2&quot;,
+       &quot;label&quot;: &quot;Sample feed&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
+       &quot;equipment_module&quot;: &quot;sample_feed&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 369.1,
+        &quot;method_s&quot;: 315.6
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 631.8,
+        &quot;method_s&quot;: 578.3
+       }
       }
      ]
     },
@@ -1424,13 +1467,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP4/PH1&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 632.2,
+        &quot;method_s&quot;: 578.7
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 818.0,
+        &quot;method_s&quot;: 764.5
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -1443,6 +1490,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 633.2,
           &quot;method_s&quot;: 579.7
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End Phase; Phase Column Wash; Inlet A A1; Gradient 0.0 {%B} 0.00 {CV}&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1475,23 +1527,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP4/PH2&quot;,
-       &quot;label&quot;: &quot;Wash&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Wash&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP4/PH2/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP4/PH1/SE2&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 633.2,
@@ -1500,6 +1539,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 818.0,
           &quot;method_s&quot;: 764.5
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Wash&quot;,
+          &quot;text&quot;: &quot;System flow 5.000 {ml/min} Pre column pressure; Block Wash&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1598,13 +1642,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP5/PH1&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 818.0,
+        &quot;method_s&quot;: 764.5
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 1128.6,
+        &quot;method_s&quot;: 1075.1
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -1617,6 +1665,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 818.4,
           &quot;method_s&quot;: 764.9
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End_Block; End Phase; Phase Elution; Inlet A A1&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1662,6 +1715,11 @@ ul.warn{font-size:12px;columns:1}
           &quot;wall_s&quot;: 819.0,
           &quot;method_s&quot;: 765.5
          },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Gradient 100.0 {%B} 0.00 {CV}&quot;
+         },
          &quot;column_flow&quot;: [
           {
            &quot;value&quot;: 5.0,
@@ -1693,23 +1751,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP5/PH2&quot;,
-       &quot;label&quot;: &quot;Start frac (Elution)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Start frac (Elution)&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP5/PH2/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP5/PH1/SE3&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 819.0,
@@ -1718,6 +1763,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 820.6,
           &quot;method_s&quot;: 767.1
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Start frac (Elution)&quot;,
+          &quot;text&quot;: &quot;System flow 5.000 {ml/min} Pre column pressure; Block Start frac (Elution)&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1777,23 +1827,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP5/PH3&quot;,
-       &quot;label&quot;: &quot;Isocratic&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Isocratic&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP5/PH3/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP5/PH1/SE4&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 820.6,
@@ -1802,6 +1839,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1128.4,
           &quot;method_s&quot;: 1074.9
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Isocratic&quot;,
+          &quot;text&quot;: &quot;End_Block; Block Isocratic&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1855,23 +1897,10 @@ ul.warn{font-size:12px;columns:1}
           }
          },
          &quot;bypass&quot;: false
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP5/PH4&quot;,
-       &quot;label&quot;: &quot;Stop frac (Elution)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Stop frac (Elution)&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP5/PH4/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP5/PH1/SE5&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 1128.4,
@@ -1880,6 +1909,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1128.6,
           &quot;method_s&quot;: 1075.1
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Stop frac (Elution)&quot;,
+          &quot;text&quot;: &quot;End_Block; Block Stop frac (Elution)&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -1914,6 +1948,21 @@ ul.warn{font-size:12px;columns:1}
          &quot;bypass&quot;: false
         }
        ]
+      },
+      {
+       &quot;level&quot;: &quot;phase&quot;,
+       &quot;element_id&quot;: &quot;OP5/PH2&quot;,
+       &quot;label&quot;: &quot;Fractionation&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
+       &quot;equipment_module&quot;: &quot;fraction_collector&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 928.1,
+        &quot;method_s&quot;: 874.6
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 1128.6,
+        &quot;method_s&quot;: 1075.1
+       }
       }
      ]
     },
@@ -1957,13 +2006,17 @@ ul.warn{font-size:12px;columns:1}
       {
        &quot;level&quot;: &quot;phase&quot;,
        &quot;element_id&quot;: &quot;OP6/PH1&quot;,
-       &quot;label&quot;: &quot;(no block)&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;(no block)&quot;
-       },
+       &quot;label&quot;: &quot;System flow&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
        &quot;equipment_module&quot;: &quot;system_pump&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 1128.6,
+        &quot;method_s&quot;: 1075.1
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 1497.7,
+        &quot;method_s&quot;: 1390.7
+       },
        &quot;sections&quot;: [
         {
          &quot;level&quot;: &quot;section&quot;,
@@ -1976,6 +2029,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1129.0,
           &quot;method_s&quot;: 1075.5
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;End_Block; End Phase; Phase Equilibration; Inlet A A1&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -2020,6 +2078,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1136.5,
           &quot;method_s&quot;: 1083.0
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
+          &quot;text&quot;: &quot;Gradient 0.0 {%B} 0.00 {CV}; System flow 5.000 {ml/min} Pre column pressure&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -2094,26 +2157,14 @@ ul.warn{font-size:12px;columns:1}
          },
          &quot;original&quot;: {
           &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: null,
           &quot;state&quot;: &quot;pause&quot;,
           &quot;text&quot;: &quot;pause (continue_without_pause, 53.5 s)&quot;
          }
-        }
-       ]
-      },
-      {
-       &quot;level&quot;: &quot;phase&quot;,
-       &quot;element_id&quot;: &quot;OP6/PH2&quot;,
-       &quot;label&quot;: &quot;Equilibrate_1&quot;,
-       &quot;label_source&quot;: &quot;UNICORN&quot;,
-       &quot;original&quot;: {
-        &quot;level&quot;: &quot;block&quot;,
-        &quot;text&quot;: &quot;Equilibrate_1&quot;
-       },
-       &quot;equipment_module&quot;: &quot;system_pump&quot;,
-       &quot;sections&quot;: [
+        },
         {
          &quot;level&quot;: &quot;section&quot;,
-         &quot;element_id&quot;: &quot;OP6/PH2/SE1&quot;,
+         &quot;element_id&quot;: &quot;OP6/PH1/SE4&quot;,
          &quot;state&quot;: &quot;running&quot;,
          &quot;start&quot;: {
           &quot;wall_s&quot;: 1190.0,
@@ -2122,6 +2173,11 @@ ul.warn{font-size:12px;columns:1}
          &quot;end&quot;: {
           &quot;wall_s&quot;: 1497.7,
           &quot;method_s&quot;: 1390.7
+         },
+         &quot;original&quot;: {
+          &quot;level&quot;: &quot;instruction&quot;,
+          &quot;block&quot;: &quot;Equilibrate_1&quot;,
+          &quot;text&quot;: &quot;Block Equilibrate_1&quot;
          },
          &quot;column_flow&quot;: [
           {
@@ -2177,6 +2233,21 @@ ul.warn{font-size:12px;columns:1}
          &quot;bypass&quot;: false
         }
        ]
+      },
+      {
+       &quot;level&quot;: &quot;phase&quot;,
+       &quot;element_id&quot;: &quot;OP6/PH2&quot;,
+       &quot;label&quot;: &quot;Fractionation&quot;,
+       &quot;label_source&quot;: &quot;PyCORN&quot;,
+       &quot;equipment_module&quot;: &quot;fraction_collector&quot;,
+       &quot;start&quot;: {
+        &quot;wall_s&quot;: 1128.6,
+        &quot;method_s&quot;: 1075.1
+       },
+       &quot;end&quot;: {
+        &quot;wall_s&quot;: 1497.7,
+        &quot;method_s&quot;: 1390.7
+       }
       }
      ]
     }
