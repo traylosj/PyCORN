@@ -306,6 +306,14 @@ Owner's rule, with the reading PyCORN would use:
     (ROADMAP, "Run structure", "inlets from the system configuration"):* no B valve: `B`;
     a B valve with no entry yet: its first position, labelled assumed (`B1 (assumed)`).
     Built in 0.35.0 (`pycorn/system_configuration.py`, `inlets_source` column).
+    *Refined (owner, 2026-11-15):* the decision closes per system type. The system type is
+    the AKTA model (from the instrument description, e.g. pure 25, avant 25), not the stored
+    `SystemTypeName`, which is the same for both. For a model whose start-of-run valve
+    positions are verified, the first position is known (`B1`). For any other model, assumed
+    (`B1 (assumed)`) is the correct label until that model is verified, and the decision
+    stays open for it. The owner verifies the models that have test data. No model is
+    verified yet, so every result still shows assumed. Not built: it needs a small documented
+    map of verified models to first positions, in the style of the component map.
     Earlier options were:
     Inlet B with no log entry: `B (position not logged)`, or `B1 (method)` from the method
     as a hint (D17). The ISA-88 reading favours `B1 (method)`, marked as from the method.

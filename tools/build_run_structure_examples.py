@@ -2381,8 +2381,10 @@ SESSION_DECISIONS = [
          options=["Always kept as an operation.", "Folded into the next operation."], proposed="Kept (owner decision).", links=["rst:15"]),
     dict(id="first-position", title="Inlet first position (Decide 22)", status="open", data_key="inlets",
          question="When a valve has no position logged yet, is its first position known, assumed or not known?",
-         options=["Assumed, labelled '(assumed)' (built).", "Known when the system type is one with a mapped geometry, assumed for any other type (owner's proposal)."],
-         proposed="Owner's proposal, if UNICORN resets the valves at method start. Not confirmed: a port layout does not say where a valve sits at the start.",
+         options=["Assumed for every system type, labelled '(assumed)' (built).",
+                  "Known for an AKTA model whose start-of-run positions are verified, assumed for any other model until it is verified."],
+         proposed="Second option (owner, 2026-11-15). The system type is the AKTA model, not SystemTypeName. Assumed is correct for a model not yet verified. "
+                  "The owner verifies the models that have test data. None is verified yet. Not built: it needs a map of verified models to first positions.",
          links=["decide:22", "rst:7"]),
     dict(id="extinction-needed-by", title="Who needs the extinction coefficient", status="decided", data_key="calibration",
          question="Does the display or CADET need the extinction coefficient?", options=["CADET only.", "Both: the display for mg/ml, CADET for its detector calibration."],
@@ -2402,7 +2404,8 @@ def decisions_html(A):
         if x["id"] in DECIDED_LATER:
             x["status"], x["proposed"] = "decided", DECIDED_LATER[x["id"]]
     data = _text_data(A)
-    data["inlets"] = "; ".join("%s: %s" % (line, ", ".join(used)) for line, used in buffers_used(A)["lines"].items()) or "-"
+    data["inlets"] = "System type (AKTA model): %s, not verified: assumed is right for it. %s" % (A["instrument"] or "not stored", "; ".join(
+        "%s: %s" % (line, ", ".join(used)) for line, used in buffers_used(A)["lines"].items()) or "-")
     rows = []
     for x in items:
         opts = "".join("<li>%s</li>" % E(o) for o in x["options"])
