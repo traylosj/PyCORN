@@ -99,14 +99,22 @@ with inputs and outputs, not its inner steps); everything else in the record (va
 source, measurements, materials, studies) is shared by both sides.
 
 **ISA-88 in plant systems.** Plant batch systems and historians already organize run data
-this way. Emerson DeltaV Batch
-is built on ISA-88 (procedures, unit procedures, operations, phases) and keeps batch history
-from its Batch Executive; AVEVA's PI System batch interfaces, including the one for DeltaV
-Batch, build event frames level by level along the same hierarchy. ISA-88 Part 4
-(ANSI/ISA-88.00.04-2006) defines the batch production record, and MESA's BatchML is its free
-XML form. A run record tagged with ISA-88 levels can therefore sit beside plant batch data
-without a new vocabulary. Neither product is known to exchange BatchML, so this is about
-structure, not a file format. Sources: "References" at the end.
+this way:
+
+- **Emerson DeltaV Batch** is built on ISA-88 (procedures, unit procedures, operations,
+  phases) and keeps batch history from its Batch Executive.
+- **Siemens SIMATIC BATCH** with SIMATIC PCS 7 covers the ISA-88.01 models: the procedural
+  model in SIMATIC BATCH, the physical model in PCS 7 engineering.
+- **AVEVA Batch Management** (formerly Wonderware InBatch) follows ISA-88, writes batch
+  history to a SQL Server database, and passes batch execution data to AVEVA Historian and
+  MES.
+- **AVEVA's PI System** batch interfaces, including those for DeltaV Batch and SIMATIC
+  BATCH, build event frames level by level along the same hierarchy.
+
+ISA-88 Part 4 (ANSI/ISA-88.00.04-2006) defines the batch production record, and MESA's
+BatchML is its free XML form. A run record tagged with ISA-88 levels can therefore sit beside
+plant batch data without a new vocabulary. None of these products is known to exchange
+BatchML, so this is about structure, not a file format. Sources: "References" at the end.
 
 ISA-88 conformance is not claimed: the record uses the standard's concepts and names as a
 frame. Every ISA-88 statement here was checked against the full text of ANSI/ISA-S88.01-1995
@@ -958,8 +966,9 @@ flowchart LR
 
 ## References
 
-Read 2026-11-14. The AVEVA pages were seen only as search excerpts (they need a browser);
-open them before quoting them outside this draft.
+Read 2026-11-14 (Siemens and AVEVA Batch Management 2026-11-15). Sources marked "search
+excerpts only" were not opened (they need a browser or a PDF reader); open them before
+quoting them outside this draft.
 
 ISA-88, ISA-106 and BatchML:
 
@@ -1025,6 +1034,20 @@ Emerson DeltaV:
   https://www.emerson.com/is/content/emerson/pt/systems-and-software/deltav-distributed-control-system-dcs/product-data-sheets/documents/deltav-recipe-exchange.pdf
 - *Batch Executive*, product data sheet ("detailed batch historical records"):
   https://www.emerson.com/is/content/emerson/en/corporate/industries/life-sciences/documents/batch-executive.pdf
+
+Siemens SIMATIC BATCH (search excerpts only; the PDF was not read as text):
+
+- SIMATIC BATCH brochure (SIMATIC BATCH and SIMATIC PCS 7 "fully cover the models described
+  in the ISA-88.01 standard"; "The procedural model is implemented in SIMATIC BATCH"):
+  https://support.industry.siemens.com/cs/attachments/109772829/E20001-A233-P280-X-7600_EN.pdf
+
+AVEVA Batch Management (formerly Wonderware InBatch):
+
+- Product page ("Adhering to the ISA-88 standards for batch control"; "making batch
+  execution information directly available to AVEVA Historian, MES, and other
+  applications"): https://www.aveva.com/en/products/batch-management/
+- Documentation (search excerpts only: InBatch is now AVEVA Batch Management; Microsoft
+  SQL Server as the history database): https://docs.aveva.com/bundle/batch-management/page/303424.html
 
 AVEVA PI System (search excerpts only):
 
