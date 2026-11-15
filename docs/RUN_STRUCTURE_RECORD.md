@@ -59,10 +59,11 @@ they show different numbers, the PyCORN batch history says why.
 ```mermaid
 flowchart LR
     files["UNICORN result<br/>zip, UFol, database"] --> record["PyCORN batch history<br/>what ran<br/>set point vs actual<br/>value sources"]
-    others["Batch data from other vendors<br/>batch systems, other instruments"] -. compared alongside .- record
     record --> model["Model view<br/>CADET"]
     record --> display["Display view<br/>Excel, web page"]
     record --> json["Agent view<br/>JSON, masked"]
+    model --> display
+    others["Batch data from other vendors<br/>batch systems, other instruments"] -. compared alongside .- display
 ```
 
 <a id="figure-1"></a>**Figure 1.** One PyCORN batch history, three views. Dashed: batch data from other systems, which the
@@ -676,7 +677,7 @@ caller-given extinction coefficient and its accuracy note.
 | Material | What the run records | Identified in the PyCORN batch history as | Ontology terms |
 |---|---|---|---|
 | Load (feed) | the feed sections: valve and inlet, start and end, volume (calculated from the run log, actual from the volume axis, §3.8). Not what the material was. | one load per feed (injection or sample inlet): the run, the feed section's `element_id`, its volume, and the caller's material ID for it (a stored sample-ID variable only as a hint) | an input of the run (OBI "has specified input"), an ISA-88 lot, and an ISA-95 `MaterialActual` with its lot ID |
-| Buffers | inlet positions and %B per section | inlet line and position, with names only from the caller | an input of the run, and IOF `BufferSolution` (on a biopharma work branch) |
+| Buffers | inlet positions and %B per section | inlet line and position, with names and the buffer lot's material ID only from the caller (§3.6.3.2) | an input of the run, and IOF `BufferSolution` |
 | Flow-through, waste | outlet valve at waste, with times and volumes | the outlet sections | an output of the run, with no class |
 | Eluate | the stream reaching the fraction collector. UNICORN stores no separate record of it. | the outlet sections at the collector | an output of the run, with no class |
 | Fraction | one row per tube: tube id, start, end, volume (the `Fraction` event curve) | the run, chromatogram and UNICORN's tube id, with its span | No class for a collected fraction. ISA-95 (B2MML) `MaterialSubLot` is the closest place for one. |
@@ -724,6 +725,143 @@ Which value each output uses:
   on the feed sections, and the measured curves as references. Components and contents are
   the caller's (D28). A component left out of a buffer is 0, as the CADET export does today.
 - **Scripts and agents:** all of them, each with its kind and source.
+
+#### 3.6.3.2 Buffer provenance: recipe, preparation, lot and measurement (proposed)
+
+This part lays out what CADET and other modeling tools need to know about a buffer, and
+where each piece sits in the standards. Which pieces PyCORN holds, and which stay in a LIMS,
+ELN or MES and are only linked by ID, is still open (§9).
+
+A buffer on an inlet has four layers of information: recipe, preparation, lot and
+measurement ([Figure 9a](#figure-9a), [Table 10a](#table-10a)). UNICORN stores none of them,
+only the inlet position and the %B or %Q (§3.6.3.1). They come from the caller.
+
+```mermaid
+flowchart LR
+    subgraph before["Before the run: from the caller"]
+        raw(["Raw-material lots<br/>NaCl, Tris, water"]) --> prep["Preparation<br/>as made: calculated"]
+        recipe["Recipe<br/>target: set point"] -. prescribes .-> prep
+        prep --> lotA(["Buffer lot A<br/>material ID"])
+        test["Release test<br/>pH, conductivity:<br/>actual, offline"] -. tests .-> lotA
+        lotB(["Buffer lot B<br/>its own recipe,<br/>preparation, tests"])
+    end
+    subgraph during["During the run: from UNICORN"]
+        inA["Inlet A1"] --> mix["Blend per section<br/>%B or %Q as logged<br/>calculated"]
+        inB["Inlet B1"] --> mix
+        mix --> byp["By-pass reading<br/>conductivity, pH:<br/>actual, in the run (D22)"]
+        mix --> col["Column"]
+    end
+    lotA -- one lot per inlet --> inA
+    lotB --> inB
+```
+
+<a id="figure-9a"></a>**Figure 9a.** A buffer's provenance, from raw materials to the column, with the kind of
+value (§3.8) each step gives. The blend is prepared inside the run and has no lot of its
+own. The same layers apply to the load.
+
+<a id="table-10a"></a>**Table 10a.** The four layers of a buffer's provenance, their terms in each standard, and the
+kind of value each gives (§3.8). IOF terms are from the biopharma module's `master`.
+
+| Layer | What it holds | ISA-88 | ISA-95 / B2MML | IOF | Kind of value |
+|---|---|---|---|---|---|
+| Recipe | Target composition (components and concentrations), target pH and conductivity, a version | The buffer preparation's master recipe. Its formula lists the process inputs (raw materials and quantities) and the process output, the buffer (ISA-88.01 5.3.2). | `MaterialDefinition` with its properties. A `TestSpecification` holds the acceptance limits. | `InputSpecification`. `BufferSolution`, a `Solution` whose constituents have `SoluteRole` or `SolventRole`. `MolarConcentration`, `MassConcentration`. | set point |
+| Preparation | One making of the buffer: amounts weighed or dispensed, raw-material and stock lots used, final volume, when | A batch in its own right, with its own batch history. Its control recipe "may have been modified to account for actual raw material qualities" (ISA-88.01 5.3.1.4). | The genealogy from raw-material lots to the buffer lot (`AssemblyLot`, `AssemblyRelationship`) | `SolutionPreparationProcess`, a planned process whose output is a `Solution`. `StockSolutionRole`, `WorkingSolutionRole`. | calculated (as made) |
+| Lot | The prepared buffer as one identified amount: ID, quantity, status, expiry | Lot (ISA-88.01 3.28) | `MaterialLot`: `Status`, `Disposition`, `Quantity`, `StorageLocation`. The expiry is on its `TestResult`. | No lot class | material ID |
+| Measurement | Tests of the prepared lot: pH, conductivity, osmolality, a titration | Quality control information, common to batches rather than part of one (ISA-88.01 5.5.2) | `TestResult` with `PropertyMeasurement`, checked against the `TestSpecification` | `MeasurementProcess`, whose output is a `MeasurementInformationContentEntity` | actual (offline) |
+
+**As made and measured are different kinds of value.** As made is calculated from the
+preparation record: 5.844 g NaCl made up to 1.000 L gives 100.0 mM. It gives a
+concentration per component, with every weighing and volume error in it. Measured comes
+from an instrument applied to the finished buffer: a pH meter, a conductivity meter, an
+osmometer. It reads a property of the whole solution, mostly not one component's
+concentration. Conductivity gives salt only through a calibration (§3.6.3.1). So CADET's
+inlet concentrations (mol/m^3 per component) come from the recipe or the as-made record.
+Measured properties check them.
+
+**Four values side by side.** One buffer's salt can have a recipe target, an as-made value,
+a release test (through a calibration) and the by-pass reading in the run (D22). Each keeps
+its kind and source. A difference points at a wrong entry, a lot past its expiry, or the
+wrong bottle on the inlet.
+
+**One lot per inlet.** An inlet holds one lot for the whole run. A bottle swapped during the
+run is a note on the inlet, not a second lot.
+
+**Blends are prepared during the run.** Any mix of inlets is one: an A/B mix at a %B, a
+quaternary-valve blend at its %Q, an in-line dilution, BufferPro. The logged %B or %Q are
+the set points of that preparation, and the mix per section is calculated from them
+(§3.6.3.1). A blend has no container and no ID, so it is never a lot. BufferPro also stores
+a recipe in the method, read as hints only (D3).
+
+**The load** has the same layers: its lot (§3.1), how it was made (a previous step's pool,
+a harvest), and its assays (titer, purity). The assays give CADET the feed concentrations.
+
+**Which value CADET uses (proposed).** The caller's inlet concentrations, each with its
+kind: as made where given, else the recipe's target. Measured properties are compared with
+them and the difference reported. They never replace them silently.
+
+#### 3.6.3.3 Components: what a buffer, a solution or a load is made of (proposed)
+
+A component name alone ("salt") can mean a different thing in the recipe, in the as-made
+calculation and in the model. Then the values of [Table 10a](#table-10a) can't be compared.
+So each component the caller names carries a few fields. There are two kinds of component,
+with different fields.
+
+**Prepared constituents** are defined by their chemistry: NaCl, Tris, acetate, urea
+([Table 10b](#table-10b)).
+
+<a id="table-10b"></a>**Table 10b.** Fields of a prepared constituent, all from the caller.
+
+| Field | Why |
+|---|---|
+| Name, and an identifier (a ChEBI ID or CAS number) | Ties one substance together across recipe, as-made record and model. Never checked against a closed list. |
+| Form as weighed: anhydrous or a hydrate, salt form, purity or assay % | The as-made calculation is wrong without it: Na2HPO4 x 2 H2O is not Na2HPO4. |
+| Molecular weight of that form | Converts g/L to mM |
+| Concentration basis: molar or mass, per litre of final solution or per kg of solvent | A recipe in % w/v and a model in mol/m^3 convert without ambiguity |
+| Role: buffering agent, salt, modifier, solvent | Which component carries the pH and which the ionic strength. IOF `BufferingAgentRole`, `SoluteRole`, `SolventRole`. |
+| Model component it feeds | NaCl as one `salt` component or as Na+ and Cl-: the caller's choice. The PyCORN batch history keeps the mapping, not a choice of its own. |
+
+**Assayed components** are defined by the assay method, not by chemistry: product, HMW
+(high-molecular-weight species) by SEC, HCP (host cell protein) by ELISA, DNA by qPCR
+([Table 10c](#table-10c)).
+
+<a id="table-10c"></a>**Table 10c.** Fields of an assayed component, all from the caller.
+
+| Field | Why |
+|---|---|
+| Assay method and its version | HMW from two SEC methods is not the same component |
+| Unit and basis: g/L, % of total, ppm of product | A percentage needs its reference amount before a model can use it |
+| Limit of quantification, and how a value below it is reported | "< LOQ" is not 0 |
+| Molecular weight, extinction coefficient | For mol/m^3 and for UV (issue #1). Never a default. |
+| Model component it feeds | Several assays can feed one model component, or one assay several |
+
+**Properties of the whole solution** are not components: density, viscosity, and the
+temperature at which pH and conductivity were measured. They sit beside the components, as
+values with kind and source. Density converts a measured mass into a volume (§3.8).
+Viscosity and temperature matter for back-pressure and for reading conductivity.
+
+**In scope, out of scope (proposed).** [Figure 9b](#figure-9b) shows the split.
+
+- **To be decided:** what identifies a component and converts its amounts. That is the fields
+  of Tables 10b and 10c, the solution properties, and the mapping to model components.
+- **Out of scope:** physicochemical constants of a component or of its interactions. These
+  are pKa, charge, diffusion and activity coefficients, binding parameters, and their
+  temperature dependence. They are model parameters and depend on the model chosen (D28).
+
+```mermaid
+flowchart LR
+    caller["Caller<br/>LIMS, ELN, MES, by hand"] --> fields["Component fields<br/>identifier, form, MW, basis,<br/>role, assay, model component"]
+    caller --> comp["Compositions<br/>target, as made, measured"]
+    unicorn["UNICORN result"] --> hist["PyCORN batch history"]
+    fields -.->|TBD| hist
+    comp -.->|TBD| hist
+    hist -->|"names, concentrations per inlet<br/>and section, MW, curves"| cadet["CADET input<br/>Core file, CADET-Process Process"]
+    caller -.->|"constants: pKa, charge, diffusion, binding<br/>core_overrides, process_overrides"| cadet
+```
+
+<a id="figure-9b"></a>**Figure 9b.** How component data reaches the model. Solid: in scope, held in the PyCORN batch
+history. Dashed: TBD or out of scope, set by the caller in CADET's own terms and passed through
+unchanged (`core_overrides`, `process_overrides`, or CADET-Process's own API on the returned
+`Process`, see [`CADET_GUIDE.md`](CADET_GUIDE.md)). PyCORN lists the paths set.
 
 ### 3.7 States: running, paused, held, and the transients between
 
@@ -801,6 +939,12 @@ The PyCORN batch history stores a value such as a flow or a volume with up to th
 
 They can differ, so the PyCORN batch history keeps all three, each with its source.
 
+**Volumes measured offline.** A collected fraction, pool or flow-through can be measured
+after the run, by volume or by mass. That is another actual value, with source `caller`.
+For now the volume UNICORN reports on its volume axis is the number every calculation and
+every display uses (owner, 2026-11-15). A measured mass may later take precedence over it,
+converted with the caller's density. Such a measurement is rare.
+
 Method variables are what ISA-88 calls **process parameters**, part of the recipe's formula
 (ISA-88.01 3.46, 5.3.2.2): they belong to the method, and one may be "used as set points, comparison
 values, or in conditional logic". Phase lengths, volumes and statistics measured from the
@@ -824,8 +968,8 @@ flow about 2.5 ml/min.
 
 Which value each output uses:
 
-- **Excel and the web page:** the set point with a note, `1 ml/min (first 2.4 s at 5)`, and
-  `0.42 ml`. Which sample volume to show is still open (Decide 18).
+- **Excel and the web page:** the set point flow with a note, `1 ml/min (first 2.4 s at 5)`,
+  and the actual sample volume, `0.39 ml` (Decide 18, settled 2026-11-15: the volume axis).
 - **CADET:** the actual value (0.389 ml).
 - **Scripts and agents:** all three, each with its source.
 
@@ -879,7 +1023,11 @@ apply to every input in [Table 14](#table-14):
 | Process operation per UNICORN phase | §3.6.2 | a mapping from phase name to text | `process_operation` empty |
 | Which inlet holds sample, what each outlet is for (systems without an injection valve or fraction collector) | §3.6.1.1 | text per inlet or outlet | Feed sections and eluate not identified |
 | Loop and path volumes | §3.6.1.1 (D19) | numbers with units | Not known |
-| Buffer and load contents | §3.6.3.1 | component names and concentrations with units | No calculated composition |
+| Buffer and load contents | §3.6.3.1, §3.6.3.2 | component names and concentrations with units, each marked as the recipe's target or as made | No calculated composition |
+| Component fields: identifier, form, molecular weight, basis, role, assay method, model component | §3.6.3.3 | text and numbers with units, per component | A component is its name only. Amounts aren't converted between bases. |
+| Solution properties: density, viscosity, measurement temperature | §3.6.3.3 | numbers with units, per lot | Not known. A measured mass isn't converted to a volume. |
+| Buffer lot, recipe and their measurements, one lot per inlet | §3.6.3.2 | the lot's material ID and the recipe's ID and version as text, measured properties (pH, conductivity, ...) with units | Inlet position only. No lot, nothing to compare the in-run readings with. |
+| Volume or mass measured offline (fractions, pools, flow-through) | §3.8 | numbers with units, and a density for a mass | UNICORN's volume axis |
 | Calibrations (conductivity to salt) and extinction coefficient | §3.6.3.1 | numbers with units | Measured curves only, no concentrations |
 | Assay results for fractions, pools and loads | §5 (BatchML samples) | results linked by material ID | None |
 | Model parameters (porosities, binding, ...) | §6 (D28) | CADET's own names | Not set by PyCORN |
@@ -915,7 +1063,7 @@ Masking replaces names that can identify people or projects, as every output doe
 | Series | UNICORN's scouting name | the scouting run number | - |
 | Lot, links between runs | none | - | No link |
 | Column | UNICORN's column type name. When it is `Any` or missing: "Column". | the column valve port, when the run log has one | Individual ID: not known. Geometry: from the column type record, else not known. Vc: as `column_volume.py` picks it, else not known. |
-| Buffer | the inlet position as UNICORN names it (`A1`), marked `(assumed)` when assumed (Decide 22) | - | Contents: not known. No composition is calculated. |
+| Buffer | the inlet position as UNICORN names it (`A1`), marked `(assumed)` when assumed (Decide 22) | - | Lot and contents: not known. No composition is calculated. |
 | Component | none: components exist only when the caller names them | - | A component left out of a buffer is 0, as the CADET export does today |
 | Process operation | - | - | empty |
 | Loop and path volumes | - | - | not known |
@@ -1225,6 +1373,13 @@ otherwise.
   mobile-phase, buffer or gradient field, only detector data. (Its tabular schema was
   searched as text. The shared schemas it references were not read.) The PyCORN batch history's per-section
   composition, with its source and quality, would be the proposal to raise with both.
+- **Buffer provenance** (§3.6.3.2): where PyCORN's scope stops. It could hold IDs only (lot,
+  recipe), IDs with the values a model needs (composition with its kind, measured
+  properties), or the whole chain (raw-material lots, preparation records, test results with
+  their limits), which a LIMS, ELN or MES already holds. Also whether CADET takes as made
+  before the recipe's target by a fixed order or by the caller's choice per run.
+- **Offline volumes** (§3.8): when a measured volume or mass takes precedence over the
+  volume axis, and whether that applies to display as well as to calculations.
 - The example results that would settle these are listed in
   `samples/SAMPLE_ZIP_CONTENTS.md`, "Coverage and wanted samples".
 
@@ -1263,6 +1418,9 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 - CADET flow source (2026-11-14, Decide 6, review 3.4): run log for structure and timing,
   the method-flow entry for which pump, the volume axis for the amount where it differs by
   more than 0.01 ml and 1 %, a fitted ramp inside such a section, then D14's zeroing.
+- Volumes (2026-11-15, Decide 18): the volume UNICORN reports on its volume axis is the
+  number for every calculation and every display, the feed volume included. A volume or
+  mass measured offline may later take precedence (§3.8).
 - Unknowns said in plain words, never guessed. Masking rules (Track 9). Full values in code,
   rounding at display only.
 
@@ -1285,7 +1443,7 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 | 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. |
 
 **Display choices still the owner's**: 12 phase length with or without pauses (proposal:
-both), 15 which flow users see, 17 feed wording, 18 feed volume shown, 21 the gradient
+both), 15 which flow users see, 17 feed wording, 21 the gradient
 wording rule, 25 section-lane chart, 26 summary beside or instead of today's sequences.
 With pressure control a flow increase still ramps about 10 s after the instruction, longer
 than the fold cutoff, so the `held_over` note should also say "ramped n s".
@@ -1407,7 +1565,9 @@ flowchart LR
 | system, column | The instrument (an ISA-88 unit, ISA-88.01 3.60) and the column (§3.6.1, §3.6.1.2). The pumps and fraction collector are equipment modules, the valves and monitors control modules. The column is equipment of the unit, identified as a physical asset. | IOF `PreparativeChromatographySystem` (one that produces fractions for further processing), `ChromatographyColumn`, `PhysicalUnit`, `EquipmentModule`; ISA-95 (B2MML) `Equipment` for the column's place and `PhysicalAsset` for the packed column |
 | process | Three senses: what ran (BFO process, and ISA-88.01 3.38: "a sequence of chemical, physical, or biological activities for the conversion, transport, or storage of material or energy"), ISA-88's process model (process stage, process operation, process action, ISA-88.01 4.1.3), and CADET-Process's `Process` (a simulation set-up) | written as "the run", "process model" and `Process` (in code font) to keep them apart |
 | model | the CADET model, and the "model view" of the PyCORN batch history | not ISA-88's process or physical models, which this plan calls by those full names |
-| buffer | The liquid on one inlet. What it contains comes from the caller (§3.6.3.1). | CHMO `buffer solution` (CHMO:0001462); AFO `buffer solution role`, `mobile phase` (a role); IOF `BufferSolution` (on a biopharma work branch); in ISA-88's formula, a process input (ISA-88.01 5.3.2.2) |
+| buffer | The liquid on one inlet. What it contains comes from the caller (§3.6.3.1, §3.6.3.2). | CHMO `buffer solution` (CHMO:0001462); AFO `buffer solution role`, `mobile phase` (a role); IOF `BufferSolution`; in ISA-88's formula, a process input (ISA-88.01 5.3.2.2) |
+| buffer recipe, preparation, lot | What the buffer should be, one making of it, and the identified amount on the inlet (§3.6.3.2). From the caller. | Recipe: the preparation's master recipe and formula (ISA-88.01 5.3.2), ISA-95 `MaterialDefinition`, IOF `InputSpecification`. Preparation: IOF `SolutionPreparationProcess`, ISA-95 `AssemblyLot` for its inputs. Lot: ISA-88.01 3.28, ISA-95 `MaterialLot`. Its tests: ISA-95 `TestResult`, IOF `MeasurementProcess`. |
+| as made | A buffer's composition calculated from its preparation record (amounts weighed, final volume), as distinct from the recipe's target and from a measured property (§3.6.3.2) | `calculated` kind (§3.8) |
 | component, composition | a species the caller names (salt, protein, impurity) and how much of it is in a buffer, a load or a section (§3.6.3.1). CADET-Process calls the set a `ComponentSystem`. | ChEBI for the substance when the caller names one (e.g. `sodium chloride`, CHEBI:26710); ChEBI `mixture` (CHEBI:60004) for a buffer as a whole; AFO `component role`, `has ingredient`. No class for a mix that changes section by section: CHMO `gradient elution` (CHMO:0002877) names the method, not the mix |
 | concentration | per component, in mol/m^3 or kg/m^3 (UCUM `mol/m3`, `kg/m3`) | CHMO `amount concentration` (CHMO:0002822), `mass concentration` (CHMO:0002821); AFO `molar concentration`, `mass concentration` (results); PATO `concentration of` (PATO:0000033) |
 | conductivity, pH, UV | measured curves, found by role (`curve_roles.py`) | PATO `electrical conductivity` (PATO:0001757); AFO `electric conductivity` (a result), `electrolytic conductivity measurement`; CHMO `pH measurement` (CHMO:0002354); UO `pH` (UO:0000196); AFO `absorbance` (a result) |
