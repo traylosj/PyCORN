@@ -109,7 +109,7 @@ for now):
   `gradient_length_cv`.
 - Model: SI throughout (unchanged).
 - Not built yet. Code that reads `row["time_unit"]`: `event_tables.with_details`,
-  `cadet/experiment.py` (`_fractions`, `_events`), `excel_export._units` / `with_units`.
+  `cadet/view.py` (`_fractions`, `_events`), `excel_export._units` / `with_units`.
 
 ### 3.4 Phase starts: values held over from the previous phase
 
@@ -141,7 +141,7 @@ CARRY_OVER = {
     "max_s": 10.0,          # fold only if the phase's own setting runs within this
     "max_fraction": 0.01,   # ... and within this share of the phase's length (both?)
     "settings": ("column_flow", "percent_b", "percent_q"),  # never valves, column position, feed
-    "tables": "fold",       # summary and steps; folded values go into `held_over`
+    "tables": "fold",       # summary and steps; folded values go into `start_lag`
     "cadet": "keep",        # exact sections (today)
 }
 ```
@@ -153,7 +153,7 @@ catch-up; both times stay, as in a batch record; the model takes the actuals.
 
 - 7-10, display: fold flow, %B and %Q only, and only when the phase's own setting runs within
   10 s **and** within 1 % of the phase's length; valves, column position and feed never fold;
-  every fold leaves a `held_over` note ("first 2.4 s at 5 ml/min"); "at the phase start" (for
+  every fold leaves a `start_lag` note ("first 2.4 s at 5 ml/min"); "at the phase start" (for
   gradients, 3.9) means within the same cutoff.
 - M22 window statistics (display analysis): a window measured from a phase's start begins
   after the held-over seconds (same cutoff), and the table says so. This replaces the lead-in
@@ -346,7 +346,7 @@ Owner's rule, with the reading PyCORN would use:
 |---|---|---|---|
 | Table | Sections with run-log texts (`changes`), `run_log_sections()` / `to_frame()` | Sections and steps CSV / JSON with keys, CADET files | Summary sheet, phase table (simplified, 3.x), web page table |
 | Chart | Section lanes against the run log: flow, %B, valves, feed (as the logic figures) | Same lanes on the wall clock, with signals | Curves against a picked axis, with phase, fraction and pause tracks (built on the web page) |
-| Notes | Warnings as logged | Warnings in `experiment.json` | Plain notes per phase |
+| Notes | Warnings as logged | Warnings in `model_view.json` | Plain notes per phase |
 
 **Decide:**
 
@@ -420,7 +420,7 @@ Sections 1-5 are joined here; each is a block or instruction boundary at 0 flow.
 
 ### Proposed steps (the modeler's middle level)
 
-| Phase | Start-end (method s) | Length (s) | State | Flow (ml/min) | %B | Feed | Folded (`held_over`) |
+| Phase | Start-end (method s) | Length (s) | State | Flow (ml/min) | %B | Feed | Folded (`start_lag`) |
 |---|---|---|---|---|---|---|---|
 | Method Settings | 0.0-4.3 | 4.3 | running | 0 | 0 |  |  |
 | Equilibration | 4.3-5.5 | 1.2 | running | 5 | 0 |  |  |

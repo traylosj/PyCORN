@@ -224,7 +224,7 @@ flowchart LR
 | A scouting run: one method run N times with stored variations | N batches from one master recipe, each from its own control recipe (the method with that run's values, ISA-88.01 5.3.1.4) | One PyCORN batch history per result, with a series link (scouting name, run number). Whether the series repeats one process (cycles, §3.3) or varies it (method development, DoE) is the caller's to say. |
 | Methods run back to back from a queue | Separate procedures | Separate PyCORN batch histories, ordered by UTC and linked through material, as above |
 | Connected processing across skids (one skid's outlet feeds the next, at the same time) | Units running concurrently. ISA-88 "does not specifically address" continuous processes (ISA-88.01 4.1). ISA-106 (Procedure Automation for Continuous Process Operations) covers them. | One PyCORN batch history per skid, aligned on the UTC axis every PyCORN batch history has. Which outlet feeds which inlet comes from the caller (UNICORN doesn't store it). |
-| Multi-column continuous chromatography on one skid (columns load, wash and elute in a staggered rotation) | One procedure with parallel work on several columns | **Not supported.** The PyCORN batch history has one sequence of sections per run. It would need a column tag on every section and parallel timelines. Waits for a sample. |
+| Multi-column continuous chromatography on one skid (columns load, wash and elute in a staggered rotation) | One procedure with parallel work on several columns | **Not supported.** The PyCORN batch history has one sequence of sections per run. It would need a column field on every section and parallel timelines. Waits for a sample. |
 
 The link labels (a lot, a series) come from the caller. ISA-88 asks for exactly these links:
 "batch tracking information", meaning links between batch histories "ranging from the use of
@@ -276,7 +276,7 @@ carrying out a contiguous process within a unit", made of contiguous operations,
 It has several only when the run repeats a whole process, which chromatographers call
 **cycles**: to process enough material, one recipe runs the same sequence (equilibrate, load,
 wash, elute, clean) N times on one column. "Cycle" is not an ISA-88 term. The PyCORN batch history maps
-each cycle to one unit procedure. Segments carry no `cycle` field. The chromatographers'
+each cycle to one unit procedure. Elements carry no `cycle` field. The chromatographers'
 word comes back as the caller's label for the unit procedure (e.g. "Cycle 2"), and the rules
 below say how cycles are marked and used.
 
@@ -339,7 +339,7 @@ A method can start a new chromatogram partway through a run (UNICORN's New Chrom
 instruction). Some users do this to set one piece of work apart, such as a by-pass measurement before
 the column run, or one cycle from the next. Others don't, so the split is not a reliable
 sign of intent. **A chromatogram is not an ISA-88 level**: it is a stretch of the batch
-history's data (ISA-88.01 5.5.3). The PyCORN batch history tags every segment, value and curve with the chromatogram it came
+history's data (ISA-88.01 5.5.3). The PyCORN batch history marks every element, value and curve with the chromatogram it came
 from, and joins the chromatograms on one clock.
 
 What is known, and what isn't:
@@ -360,10 +360,10 @@ What is known, and what isn't:
 
 | Thing | In the PyCORN batch history |
 |---|---|
-| Each original chromatogram | a `chromatogram` segment: name, start and end on the procedure clock, its curves |
+| Each original chromatogram | a `chromatogram` entry: name, start and end on the procedure clock, its curves. Elements carry it as a field (§5), it is no level |
 | The clock | Chromatogram 1's own. Chromatogram n starts where n-1 ends, checked against its `ChromatogramStartTime` in UTC. |
 | Settings across the cut | **Open test case.** If they carry over unrepeated, the PyCORN batch history takes them from the previous chromatogram. That is hard to read and not built until a sample shows it. Until then they are `not_known` before the first instruction. |
-| A UNICORN phase across the cut | open, with the settings: one operation in both segments if the next run log starts inside it |
+| A UNICORN phase across the cut | open, with the settings: one operation in both chromatograms if the next run log starts inside it |
 | The instruction | a section boundary where it ran, if the run log records it |
 | What the user meant by the split | Never inferred. The caller may make chromatograms unit procedures or cycles (§3.3), or map them to an operation. |
 | Imported and derived chromatograms (W17) | Not part of the procedure. An imported one links to its source result. A derived one is analysis. They are linked, never merged. |
@@ -876,8 +876,8 @@ How today's code builds sections around pauses and holds, case by case, is shown
   decided CADET flow source (Decide 6) already fits them as pieces (stop, linear ramp, set
   flow).
 
-So the PyCORN batch history tags the fitted pieces around a stop with ISA-88's "-ing" states, as short
-sub-segments, only where the volume axis shows them ([Table 12](#table-12)).
+So the PyCORN batch history marks the fitted pieces around a stop with ISA-88's "-ing" states, as short
+sections, only where the volume axis shows them ([Table 12](#table-12)).
 
 <a id="table-12"></a>**Table 12.** ISA-88 states around a stop: when each applies, the flow set point and actual in it, and what UNICORN logs.
 
@@ -964,14 +964,14 @@ are several):
  "original": {"level": "phase", "text": "Phase Sample Application"},
  "instance": 1, "state": "running",
  "column_flow": [
-   {"value": 1.0, "unit": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log"},
-   {"value": 5.0, "unit": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log",
-    "held_over": {"duration_s": 2.4}},
-   {"value": 2.5, "unit": "mL/min", "kind": "actual", "basis": "calculated", "source": "volume_axis",
+   {"value": 1.0, "unit_of_measure": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log"},
+   {"value": 5.0, "unit_of_measure": "mL/min", "kind": "set_point", "basis": "logged", "source": "run_log",
+    "start_lag": {"duration_s": 2.4}},
+   {"value": 2.5, "unit_of_measure": "mL/min", "kind": "actual", "basis": "calculated", "source": "volume_axis",
     "span_s": [315.7, 316.3]}],
  "feed_volume": [
-   {"value": 0.417, "unit": "mL", "kind": "set_point", "basis": "calculated", "source": "run_log"},
-   {"value": 0.389, "unit": "mL", "kind": "actual", "basis": "measured", "source": "volume_axis"}]}
+   {"value": 0.417, "unit_of_measure": "mL", "kind": "set_point", "basis": "calculated", "source": "run_log"},
+   {"value": 0.389, "unit_of_measure": "mL", "kind": "actual", "basis": "measured", "source": "volume_axis"}]}
 ```
 
 The previous phase's set points at the start of every phase of that run are drawn in
@@ -1055,9 +1055,9 @@ plain case, and what the PyCORN batch history does with each.
 
 | Edge case | Resolution |
 |---|---|
-| A new chromatogram cuts inside a phase | Chromatograms stay data segments. Making them unit procedures or cycles fails with an error naming the phase that crosses the cut. |
+| A new chromatogram cuts inside a phase | Chromatograms stay a field on the elements. Making them unit procedures or cycles fails with an error naming the phase that crosses the cut. |
 | A pause or hold across a cycle boundary | Belongs to the cycle in which it started. The next cycle starts when its first phase starts. |
-| A Holding or Restarting stretch the volume axis doesn't show clearly | No transient segment. The stop is a plain `held` stretch from the logged times, as today. |
+| A Holding or Restarting stretch the volume axis doesn't show clearly | No transient section. The stop is a plain `held` stretch from the logged times, as today. |
 | An instruction issued during Holding or Restarting | Acts at the time it was logged. The transient is split there, and its set point changes with it. |
 | A scouting run that varies settings (method development, DoE) rather than repeating cycles | Linked as a series either way. Only the caller calls it cycles. |
 | Scouting runs that each hold several cycles | Both levels: the series link between results, and unit procedures within each. |
@@ -1072,27 +1072,30 @@ This section lists what the PyCORN batch history holds when it is written out as
 scripts and agents read.
 
 > **Key and value.** A JSON object is a set of named fields: the field's name is its
-> **key** (`"unit"`), followed by its **value** (`"mL/min"`).
+> **key** (`"unit_of_measure"`), followed by its **value** (`"mL/min"`).
 
 Each PyCORN batch history is identified by the run's UNICORN Batch ID (§3.1), the one key
 that is unique per run. The run name is for display only, since names can repeat (a copied
 result, the same name in another folder).
 
-The PyCORN batch history is built from **segments**. A segment is one stretch of the run at one level: a
-unit procedure, an operation or a phase (ISA-88), or a section below them (§3.2-3.5).
-Segments nest: an operation holds its phases, a phase its sections. Each segment carries the same set
-of fields, and each number in it (a flow, a volume, a %B) is stored as a set point, an
-actual, or both, each with its basis and source (§3.8).
+The PyCORN batch history is built from **elements**, after ISA-88's procedural element
+(ISA-88.01 3.36). An element is one stretch of the run at one level: a unit procedure, an
+operation or a phase (ISA-88), or a section below them (§3.2-3.5). Elements nest: an
+operation holds its phases, a phase its sections. Each element carries the same set of
+fields, and each number in it (a flow, a volume, a %B) is stored as a set point, an actual,
+or both, each with its basis and source (§3.8).
 
-"Segment" is not a level of its own: it is the word for any of these stretches, and its
-`level` field says which. One operation, as segments (schematic):
+"Element" is not a level of its own: it is the word for any of these stretches, and its
+`level` field says which. BatchML never uses "element" alone (`RecipeElement`,
+`EquipmentElement`), so the PyCORN batch history defines it once, here. One operation, as
+elements (schematic):
 
 ```
-segment  level=unit_procedure  UP1
-  segment  level=operation     OP2           "Sample Application" (a UNICORN phase)
-    segment  level=phase       OP2/PH1       sample feed (an ISA-88 phase)
-      segment  level=section   OP2/PH1/SE1   flow 5 ml/min (the previous phase's set point)
-      segment  level=section   OP2/PH1/SE2   flow 1 ml/min
+element  level=unit_procedure  UP1
+  element  level=operation     OP2           "Sample Application" (a UNICORN phase)
+    element  level=phase       OP2/PH1       sample feed (an ISA-88 phase)
+      element  level=section   OP2/PH1/SE1   flow 5 ml/min (the previous phase's set point)
+      element  level=section   OP2/PH1/SE2   flow 1 ml/min
 ```
 
 **Naming rule: general words as keys, UNICORN's words as values.** The keys use words that
@@ -1116,25 +1119,25 @@ Fields with a fixed list of allowed values follow it too:
 - an inlet as its line (`A`, `B`, `sample`), with UNICORN's position (`A1`) under `original`;
 - states as ISA-88's (§3.7).
 
-<a id="table-17"></a>**Table 17.** Fields on every segment: where each name comes from, its values, and what it is for.
+<a id="table-17"></a>**Table 17.** Fields on every element: where each name comes from, its values, and what it is for.
 
 | Field | Name from | Values | What it is for |
 |---|---|---|---|
-| `level` | Key: a plain word. Values: ISA-88's procedural levels (ISA-88.01 5.1.2), and `section` from CADET-Core (§3.5). | `procedure`, `unit_procedure`, `operation`, `phase` (ISA-88's levels), `section` (below them) | the segment's level |
-| `element_id` | ISA-88's "procedural element" (ISA-88.01 6.4.1.1), shortened. The `OP3/PH1/SE2` form is PyCORN's own. | e.g. `OP3/PH1/SE2`: operation 3, its phase 1, that phase's section 2. `UP2/OP3/PH1/SE2` when the run has more than one unit procedure. | A key that names the same segment in every output (tables, CADET, JSON), so they can be joined. ISA-88 asks for the "identification of procedural elements with which the data is associated" (ISA-88.01 6.4.1.1). Not called `path`: in ISA-88 a path is "the order of equipment ... used ... in the production of a specific batch" (ISA-88.01 3.32) |
-| `original` | Key: PyCORN's own. Values: UNICORN's words. | UNICORN's `level` (`phase`, `block` or `instruction`), its `text` (the run-log text), and for a pause or hold its `state` (`pause`, `hold`) | UNICORN's own words for the segment |
+| `level` | Key: a plain word. Values: ISA-88's procedural levels (ISA-88.01 5.1.2), and `section` from CADET-Core (§3.5). | `procedure`, `unit_procedure`, `operation`, `phase` (ISA-88's levels), `section` (below them) | the element's level |
+| `element_id` | ISA-88's "procedural element" (ISA-88.01 6.4.1.1), shortened. The `OP3/PH1/SE2` form is PyCORN's own. | e.g. `OP3/PH1/SE2`: operation 3, its phase 1, that phase's section 2. `UP2/OP3/PH1/SE2` when the run has more than one unit procedure. | A key that names the same element in every output (tables, CADET, JSON), so they can be joined. ISA-88 asks for the "identification of procedural elements with which the data is associated" (ISA-88.01 6.4.1.1). Not called `path`: in ISA-88 a path is "the order of equipment ... used ... in the production of a specific batch" (ISA-88.01 3.32) |
+| `original` | Key: PyCORN's own. Values: UNICORN's words. | UNICORN's `level` (`phase`, `block` or `instruction`), its `text` (the run-log text), and for a pause or hold its `state` (`pause`, `hold`) | UNICORN's own words for the element |
 | `instance` | PyCORN's own word, for ISA-88's rule that each occurrence is identified (ISA-88.01 5.3.3.2) | 1, 2, ... | which repeat this is, when a UNICORN phase runs more than once (Equilibration twice) |
 | `label`, `boundary_source` | PyCORN's own. `chromatogram` is UNICORN's word. | `label`: the caller's text as given (e.g. "Cycle 2", "Prime"), or empty. `boundary_source`: `caller` (the user's rule) or `chromatogram` (one chromatogram per unit procedure). | Unit procedures only, when a run has more than one: their names and how their boundaries were set, e.g. for cycles (§3.3, §3.9) |
-| `chromatogram` | UNICORN's word (Allotrope uses it for one signal, §12) | the chromatogram the segment was recorded in | results with several chromatograms (§3.4) |
+| `chromatogram` | UNICORN's word (Allotrope uses it for one signal, §12) | the chromatogram the element was recorded in | results with several chromatograms (§3.4) |
 | `state` | ISA-88: key and values are its example procedural states (ISA-88.01 5.7.2.1, Table 2) | `running`, `held`, `paused`, `holding`, `restarting`, `stopping` | pauses, holds and the pump's ramps around them (§3.7) |
-| `start`, `end` | Plain words. The axes are PyCORN's (`axes.py`). Method time is UNICORN's axis. | the segment's start and end on every axis: wall clock (s from method start, pauses included), method time (s, pauses excluded), volume (ml), column volumes (CV), and date and time (UTC) | placing the segment on any axis a reader uses |
+| `start`, `end` | Plain words. The axes are PyCORN's (`axes.py`). Method time is UNICORN's axis. | the element's start and end on every axis: wall clock (s from method start, pauses included), method time (s, pauses excluded), volume (ml), column volumes (CV), and date and time (UTC) | placing the element on any axis a reader uses |
 | `equipment_module` | ISA-88.01 5.2.3.3, with PyCORN's names as values | `system_pump`, `sample_feed`, `fraction_collector`, ... | phases only: the equipment module that carries out the phase (single valves and monitors are control modules, §3.6.1) |
 
 <a id="table-18"></a>**Table 18.** Fields on every value: where each name comes from, and its values.
 
 | Field | Name from | Values |
 |---|---|---|
-| `value`, `unit` | plain words, with unit codes from UCUM | The number at full precision (rounding happens only in display), and its UCUM unit code: `mL/min`, `%`, `mL`, `s`. Column volumes are `{CV}` (UCUM writes a unit it doesn't define in braces). |
+| `value`, `unit_of_measure` | plain words (BatchML's `UnitOfMeasure`), with unit codes from UCUM | The number at full precision (rounding happens only in display), and its UCUM unit code: `mL/min`, `%`, `mL`, `s`. Column volumes are `{CV}` (UCUM writes a unit it doesn't define in braces). |
 | `kind` | Key: PyCORN's own (neither ISA-88 nor BatchML has such a field). Values: ISA-88's words (set points ISA-88.01 5.3.2.2, actual values ISA-88.01 6.4.3.1). | `set_point` (planned: set in the method, or calculated from set points) or `actual` (what happened: measured, or calculated from measurements) (§3.8) |
 | `basis` | PyCORN's own. Not `quality`, which in OPC, process historians and BatchML (`DataValue/Quality`) is whether a reading can be trusted. | How the number was obtained: `logged` (as the run log shows it), `measured` (as an instrument read it), `calculated` (from other values, ISA-88.01 6.4.2), `fitted` (fitted to the volume axis, e.g. a pump ramp around a pause), `inferred` (worked out from other evidence, e.g. a pause the run log doesn't show), `assumed` (shown as such, e.g. `B1 (assumed)` for an inlet position not stored), `given` (by the caller), `default` (a stated default) or `not_known`. |
 | `source` | PyCORN's own. `run_log` and `volume_axis` name UNICORN's run log and volume axis. `caller` is the user. Matches BatchML's `DataSource` per data series. | Where the inputs came from, a list when there are several: `run_log`, `volume_axis`, `curve` (a measured curve, such as UV), `system_configuration` (the instrument set-up stored with the result, such as the installed valves), `method_hint` (the method, used only as a hint, never as what ran), `caller` (the user) or `default`. |
@@ -1155,7 +1158,7 @@ carries `EntryID`, `ObjectType`, `TimeStamp` and `Description`. The PyCORN batch
 
 | Record part | BatchML (`BatchML-BatchProductionRecord.xsd`) | In the PyCORN batch history | From UNICORN |
 |---|---|---|---|
-| Changes logged during the run | `Event`: `EventType` (Alarm, Equipment, General, Material, Message, Operator, Procedural Execution, ...), `EventSubType` (State Command, State Change, Mode Change, Parameter Data, Process Data, Property Value Change, Prompt, Prompt Response, Consume, Produce, ...), `Value`, `PreviousValue`, `MessageText`, `ProceduralElementReference`, `AssociatedEventID`, `PersonID`, `ComputerID` | one entry per run-log line: type and subtype from BatchML's lists, the run-log text under `original`, `value` and `previous_value` for a set point change (`5 -> 1` in today's tables), `element_id` for the segment it acts in, `associated_event_id` from a command to the state it caused (a Pause to Held, §3.7) | the run log and event curves, with `PersonID` and `ComputerID` masked like every people field |
+| Changes logged during the run | `Event`: `EventType` (Alarm, Equipment, General, Material, Message, Operator, Procedural Execution, ...), `EventSubType` (State Command, State Change, Mode Change, Parameter Data, Process Data, Property Value Change, Prompt, Prompt Response, Consume, Produce, ...), `Value`, `PreviousValue`, `MessageText`, `ProceduralElementReference`, `AssociatedEventID`, `PersonID`, `ComputerID` | one entry per run-log line: type and subtype from BatchML's lists, the run-log text under `original`, `value` and `previous_value` for a set point change (`5 -> 1` in today's tables), `element_id` for the element it acts in, `associated_event_id` from a command to the state it caused (a Pause to Held, §3.7) | the run log and event curves, with `PersonID` and `ComputerID` masked like every people field |
 | Curves | `DataSet` with `StartTime`, `EndTime`, `TimeSpecification` (`Relative`, `OffsetTime`) and one `TagSpecification` per series: `DataType`, `UnitOfMeasure`, `DataSource`, `Alias`, `EquipmentID`, `ProceduralElementReference`, `SignificantDigits`, `SamplingType`, `Deadband`, `DataCompression` | One entry per curve. Its role (`curve_roles.py`) is the key, with UNICORN's curve name under `original` and other names a system uses under `alias` (curve names vary by instrument). `significant_digits` comes from UNICORN's display specification, for display only (values stay at full precision). Time is relative to the method start and as UTC (§3.4). | the chromatogram's curves, and what UNICORN stores about sampling and compression, where it stores it |
 | Samples for testing | `Sample` (`SampleSourceID`, `SampleSize`, `SamplePullReason`, `ProceduralElementReference`), `SampleTest`, `SampleTestResult` (`Results`, `ExpectedResults`, `AnalysisUsed`) | an aliquot taken from a fraction, pool or load for an assay, and its result, linked by material ID (§3.6.3). A fraction itself stays a material sublot (§3.6.3), not a sample | Nothing in a result today. Filled by the caller or a later import of assay results. |
 | Corrections and notes | `Change` (`RecordReference`, `PrechangeData`, `Reason`), `Comment` (`RecordReference`, `CommentText`, `PersonID`), and `RecordStatus` and `Version` on the BatchML record | The result's audit trail as changes and its notes as comments, each pointing to what it is about. Also the PyCORN batch history's own version and the PyCORN version that wrote it. | the audit trail and run information (§3.2), with people masked |
@@ -1244,7 +1247,7 @@ PyCORN by guessing):
   A1-A4/B1-B4. `bypass_units` is fixed, so a column by-pass partway through a run has no
   counterpart.
 - `ReferenceIO` has no unit or metadata, and every `calibration` function returns a new one:
-  the PyCORN batch history's `unit`, `kind`, `basis`, `source` stay in `experiment.json` beside it.
+  the PyCORN batch history's `unit_of_measure`, `kind`, `basis`, `source` stay in `model_view.json` beside it.
 - CADET-GUI reads `.csv` only, forces a volume axis in mL even for a `min` export, can't save
   a time-axis run with markers, and converts with one typed flow. An import built on the PyCORN batch history would
   carry time in s, markers from operations, units, and the injection time as a number.
@@ -1272,7 +1275,7 @@ JSON. The web page shows the same tables. The proposal touches few of them ([Tab
 | Keys (Decide 2, 24) | `phases`, `sections`, `phase_windows`, `warnings` | **Added columns** `phase_number`, `section_number`, `element_id`. Warnings carry the `element_id` they belong to. One value per column ("Outputs stay atomic"). |
 | Cycles, chromatograms | the same tables | A `cycle` column (the caller's labels, §3.3) only when the caller marks cycles. Chromatograms already get their own files. |
 | 5. `pycorn record --json` | `inspect --json` | **New command**, same envelope, schema version and masking as every `--json`. `inspect` stays the summary and gains the operation list. `record` gives the whole structure. Neither holds curve values. |
-| 6. Model view | CADET files: `experiment.json`, CADET-Process CSVs, CADET-Core input | Same files, built from the PyCORN batch history. Values change with the decided flow source (Decide 6). File names may change (§11, "experiment"). |
+| 6. Model view | CADET files: `model_view.json`, CADET-Process CSVs, CADET-Core input | Same files, built from the PyCORN batch history. Values change with the decided flow source (Decide 6). File names may change (§11, "experiment"). |
 | Later: BatchML XML, Allotrope ASM | none | New optional files beside the others |
 
 Unchanged: every table's UNICORN wording (display tables and CSV keep UNICORN's words,
@@ -1307,7 +1310,7 @@ Each step adds to what exists: today's outputs stay byte-identical until a step 
 otherwise.
 
 1. **PyCORN batch history** (`pycorn/run_record.py`): built from `run_log_sections`, the timeline, the
-   system configuration and the curves. It holds ISA-88 levels, states, tags, and set point and
+   system configuration and the curves. It holds ISA-88 levels, states, element keys, and set point and
    actual values with basis and source. Tests: today's phase table, sections and CADET
    inputs re-derived from the PyCORN batch history equal today's outputs.
 2. **Rules** (`pycorn/display_rules.py`): the decided phase-start rule and the other display
@@ -1317,8 +1320,8 @@ otherwise.
 4. **Display steps table** for people (§3.5, name open), from the PyCORN batch history's sections.
 5. **`pycorn record --json`** (and `inspect` gains the PyCORN batch history's operation list), masked by
    default.
-6. **Model view** reads `actual` values (the decided CADET flow source), with the renames of
-   §11 if the owner agrees.
+6. **Model view** reads `actual` values (the decided CADET flow source), with §5's
+   vendor-neutral keys in `model_view.json` (the names were changed on 2026-11-15, §11).
 7. When CADET-Process 0.13.0 ships: the model view as `PhasedProcess` steps on an
    `LCFlowSheet` (needed for `characterization`, which takes an `LCProcess`), replacing
    PyCORN's own flow sheet and event compiler, after raising the gaps in §6.
@@ -1389,7 +1392,7 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 - Units in column names, SI for the model (review 3.3). X-axis picker and tracks on the page.
 - Inlets from the stored system configuration: known / assumed / not known (Decide 22).
 - Phase start lag (2026-11-12): display folds flow, %B and %Q within 10 s and 1 % of the
-  phase, with a `held_over` note. Valves and feed never fold. Phase start and end never
+  phase, with a `start_lag` note. Valves and feed never fold. Phase start and end never
   move. M22 windows from a phase start skip the held-over seconds. CADET never folds.
 - CADET flow source (2026-11-14, Decide 6, review 3.4): run log for structure and timing,
   the method-flow entry for which pump, the volume axis for the amount where it differs by
@@ -1404,27 +1407,33 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
   only, `calculated` is a `basis`, `quality` becomes `basis` (`exact` splits into `logged` and
   `measured`, `not_known` moves from `source`, `folded` goes), `source` may list several.
   When built, the `pauses` table's `quality` column and the run-level `timeline_quality` are
-  renamed outputs (CHANGELOG first). The timeline's `ambiguous` and `unresolved` describe the
+  renamed in place (CHANGELOG first). The timeline's `ambiguous` and `unresolved` describe the
   whole timeline, not one value, and get their own field.
+- Renames (2026-11-15, [Table 24](#table-24)): `element` for any stretch of the run at one
+  level (was `segment`), `unit_of_measure` on a value (was `unit`), `start_lag` for the
+  previous phase's set points at a phase start (was `held_over`), and "marks" or "key" in
+  the text (was "tag"). The CADET export's "experiment" names become model view names.
+  Renamed outputs change in place: no aliases, no second file, the rename first in the
+  CHANGELOG.
 - Unknowns said in plain words, never guessed. Masking rules (Track 9). Full values in code,
   rounding at display only.
 
-**Open Decide items the frame settles**: [Table 22](#table-22), to confirm as a set.
+**Decide items the frame settles**: [Table 22](#table-22). Settled on 2026-11-15 where the answer follows from decisions already made. Held where it needs the owner's judgement.
 
-<a id="table-22"></a>**Table 22.** Open Decide items (numbered as in the review) and the proposed answer to each.
+<a id="table-22"></a>**Table 22.** Decide items (numbered as in the review), the answer to each, and whether it is settled or held.
 
-| # | Item | Proposed answer |
-|---|---|---|
-| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). |
-| 2 | keys | Yes: `phase_number`, `section_number`, and the `element_id` tag |
-| 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (§5). Display tables and CSV keep UNICORN's words only. |
-| 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (§3.7). |
-| 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). |
-| 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display |
-| 16 | by-pass | An equipment state of the column valve module, with a note in display |
-| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. |
-| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. |
-| 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. |
+| # | Item | Answer | Status |
+|---|---|---|---|
+| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). | Settled down to sections. Held: the display table's name and file, with the words below the phase ([Table 23](#table-23)). |
+| 2 | keys | Yes: `phase_number`, `section_number`, and the `element_id` key | Settled. A step number joins them if option C of [Table 23](#table-23) is chosen. |
+| 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (§5). Display tables and CSV keep UNICORN's words only. | Settled (§5's naming rule) |
+| 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (§3.7). | Settled (the state mapping, and Decide 6's fitted pieces) |
+| 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). | Settled (the value fields of 2026-11-15) |
+| 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display | Settled (the state mapping) |
+| 16 | by-pass | An equipment state of the column valve module, with a note in display | Settled |
+| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. | Settled: both stored. Held: what display shows. Display keeps the set flow today (Decide 6), and which flow users see is Decide 15. |
+| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. | Settled: `instance` stored, logged text kept. Held: the display name. Tables keep the logged name today, and M22's interim phase rule waits on it (Decide 9, 23). |
+| 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. | Settled |
 
 **Display choices still the owner's**: 12 phase length with or without pauses (proposal:
 both), 15 which flow users see, 17 feed wording, 21 the gradient
@@ -1433,14 +1442,14 @@ wording rule, 25 section-lane chart, 26 summary beside or instead of today's seq
 **Tooling gap:** Decide 19, `pycorn export --loop-volume` / `--sample-path-volume` for the
 CADET feed (one flag or two).
 
-**New decision for the owner: the word "experiment" in the CADET export.** In OBI, Allotrope
-and IOF an experiment is a planned study across runs. PyCORN uses the word for one run's
+**Decided (2026-11-15): the word "experiment" in the CADET export.** In OBI, Allotrope
+and IOF an experiment is a planned study across runs. PyCORN used the word for one run's
 data for CADET (`CadetExperiment`, `build_experiment()`, `ExperimentSection`,
 `experiment.json`). That object's `events` are UNICORN log entries, while CADET-Process's
-events are planned parameter changes. Proposal: when plan step 6 makes this object the model
-view, name it so (`ModelView`, `model_view(run)`, `ModelSection`, `model_view.json`,
-`logged_events`), with §5's vendor-neutral keys in the JSON. Keep the old names as aliases
-(and write both files) for a release, and list the rename first in the CHANGELOG.
+events are planned parameter changes. The object is the model view, so it is named so:
+`ModelView`, `model_view(run)`, `ModelSection`, `model_view.json`, `logged_events`. The
+names change in place, with no aliases and no second file, and the rename comes first in
+the CHANGELOG. §5's vendor-neutral keys come into the JSON with plan step 6.
 
 **New decision for the owner: the words below the phase.** ISA-88 points to "the steps and
 transitions as described in IEC 848: 1988" as "one method of defining subdivisions of a
@@ -1476,16 +1485,16 @@ against the run log on the example results. BatchML uses "step" a third way: a `
 its procedure logic invokes a recipe element (a unit procedure, operation or phase). So a
 display row called "step" would match neither standard.
 
-**New decision for the owner: renames before anything is built.** This document defines the
+**Decided (2026-11-15): renames before anything is built.** This document defines the
 names for all later work, so words that clash with a standard the PyCORN batch history maps to are renamed
 now, while only this document uses most of them. The names were checked against the BatchML
 schemas (`BatchML-BatchProductionRecord.xsd`, `BatchML-BatchInformation.xsd`,
-`B2MML-Common.xsd`, see References). The proposals are in [Table 24](#table-24).
+`B2MML-Common.xsd`, see References). The renames are in [Table 24](#table-24), applied throughout this document.
 
-<a id="table-24"></a>**Table 24.** Proposed renames: the current and proposed name, why, and where the current
-name is used today.
+<a id="table-24"></a>**Table 24.** Renames: the old and new name, why, and where the old
+name was used.
 
-| # | Now | Proposed | Why | Where it is used today |
+| # | Old | New | Why | Where the old name was used |
 |---|---|---|---|---|
 | R2 | `segment` | `element` | ISA-95 / B2MML, which §7 maps materials to, has the **process segment** (`SegmentRequirement`, `SegmentResponse`), a different thing. The PyCORN batch history already has `element_id`, after ISA-88's "procedural element" (ISA-88.01 3.36). Batch history entries identify it (ISA-88.01 6.4.1.1), and BatchML references it from events and data series as `ProceduralElementReference`. BatchML never uses "element" alone (`RecipeElement`, `EquipmentElement`, `EquipmentProceduralElement`), so the PyCORN batch history defines `element` once as the procedural element. A chromatogram is then a field (`chromatogram`), not "a `chromatogram` segment" (§3.4): it is no level | This document, and a local variable in `run_log_sections.py` (not an output) |
 | R3 | `unit` (on a value) | `unit_of_measure` | In ISA-88 a unit is the system (ISA-88.01 3.60), and the PyCORN batch history names it. BatchML keeps the two apart as `UnitOfMeasure` and an `EquipmentID` at `EquipmentElementLevel` `Unit`. The values stay UCUM codes (BatchML's `UnitOfMeasure` is a free code) | this document |
@@ -1493,7 +1502,7 @@ name is used today.
 | R5 | "tag" in the text ("tags every segment", "the `element_id` tag") | "marks", "key" | In historians, OPC and BatchML (`TagSpecification` in a `DataSet`) a tag is one recorded data series, which is a curve in UNICORN and PyCORN. ISA-88 says "not in equipment-specific tags" (ISA-88.01 6.4.3) | this document |
 
 Kept as they are: `display_name` (the same meaning as OPC UA's DisplayName),
-`instance`, `state`, `level`. "Event" and "experiment" have their own proposals above.
+`instance`, `state`, `level`. "Experiment" and the model view's `events` are decided above.
 
 ## 12. Words used in this document, and their ontology terms
 
@@ -1530,7 +1539,7 @@ flowchart LR
 | display step (name open) | Sections joined for people, previous-phase set points folded with a note (§3.5). Not stored in the PyCORN batch history. | None. Not an IEC 60848 / IEC 61131-3 step (§11). |
 | cycle | One pass of the sequence on one column (§3.3). Held as a unit procedure, named by the caller's label, not as a field. | PyCORN's own term, with no class in IOF, OBI or Allotrope |
 | series, study | Linked results (§3.1). A designed series (DoE scouting) is a study. | OBI study design execution; IOF `StudyDesignRun` per result, `DesignPoint` for its planned factor levels; BatchML `CampaignID` |
-| experiment | Kept for a planned study across runs, as the ontologies use it. Today also, wrongly, the CADET export's object (§11). | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
+| experiment | Kept for a planned study across runs, as the ontologies use it. The CADET export's object was renamed the model view (§11). | OBI investigation; Allotrope experiment ("a planned process to verify, falsify, or establish the validity of a hypothesis") |
 | chromatogram | UNICORN's container of curves and event logs for (part of) a run (§3.4) | Allotrope chromatogram = one signal against time or volume, i.e. one PyCORN curve. No IOF class. |
 | curve, signal | one measured or calculated trace | ISA-88 continuous data (ISA-88.01 5.5.1); IAO measurement datum; Allotrope chromatogram data cube |
 | event | a UNICORN log entry (run log, injection, fraction) | ISA-88 event data, e.g. "start and stop times of procedural elements" (ISA-88.01 5.5.1). Not CADET-Process's events, which are planned parameter changes in a simulation. |

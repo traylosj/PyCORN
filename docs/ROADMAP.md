@@ -135,7 +135,7 @@ stated there and in the README. Item 7 (getting-started docs, PyPI) is open.
   (`pip install openpyxl`), else they skip.
 - Run `tests/test_cli.py` and `tests/test_export_cadet.py` before changing anything the CLI
   or `export_cadet()` calls (`cadet_outputs`, `_file_stems`, `_geometry_vc`,
-  `build_experiment`, `to_csv`, `to_core_input`, `write_json` / `write_hdf5`, `uv_wavelengths`).
+  `model_view`, `to_csv`, `to_core_input`, `write_json` / `write_hdf5`, `uv_wavelengths`).
 - Survey scripts are throwaway, outside the repo, and print counts only.
 - Tests that need a database or extra files skip when they are missing.
 - CADET sources for reading (never run): CADET-Core `v6.0.0a5` and `v5.1.2`, CADET-Process
@@ -283,7 +283,7 @@ concentration and calibration is here; "Modeler input" and "Open, by goal" point
   absorbance limit, cut pulses, drift. `epsilon_from_injection()` for a caller window and mass
   (warns below `NO_SIGNAL_AU`).
 - CLI: `pycorn bypass-uv`; `export --bypass-uv --sample-conc --loop-volume --absorbance-limit
-  --uv-response`. Python: `response_factor=` on `concentration()` and `build_experiment()`,
+  --uv-response`. Python: `response_factor=` on `concentration()` and `model_view()`,
   `uv_response` / `absorbance_limit` in `export_cadet()`. No defaults for any of them.
 - Some runs send sample to the by-pass, as plateaus (can
   sit near the linear limit) or short pulses (much narrower than their valve periods).
@@ -316,7 +316,7 @@ advice compares with what PyCORN does today:
 | Simpler: an apparent extinction coefficient, only if linear | The main path; `ACCURACY_NOTE` on every result | Matches |
 | Saturation depends on wavelength and path (about 3500 mAU at 280 nm; 2 mm cell about 15 mg/ml) | No limit assumed; caller `absorbance_limit`, flat-top warning | Matches (flagged, not corrected) |
 | Check for and correct baseline shifts | `uv_calibration.py` takes a baseline under pulses and warns on drift; exported UV curves are not corrected | **Partial gap: M12** |
-| Several components: fractions and offline assays (NanoDrop, SEC, cIEF) | D30: `build_experiment(components=, fraction_masses=)`, CADET_GUIDE "Your offline assays", walkthrough | Matches; D30 open (assays as export options) |
+| Several components: fractions and offline assays (NanoDrop, SEC, cIEF) | D30: `model_view(components=, fraction_masses=)`, CADET_GUIDE "Your offline assays", walkthrough | Matches; D30 open (assays as export options) |
 | Conductivity -> salt: %B steps in by-pass, 2nd-order polynomial | D22 `buffer_readings.py` reads by-pass buffer windows routine runs often already have, checked against the column outlet; caller `buffer_salt` -> `salt_calibration_points()` -> `salt_from_conductivity()` (linear interpolation, clipped, or a caller function) | Mostly matches; a fit only through a caller function: **M11** |
 | pH: calibration less needed; conductivity helps explain pH shifts | pH read in the by-pass and compared with the outlet (`PH_MATCH` 0.1); no calibration | Matches |
 | Dead volume: correct for it in post-processing if the model has no tubing | D27 mixer and tubing CSTRs in the model (tubing volume from the caller); stored "Delay volume" settings reported as hints | Different on purpose: modeled, not shifted |
@@ -489,7 +489,7 @@ Concentration handling cases (first version):
 | 16 | DBC / QB at x %, mg sample / ml column | titer x V_x / Vc after hold-up normalization | Planned (M21) |
 | 17 | Nonlinear / multi-point UV calibration | table or function | Open (M10) |
 | 18 | Polynomial fit through zero | - | Open (M11) |
-| 19 | Several components (fractions, offline assays) | `build_experiment(components=, fraction_masses=)` | Built (CADET); D30 open |
+| 19 | Several components (fractions, offline assays) | `model_view(components=, fraction_masses=)` | Built (CADET); D30 open |
 | 20 | CADET concentration | AU/cm; mol/m^3 with MW | Built; baseline on references open (M12) |
 | 21 | Salt from conductivity | caller table or function | Built (M11 fit open) |
 | 22 | Stored UNICORN ExtCoeff (Peak, Pool, ProteinInfo) | - | Not read (empty in tested data) |
@@ -593,10 +593,10 @@ Open (build nothing without the owner):
 
 ### CADET export
 
-Pipeline: `Run` -> `build_experiment(run, chrom, ...)` -> `CadetExperiment` (all SI, no CADET
+Pipeline: `Run` -> `model_view(run, chrom, ...)` -> `ModelView` (all SI, no CADET
 import) -> `to_csv` / `to_cadet_process` (CADET-Process 0.12, runs on Core 5) /
 `to_core_input(exp, core_version='5'|'6', overrides=)` + `write_json` / `write_hdf5`, in
-`pycorn/exporters/cadet/` (`experiment.py`, `calibration.py`, `buffer_readings.py`,
+`pycorn/exporters/cadet/` (`view.py`, `calibration.py`, `buffer_readings.py`,
 `process_export.py`, `core_input.py`, `api.py`). Shared modules: `run_log_sections.py`
 (sections from the executed run log), `method_hints.py` (D17). User reference:
 [`docs/CADET_GUIDE.md`](CADET_GUIDE.md); example: `examplescripts/cadet_walkthrough.py` (on `sample.zip`).
@@ -616,8 +616,8 @@ Entry points:
 | Phase | Built |
 |---|---|
 | C0 | `units.to_si()`, `flow` / `sample_flow` roles, `column_geometry.py` |
-| C1 | `run_log_sections.py`, `CadetExperiment` / `build_experiment()`, `calibration.py`, role `conc_q` |
-| C1b | `method_hints.py` (D17, D20, D23), `CadetExperiment.method_hints` |
+| C1 | `run_log_sections.py`, `ModelView` / `model_view()`, `calibration.py`, role `conc_q` |
+| C1b | `method_hints.py` (D17, D20, D23), `ModelView.method_hints` |
 | C2 | `process_export.py`: `process_inputs`, `to_references`, `to_fractionation_reference`, `to_process`, `to_cadet_process`, `to_csv` (D24) |
 | C3 | `core_input.py`: `to_core_input`, `write_json`, `write_hdf5`; expected files in `tests/data` (D25) |
 | C4 | Simulated on CADET-Core 5.1.2 and 6.0.0a5; fixes X20-X22; `tests/test_cadet_core_run.py` |
@@ -626,7 +626,7 @@ Entry points:
 Also built: UV path fallback, D26 geometry, CSTRs (`to_csv(system_volumes=)`), D27,
 `uv_wavelengths`.
 
-**CadetExperiment and flow sheet.** `CadetExperiment` holds `source` (run, locator kind,
+**ModelView and flow sheet.** `ModelView` holds `source` (run, locator kind,
 chromatogram, PyCORN version; never `run.origin`), `time_zero` and offset, `column` (length,
 diameter, area, volume, particle radius, each with its source; usually None, D10), `sections`
 (start/end s, name, block, flow `(Q0, Q1)`, %B, inlet, paused, `sample_use`, system and sample
@@ -724,7 +724,7 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
     name for now)
 - **Decided, not built: held-over values** (owner, 2026-11-12; review 3.4, Decide 7-10).
   Display outputs (summary, steps, page) fold a flow, %B or %Q change that lasts less than
-  10 s **and** differs by less than 1 % into the step around it, with a `held_over` note;
+  10 s **and** differs by less than 1 % into the step around it, with a `start_lag` note;
   valves, column position and feed never fold; phase starts and ends never move. M22 windows
   measured from a phase start skip the held-over seconds (this replaces the lead-in part of
   M22's interim rule). CADET never folds: its sections stay exact.
@@ -734,22 +734,27 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
   1 % of a section (feed too), with a warning; inside such a section a ramp model fitted to the
   axis (stop, linear ramp, set flow; each piece a CADET section with a linear flow term; rate
   never fixed); then D14's zeroing by valve position. `pycorn/delivered_flow.py`,
-  `build_experiment(flow_from_axis=True)`. Choices made while building (owner may change):
+  `model_view(flow_from_axis=True)`. Choices made while building (owner may change):
   knots near the set flow or 0 take it, the rest by least squares on the axis volume within
   [0, the highest set flow around]; sections under 1 s or 5 axis points get one constant
   flow; volume the axis books at a pause with no time is left out (one warning); a section
   where pressure limits the flow gets no special handling (none seen). Not built: the
-  display's `held_over` note "ramped n s".
+  display's `start_lag` note "ramped n s".
 - **Main proposals:**
   - three levels: a user summary per phase, steps for modelers (keyed by `phase_number`,
     `step_number`, with `state`), and sections 1:1 for CADET
   - CADET keeps the exact sections; summary and steps fold flow and %B only, with a
-    `held_over` note
+    `start_lag` note
   - UNICORN names in outputs, the ISA-88 mapping in the docs only (UNICORN Pause = ISA-88
     Held, UNICORN Hold = ISA-88 Paused)
 - **Gap found:** `pycorn export` passes no loop or sample path volume to the CADET feed (its
   `--loop-volume` is for the by-pass UV only). Review 3.8, Decide 19.
-- **Open:** Decide 1-21 and 23-26 in the review, and a new shareable sample with a ramp
+- **Settled, not built** (owner, 2026-11-15; `docs/RUN_STRUCTURE_RECORD.md` §11, Table 22):
+  Decide 2, 3, 11, 13, 14, 16 and 24 as proposed there. Partly settled: Decide 1 down to
+  sections, Decide 20 both lengths stored, Decide 23 `instance` stored. Held: the display
+  steps' name (Decide 1, with the words below the phase), the ramp length display shows
+  (Decide 20), and repeat names in tables (Decide 23).
+- **Open:** the other Decide items in the review, and a new shareable sample with a ramp
   (review section 6). This topic replaces open owner question 6 and roadmap item
   8. Owner, 2026-11-10: how phases are shown and exported is a critical enabler for CADET
   and not decided yet (Track 0); it also settles M22's interim phase rule. Results with
@@ -910,7 +915,7 @@ input; no track)
   names (D28 overrides) as fields instead of a JSON upload (save and load of the form as JSON
   kept), a preview of what will be written, then the download. No PyCORN defaults: empty
   stays empty. Open: fields from a schema of the CADET-Core 5 / 6 parameters, or a short
-  hand-picked set plus "advanced JSON"; CADET-Process files (CSV + `experiment.json`) on the
+  hand-picked set plus "advanced JSON"; CADET-Process files (CSV + `model_view.json`) on the
   page too.
 - **W15 CADET export marked experimental** (owner, 2026-11-10; in 0.31.2). One sentence:
   the CADET export's assumptions are incomplete and not yet tested, and will change
@@ -1390,8 +1395,8 @@ built:
 
 | # | Decision | Rule and why |
 |---|---|---|
-| D1 | Target | Both outputs on one neutral layer: `CadetExperiment` (C1), CADET-Process objects (C2), Core input (C3; widened to Core 5 and 6 by D9) |
-| D2 | UV signal | Always absorbance per path in AU/cm (mAU / 1000 / path cm; `*/cm` curves as they are). No path: AU, no concentration, warning. Concentration when the caller gives epsilon (and MW). **Rev 11b ("if it can use it, we leave it in"): the CADET files carry mol/m^3 only**, because CADET components share one unit and binding models count in mol/m^3; mg/ml stays in the regular export and the conversion in `experiment.json` |
+| D1 | Target | Both outputs on one neutral layer: `ModelView` (C1), CADET-Process objects (C2), Core input (C3; widened to Core 5 and 6 by D9) |
+| D2 | UV signal | Always absorbance per path in AU/cm (mAU / 1000 / path cm; `*/cm` curves as they are). No path: AU, no concentration, warning. Concentration when the caller gives epsilon (and MW). **Rev 11b ("if it can use it, we leave it in"): the CADET files carry mol/m^3 only**, because CADET components share one unit and binding models count in mol/m^3; mg/ml stays in the regular export and the conversion in `model_view.json` |
 | D3 | Buffer concentrations | The caller supplies them (mol/m^3 per component and line). Hints only, never used silently: BufferPro prep (D17 case 2), the inlet line and %B per section (e.g. `A1, 0 %B`), Set Mark texts and phase / block names |
 | D4 | Fraction assays | Optional CSV keyed by tube id (`tube, component, mass_mg` or `conc_g_per_l`); without it, times and volumes only, no `FractionationReference`. **Rev 11b:** tube names repeat only for waste, which isn't assayed, so matching by tube name is enough |
 | D5 | Time zero | Method start (raw elapsed time), so equilibration is in the process; the injection offset goes in the metadata |
@@ -1417,9 +1422,9 @@ built:
 | D25 | Core input | (1) `placeholders=True` fills transport from CADET-Core's GRM benchmark (bed porosity 0.37, particle porosity 0.75, axial dispersion 5.75e-8 m^2/s, film 6.9e-6 m/s, pore diffusion 6.07e-11 m^2/s, particle radius 45 um only without a linked column; LRM total porosity 0.8425), each in `/meta/placeholders` with a warning; binding `NONE`; geometry never gets a placeholder. **Rev 11b: caller values only through `overrides=` (D28); `parameters=` / `binding=` removed (TypeError pointing to `overrides`).** (2) Core 6 DG by default (16 elements, degree 4; particle 1 element, degree 4); FV on request; Core 5 FV (`NCOL` 100, `NPAR` 5, WENO 3). (3) Hand-checked expected files for `samples/u711_cadet_reference.zip` are committed (names and version left out; solution times as count, first, last) |
 | D26 | Caller geometry | Asked via the CLI session. (1) Caller bed height, diameter, particle diameter are a fallback per value; a stored value wins. (2) An unused caller value is always noted, equal or not. (3) `override=True` / `--override-geometry` makes the caller win (an AKTA set up wrong). (4) **Amends D11:** caller geometry gives Vc as a last resort (some database results have no Vc); stored record geometry never does. Particle radius order: override > stored > caller fallback > D25 placeholder |
 | D27 | System volumes | (1) A CSTR before (mixer) and after (column -> UV tubing) the column by default. (2) Mixer volume from `SystemData` `MixerInformation`; the caller wins. The mixer by-pass valve (V9-M) is taken as always in line (no switch seen). (3) The mixer is before the injection valve: valve injections skip it; two inlets, the mixer holds (Q = 0) during valve feed. (4) Feed through an A/B pump line goes through the mixer: found from an injection mark with no valve switch (rare), only when an A or B inlet switched within 60 s of the mark (owner, after the data); feed runs while that position stays selected, its share by %B; else a warning. `sample_inlets=` wins. (5) Tubing volume from the caller only (the stored delay volumes are after the UV: hints only); without it no tubing CSTR and a warning. `system_volumes=False` leaves the CSTRs out |
-| D28 | On top of CADET, never a copy | CADET keeps adding models; mirroring them means maintaining both. (1) pycorn builds what the run gives and nothing of the model. (2) Model values in CADET's own terms: `core_overrides` is a nested dict in CADET-Core's input layout (`{'input': ...}`), merged unchanged just before writing (no translation, no check, no name list); for CADET-Process, its own API on the returned `Process`. (3) Don't mirror CADET's model and parameter permutations; one marked example block in the docs is fine. (4) Placeholders fill what isn't given; one the overrides replace leaves `/meta/placeholders`; `/meta/OVERRIDES` lists the paths set. (5) `parameters=` / `binding=` removed (rev 11b). (6) A run with one chromatogram is exported. **Amended rev 11b: "warn on multiple chromatograms until we have a clear choice from the user community"**: without `chromatogram=` both paths export them all with a warning (the rev 11 rule, an error asking for one, is replaced). (7) **Amended 2026-11-08 (owner: "I like your params block argument; maybe we implement that everywhere for now and don't make any assumptions about what it should contain, to keep it very generic")**: one block per target on every route. Core: `core_overrides=` (`export_cadet`, `to_core_input(overrides=)`) and `pycorn export --core-overrides FILE.json`. CADET-Process: `process_overrides=` in its own parameter layout (what `process.parameters` shows); `to_process` / `to_cadet_process` set it last with `process.parameters = ...` (a copy: CADET-Process empties the dict it gets; it rejects unknown names itself), `export_cadet` / `to_csv` / `pycorn export --cadet --process-overrides FILE.json` store it unchanged in `experiment.json`. pycorn reads nothing inside either block |
+| D28 | On top of CADET, never a copy | CADET keeps adding models; mirroring them means maintaining both. (1) pycorn builds what the run gives and nothing of the model. (2) Model values in CADET's own terms: `core_overrides` is a nested dict in CADET-Core's input layout (`{'input': ...}`), merged unchanged just before writing (no translation, no check, no name list); for CADET-Process, its own API on the returned `Process`. (3) Don't mirror CADET's model and parameter permutations; one marked example block in the docs is fine. (4) Placeholders fill what isn't given; one the overrides replace leaves `/meta/placeholders`; `/meta/OVERRIDES` lists the paths set. (5) `parameters=` / `binding=` removed (rev 11b). (6) A run with one chromatogram is exported. **Amended rev 11b: "warn on multiple chromatograms until we have a clear choice from the user community"**: without `chromatogram=` both paths export them all with a warning (the rev 11 rule, an error asking for one, is replaced). (7) **Amended 2026-11-08 (owner: "I like your params block argument; maybe we implement that everywhere for now and don't make any assumptions about what it should contain, to keep it very generic")**: one block per target on every route. Core: `core_overrides=` (`export_cadet`, `to_core_input(overrides=)`) and `pycorn export --core-overrides FILE.json`. CADET-Process: `process_overrides=` in its own parameter layout (what `process.parameters` shows); `to_process` / `to_cadet_process` set it last with `process.parameters = ...` (a copy: CADET-Process empties the dict it gets; it rejects unknown names itself), `export_cadet` / `to_csv` / `pycorn export --cadet --process-overrides FILE.json` store it unchanged in `model_view.json`. pycorn reads nothing inside either block |
 | D29 | `--mw` with a mass epsilon | "We might want a molecular weight flag." (1) `--mw` / `molecular_weight=` also applies with a mass coefficient, so the CADET files get the `<UV> mol/m^3` reference; no second flag. (2) A `cadet` warning when there is a coefficient but no MW. (3) **Rev 11b:** an unused `--mw` is a note in `warnings.csv`, not an error |
-| D30 | Offline assays, walkthrough | (1) Document only: no new options; [`docs/CADET_GUIDE.md`](CADET_GUIDE.md) "Your offline assays" shows `build_experiment(components=, fraction_masses=)`, the CSV template and the g/L -> mol/m^3 arithmetic. (2) A walkthrough on `samples/sample.zip` (`examplescripts/cadet_walkthrough.py`, opt-in tests on both Cores). (3) Overlay, no fitting; comparing and fitting go through CADET-Process (`Comparator`, `OptimizationProblem`). **Open:** whether `export_cadet()` / `pycorn export` should take the assays (D28 doesn't decide it: measured items aren't model inputs) |
+| D30 | Offline assays, walkthrough | (1) Document only: no new options; [`docs/CADET_GUIDE.md`](CADET_GUIDE.md) "Your offline assays" shows `model_view(components=, fraction_masses=)`, the CSV template and the g/L -> mol/m^3 arithmetic. (2) A walkthrough on `samples/sample.zip` (`examplescripts/cadet_walkthrough.py`, opt-in tests on both Cores). (3) Overlay, no fitting; comparing and fitting go through CADET-Process (`Comparator`, `OptimizationProblem`). **Open:** whether `export_cadet()` / `pycorn export` should take the assays (D28 doesn't decide it: measured items aren't model inputs) |
 
 Other CADET decisions (owner, 2026-11-08):
 
@@ -1435,7 +1440,7 @@ Other CADET decisions (owner, 2026-11-08):
   gradient and flow instructions, so never read a phase's inlet, %B or flow from its first
   section (the A/B feed rule uses the inlet switch time, buffer readings the last steady piece,
   the D3 hints are per section).
-- UV path fallback (via the CLI session): `build_experiment(uv_path_length_fallback_cm=,
+- UV path fallback (via the CLI session): `model_view(uv_path_length_fallback_cm=,
   uv_path_length_fallback_basis=)` and `calibration.uv_au_per_cm(curve, path_length_cm,
   fallback_path_cm, fallback_basis)` only where the run gives no path; `uv_path_length_cm=`
   still overrides every plain curve.
@@ -1448,7 +1453,7 @@ Other CADET decisions (owner, 2026-11-08):
 
 `method_hints(run, chrom=None, sections=None)` -> `MethodHints` (`method`, `variables`,
 `scouting`, `documentation`, `buffer_prep`, `sample_application`, `injections`, `blocks`,
-`blocks_not_run`, `warnings`). `build_experiment()` stores it (times shifted with `time_zero`),
+`blocks_not_run`, `warnings`). `model_view()` stores it (times shifted with `time_zero`),
 adds its warnings as 'method: ...', and changes no section or feed. Sources:
 `run.metadata['MethodData']`, `['MethodDocumentationData']`; field names matched as stored,
 raw kept; an unknown layout warns.
@@ -1594,7 +1599,7 @@ of the Goals table at the top of this file points here.
 ### Modelers (CADET)
 
 1. D30: should `export_cadet()` / `pycorn export` take the offline assays themselves (e.g.
-   `--fractions assays.csv`)? Today: `build_experiment(components=, fraction_masses=)`.
+   `--fractions assays.csv`)? Today: `model_view(components=, fraction_masses=)`.
 2. D28 (6): settled 2026-11-11 (W17, 0.36.0): the original chromatogram by default, every
    selected one exported with a warning; imported chromatograms read their own run log
    (0.37.0).
@@ -1626,7 +1631,7 @@ question 6 and roadmap item 8: **phase / fraction table enhancements** (after th
 built from the CADET sections, Decisions "What ran in each phase"). Open, with the samples
 behind them: (a) the lead-in: leave out a previous phase's value in a phase's first seconds
 (u73_blank: 0.4-1.8 s at every phase start), or keep every value (decided 2026-11-12,
-Decide 7-10: fold for display with a `held_over` note, see "Run structure"; not built); (b) changes as a sequence
+Decide 7-10: fold for display with a `start_lag` note, see "Run structure"; not built); (b) changes as a sequence
 (today), the longest-running value plus min/max, or both; (c) %B as text (today),
 start/end numbers, or both; (d) more columns from the sections: sample flow, outlet valve,
 wavelengths, holds, pauses in the row. Every branch (Python tables, export, page) keeps the
@@ -1831,7 +1836,7 @@ until the owner settles it, with the SME's view.
   (c) a per-system profile file the lab keeps (system type -> path), picked by the run's
   stored system type, never by name guessing. Needs the SME's view of which permutations
   matter (bubble trap volume, filters, pre-column hold-ups).
-- **M3 Loop volume on the export path** (review j). `build_experiment(loop_volume=)` ends loop
+- **M3 Loop volume on the export path** (review j). `model_view(loop_volume=)` ends loop
   feed after the loop volume (D19), but `export_cadet()` and `pycorn export --cadet` don't take
   it (`--loop-volume` reaches the by-pass UV only), so a valve held at Inject counts as feed
   the whole time (over an hour on one run). Question: one loop volume per export command, per run
