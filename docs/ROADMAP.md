@@ -750,10 +750,7 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
 - **Gap found:** `pycorn export` passes no loop or sample path volume to the CADET feed (its
   `--loop-volume` is for the by-pass UV only). Review 3.8, Decide 19.
 - **Settled, not built** (owner, 2026-11-15; `docs/RUN_STRUCTURE_RECORD.md` §11, Table 22):
-  Decide 2, 3, 11, 13, 14, 16 and 24 as proposed there. Partly settled: Decide 1 down to
-  sections, Decide 20 both lengths stored, Decide 23 `instance` stored. Held: the display
-  steps' name (Decide 1, with the words below the phase), the ramp length display shows
-  (Decide 20), and repeat names in tables (Decide 23).
+  Decide 2, 3, 11, 13, 14, 16 and 24 as proposed there.
 - **Open:** the other Decide items in the review, and a new shareable sample with a ramp
   (review section 6). This topic replaces open owner question 6 and roadmap item
   8. Owner, 2026-11-10: how phases are shown and exported is a critical enabler for CADET

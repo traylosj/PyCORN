@@ -1418,21 +1418,21 @@ This document reworks [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) (topi
 - Unknowns said in plain words, never guessed. Masking rules (Track 9). Full values in code,
   rounding at display only.
 
-**Decide items the frame settles**: [Table 22](#table-22). Settled on 2026-11-15 where the answer follows from decisions already made. Held where it needs the owner's judgement.
+**Decide items the frame settles**: [Table 22](#table-22). Settled on 2026-11-15 where the answer follows from decisions already made. The rest stay open.
 
-<a id="table-22"></a>**Table 22.** Decide items (numbered as in the review), the answer to each, and whether it is settled or held.
+<a id="table-22"></a>**Table 22.** Decide items (numbered as in the review), the answer to each, and whether it is settled or open.
 
 | # | Item | Answer | Status |
 |---|---|---|---|
-| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). | Settled down to sections. Held: the display table's name and file, with the words below the phase ([Table 23](#table-23)). |
+| 1 | steps level | Not a level of the PyCORN batch history: ISA-88 ends at the phase (ISA-88.01 5.1.2.4). The PyCORN batch history goes down to sections. People get a table of display steps (sections joined, previous-phase set points folded), `<c>_steps.csv` or as named (below). | Open (with the words below the phase, [Table 23](#table-23)) |
 | 2 | keys | Yes: `phase_number`, `section_number`, and the `element_id` key | Settled. A step number joins them if option C of [Table 23](#table-23) is chosen. |
 | 3 | ISA-88 terms in columns | The PyCORN batch history's JSON uses ISA-88 and other vendor-neutral keys, with UNICORN's words as `original` values (§5). Display tables and CSV keep UNICORN's words only. | Settled (§5's naming rule) |
 | 11 | pauses in steps | `state = held` rows (UNICORN Pause = ISA-88 Held), with original state `pause`. The pump's ramps down before and up after are `holding` and `restarting` rows, where the volume axis shows them (§3.7). | Settled (the state mapping, and Decide 6's fitted pieces) |
 | 13 | inferred pauses | Same rows, with `basis = inferred`. Display marks them ("about 40 s, not logged"). | Settled (the value fields of 2026-11-15) |
 | 14 | holds | `state = paused` (UNICORN Hold), with a note per phase in display | Settled (the state mapping) |
 | 16 | by-pass | An equipment state of the column valve module, with a note in display | Settled |
-| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. | Settled: both stored. Held: what display shows. Display keeps the set flow today (Decide 6), and which flow users see is Decide 15. |
-| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. | Settled: `instance` stored, logged text kept. Held: the display name. Tables keep the logged name today, and M22's interim phase rule waits on it (Decide 9, 23). |
+| 20 | ramp length | Both: `set_point` (logged length) and `actual` (measured on each axis). Display shows the actual. | Open. Display keeps the set flow today (Decide 6), and which flow users see is Decide 15. |
+| 23 | repeats | `instance` numbers. Display shows `Equilibration (2)`. The logged text is kept. | Open. Tables keep the logged name today, and M22's interim phase rule waits on it (Decide 9, 23). |
 | 24 | warnings per phase | Warnings carry the `element_id` they belong to. Display puts them on the phase row. | Settled |
 
 **Display choices still the owner's**: 12 phase length with or without pauses (proposal:
