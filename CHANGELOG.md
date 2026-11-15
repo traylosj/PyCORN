@@ -15,6 +15,13 @@ changed since your files were made.
 
 ## Unreleased
 
+**Worked examples of the run structure proposal** (docs only, nothing built):
+[`docs/examples/`](docs/examples/README.md) holds one page per example result in `samples/`
+(levels, set point next to actual, every fact UNICORN provides or lacks, the prototype
+record as JSON, the raw UNICORN output, the scope rows), written by
+`tools/build_run_structure_examples.py` and checked by `tests/test_run_structure_examples.py`.
+The proposal links to them.
+
 **Renamed: the CADET export's "experiment" is now the model view.** In OBI, Allotrope and
 IOF an experiment is a planned study across runs, not one run's data. The names change in
 place, with no aliases:

@@ -1,0 +1,1892 @@
+{
+ "record_version": "prototype (docs/RUN_STRUCTURE_RECORD.md section 5)",
+ "source_system": {
+  "name": "UNICORN",
+  "version": "7.3.0.473"
+ },
+ "batch_id": "(UNICORN Batch ID: masked on this page)",
+ "instrument": "AKTA pure 25",
+ "column": {
+  "vc": {
+   "value": 0.7,
+   "unit_of_measure": "mL",
+   "kind": "set_point",
+   "basis": "logged",
+   "source": "curves"
+  }
+ },
+ "procedure": {
+  "level": "procedure",
+  "element_id": "PR",
+  "original": {
+   "level": "result",
+   "text": "sample.zip"
+  },
+  "chromatograms": [
+   {
+    "name": "Chrom.1",
+    "kind": "original"
+   }
+  ],
+  "links": {
+   "campaign_id": null,
+   "series": null,
+   "process_stage": null,
+   "loads": [],
+   "fractions": [],
+   "pools": [],
+   "note": "all caller-supplied except fraction IDs (run + tube)"
+  }
+ },
+ "unit_procedures": [
+  {
+   "level": "unit_procedure",
+   "element_id": "UP1",
+   "label": "",
+   "boundary_source": "default",
+   "operations": [
+    {
+     "level": "operation",
+     "element_id": "OP1",
+     "display_name": "Method Settings",
+     "original": {
+      "level": "phase",
+      "text": "Phase Method Settings"
+     },
+     "instance": 1,
+     "state": "running",
+     "process_operation": "",
+     "start": {
+      "wall_s": 0.0,
+      "method_s": 0.0
+     },
+     "end": {
+      "wall_s": 2.6,
+      "method_s": 2.6
+     },
+     "column_volume": [
+      {
+       "value": 0.0,
+       "unit_of_measure": "mL",
+       "kind": "set_point",
+       "basis": "calculated",
+       "source": "run_log"
+      },
+      {
+       "value": 0.0,
+       "unit_of_measure": "mL",
+       "kind": "actual",
+       "basis": "calculated",
+       "source": "volume_axis"
+      }
+     ],
+     "phases": [
+      {
+       "level": "phase",
+       "element_id": "OP1/PH1",
+       "original": {
+        "level": "block",
+        "text": "(no block)"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP1/PH1/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 0.0,
+          "method_s": 0.0
+         },
+         "end": {
+          "wall_s": 1.4,
+          "method_s": 1.4
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": null,
+          "original": null,
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP1/PH1/SE2",
+         "state": "running",
+         "start": {
+          "wall_s": 1.4,
+          "method_s": 1.4
+         },
+         "end": {
+          "wall_s": 1.8,
+          "method_s": 1.8
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": null,
+          "original": null,
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP1/PH1/SE3",
+         "state": "running",
+         "start": {
+          "wall_s": 1.8,
+          "method_s": 1.8
+         },
+         "end": {
+          "wall_s": 2.6,
+          "method_s": 2.6
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "level": "operation",
+     "element_id": "OP2",
+     "display_name": "Run",
+     "original": {
+      "level": "phase",
+      "text": "Phase Run"
+     },
+     "instance": 1,
+     "state": "running",
+     "process_operation": "",
+     "start": {
+      "wall_s": 2.6,
+      "method_s": 2.6
+     },
+     "end": {
+      "wall_s": 2259.7,
+      "method_s": 2259.7
+     },
+     "column_volume": [
+      {
+       "value": 5.7637,
+       "unit_of_measure": "mL",
+       "kind": "set_point",
+       "basis": "calculated",
+       "source": "run_log"
+      },
+      {
+       "value": 5.751593,
+       "unit_of_measure": "mL",
+       "kind": "actual",
+       "basis": "calculated",
+       "source": "volume_axis"
+      }
+     ],
+     "phases": [
+      {
+       "level": "phase",
+       "element_id": "OP2/PH1",
+       "original": {
+        "level": "block",
+        "text": "PurgeB"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP2/PH1/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 2.6,
+          "method_s": 2.6
+         },
+         "end": {
+          "wall_s": 3.1,
+          "method_s": 3.1
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          },
+          {
+           "value": 1.790497,
+           "unit_of_measure": "mL/min",
+           "kind": "actual",
+           "basis": "fitted",
+           "source": "volume_axis",
+           "pieces": [
+            [
+             0.0,
+             0.5,
+             1.7905,
+             0.0
+            ]
+           ]
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH1/SE2",
+         "state": "running",
+         "start": {
+          "wall_s": 3.1,
+          "method_s": 3.1
+         },
+         "end": {
+          "wall_s": 3.3,
+          "method_s": 3.3
+         },
+         "column_flow": [
+          {
+           "value": 8.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH1/SE3",
+         "state": "running",
+         "start": {
+          "wall_s": 3.3,
+          "method_s": 3.3
+         },
+         "end": {
+          "wall_s": 3.5,
+          "method_s": 3.5
+         },
+         "column_flow": [
+          {
+           "value": 8.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH1/SE4",
+         "state": "running",
+         "start": {
+          "wall_s": 3.5,
+          "method_s": 3.5
+         },
+         "end": {
+          "wall_s": 40.7,
+          "method_s": 40.7
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": true
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH2",
+       "original": {
+        "level": "block",
+        "text": "Purge"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP2/PH2/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 40.7,
+          "method_s": 40.7
+         },
+         "end": {
+          "wall_s": 41.6,
+          "method_s": 41.6
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {},
+         "bypass": true
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH2/SE2",
+         "state": "running",
+         "start": {
+          "wall_s": 41.6,
+          "method_s": 41.6
+         },
+         "end": {
+          "wall_s": 78.7,
+          "method_s": 78.7
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": true
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH2/SE3",
+         "state": "running",
+         "start": {
+          "wall_s": 78.7,
+          "method_s": 78.7
+         },
+         "end": {
+          "wall_s": 79.5,
+          "method_s": 79.5
+         },
+         "column_flow": [
+          {
+           "value": 0.0,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": true
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH3",
+       "original": {
+        "level": "block",
+        "text": "Equilibrate"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP2/PH3/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 79.5,
+          "method_s": 79.5
+         },
+         "end": {
+          "wall_s": 379.5,
+          "method_s": 379.5
+         },
+         "column_flow": [
+          {
+           "value": 0.7,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH4",
+       "original": {
+        "level": "block",
+        "text": "SampleLoad"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP2/PH4/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 379.5,
+          "method_s": 379.5
+         },
+         "end": {
+          "wall_s": 380.4,
+          "method_s": 380.4
+         },
+         "column_flow": [
+          {
+           "value": 0.7,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH4/SE2",
+         "state": "running",
+         "start": {
+          "wall_s": 380.4,
+          "method_s": 380.4
+         },
+         "end": {
+          "wall_s": 381.1,
+          "method_s": 381.1
+         },
+         "column_flow": [
+          {
+           "value": 0.7,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH4/SE3",
+         "state": "running",
+         "start": {
+          "wall_s": 381.1,
+          "method_s": 381.1
+         },
+         "end": {
+          "wall_s": 381.9,
+          "method_s": 381.9
+         },
+         "column_flow": [
+          {
+           "value": 0.07,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        },
+        {
+         "level": "section",
+         "element_id": "OP2/PH4/SE4",
+         "state": "running",
+         "start": {
+          "wall_s": 381.9,
+          "method_s": 381.9
+         },
+         "end": {
+          "wall_s": 460.4,
+          "method_s": 460.4
+         },
+         "column_flow": [
+          {
+           "value": 0.07,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Inject",
+          "original": "Inject",
+          "sample_use": "feed"
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH5",
+       "original": {
+        "level": "block",
+        "text": "Wash"
+       },
+       "equipment_module": "system_pump",
+       "sections": [
+        {
+         "level": "section",
+         "element_id": "OP2/PH5/SE1",
+         "state": "running",
+         "start": {
+          "wall_s": 460.4,
+          "method_s": 460.4
+         },
+         "end": {
+          "wall_s": 2259.7,
+          "method_s": 2259.7
+         },
+         "column_flow": [
+          {
+           "value": 0.07,
+           "unit_of_measure": "mL/min",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log"
+          }
+         ],
+         "percent_b": [
+          {
+           "value": 99.2,
+           "unit_of_measure": "%",
+           "kind": "set_point",
+           "basis": "logged",
+           "source": "run_log",
+           "slope_per_s": 0.0
+          }
+         ],
+         "injection_valve": {
+          "value": "Manual load",
+          "original": "Manual load",
+          "sample_use": null
+         },
+         "inlets": {
+          "A": {
+           "position": "A1",
+           "state": "known"
+          }
+         },
+         "bypass": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "states": [
+  {
+   "state": "running",
+   "start_wall_s": 0.0,
+   "end_wall_s": 1.4,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 1.4,
+   "end_wall_s": 1.8,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 1.8,
+   "end_wall_s": 2.6,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 2.6,
+   "end_wall_s": 3.1,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 3.1,
+   "end_wall_s": 3.3,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 3.3,
+   "end_wall_s": 3.5,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 3.5,
+   "end_wall_s": 40.7,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 40.7,
+   "end_wall_s": 41.6,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 41.6,
+   "end_wall_s": 78.7,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 78.7,
+   "end_wall_s": 79.5,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 79.5,
+   "end_wall_s": 379.5,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 379.5,
+   "end_wall_s": 380.4,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 380.4,
+   "end_wall_s": 381.1,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 381.1,
+   "end_wall_s": 381.9,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 381.9,
+   "end_wall_s": 460.4,
+   "how_found": "running"
+  },
+  {
+   "state": "running",
+   "start_wall_s": 460.4,
+   "end_wall_s": 2259.7,
+   "how_found": "running"
+  }
+ ],
+ "materials": {
+  "loads": [
+   {
+    "element_id": "LOAD1",
+    "injection_valve": "Inject",
+    "start_wall_s": 381.9,
+    "end_wall_s": 460.4,
+    "volume": [
+     {
+      "value": 0.091583,
+      "unit_of_measure": "mL",
+      "kind": "set_point",
+      "basis": "calculated",
+      "source": "run_log"
+     }
+    ],
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   }
+  ],
+  "fractions": [
+   {
+    "element_id": "FR:Waste",
+    "role": "waste_or_flow_through",
+    "start_min": 0.0,
+    "end_min": 6.34,
+    "volume": [
+     {
+      "value": 13.57303,
+      "unit_of_measure": "mL",
+      "kind": "actual",
+      "basis": "measured",
+      "source": "volume_axis"
+     }
+    ],
+    "material_id": "RUN:Waste",
+    "material_id_source": "derived (run + tube)"
+   },
+   {
+    "element_id": "FR:Frac",
+    "role": "collected_fraction",
+    "start_min": 6.34,
+    "end_min": 37.6617,
+    "volume": [
+     {
+      "value": 2.19716,
+      "unit_of_measure": "mL",
+      "kind": "actual",
+      "basis": "measured",
+      "source": "volume_axis"
+     }
+    ],
+    "material_id": "RUN:Frac",
+    "material_id_source": "derived (run + tube)"
+   },
+   {
+    "element_id": "FR:Waste",
+    "role": "collected_fraction",
+    "start_min": 37.6617,
+    "end_min": 37.6617,
+    "volume": [
+     {
+      "value": 0.0,
+      "unit_of_measure": "mL",
+      "kind": "actual",
+      "basis": "measured",
+      "source": "volume_axis"
+     }
+    ],
+    "material_id": "RUN:Waste",
+    "material_id_source": "derived (run + tube)"
+   }
+  ],
+  "pools": {
+   "peak_tables": 1,
+   "pool_tables": 0
+  }
+ },
+ "volumes": {
+  "column": {
+   "status": "stored",
+   "text": "Vc 0.7 ml",
+   "source": "Vc from curves"
+  },
+  "mixer": {
+   "status": "stored",
+   "text": "0.6 ml",
+   "source": "stored: SystemData MixerInformation"
+  },
+  "monitor_outlet": {
+   "status": "stored",
+   "text": "125 \u00b5l",
+   "source": "SystemSettingData"
+  },
+  "monitor_frac": {
+   "status": "stored",
+   "text": "435 \u00b5l",
+   "source": "SystemSettingData"
+  },
+  "ph": {
+   "status": "stored",
+   "text": "Restrictor 48 \u00b5l; pH cell 76 \u00b5l",
+   "source": "pH valve: restrictor and cell volumes, SystemSettingData"
+  },
+  "column_uv": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "UNICORN stores no tubing volume between column and UV; tubing_volume= (D27)"
+  },
+  "pump_mixer": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "no volume stored between pump and mixer"
+  },
+  "mixer_inj": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "no volume stored between mixer and injection valve"
+  },
+  "inj_column": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "no volume stored between injection valve and column"
+  },
+  "inlet_line": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "inlet tubing volume not stored"
+  },
+  "uv_ph": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "UV to conductivity/pH tubing not stored"
+  },
+  "loop": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "no method text, caller gives loop_volume"
+  },
+  "sample_path": {
+   "status": "missing",
+   "text": "not stored",
+   "source": "sample_path_volume from the caller (D21)"
+  },
+  "uv": {
+   "status": "stored",
+   "text": "path 2.08 cm",
+   "source": "UV cell: path length stored; cell volume not stored"
+  }
+ },
+ "facts": [
+  {
+   "group": "Volumes and flow path",
+   "fact": "Column volume Vc",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Vc 0.7 ml",
+   "source": "source: curves"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Vc sources that agree",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "6 candidate(s)",
+   "source": "curves; flow_ratio; method; peak_table; run_information; run_log"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Column geometry: bed height, diameter, particle diameter",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "no ColumnTypeData"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Total liquid volume Vt",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "ColumnTypeData"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Void volume Vo",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "ColumnTypeData"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Mixer volume",
+   "needed_by": "CADET",
+   "status": "stored",
+   "value": "0.6 ml",
+   "source": "SystemData MixerInformation"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Delay volume: pH valve: Restrictor volume",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "48 \u00b5l",
+   "source": "SystemSettingData (Tubing and Delay volumes)"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Delay volume: pH valve: pH cell volume",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "76 \u00b5l",
+   "source": "SystemSettingData (Tubing and Delay volumes)"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Delay volume: Monitor to outlet valve: Volume",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "125 \u00b5l",
+   "source": "SystemSettingData (Tubing and Delay volumes)"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Delay volume: Monitor to frac: Volume",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "435 \u00b5l",
+   "source": "SystemSettingData (Tubing and Delay volumes)"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Column to UV tubing volume",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Pre-column tubing: pumps to mixer to injection valve to column",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Sample loop volume",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "no method text"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Sample flow path volume (sample inlet to injection valve)",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "UV flow-cell volume",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "Conductivity cell volume",
+   "needed_by": "CADET",
+   "status": "missing",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Volumes and flow path",
+   "fact": "UV cell path length",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "real 2.08 cm; used 0.2 cm (NominalUVPathLength)",
+   "source": "SystemData UVInformation and the 'UV cell path length' curve"
+  },
+  {
+   "group": "Axes and clock",
+   "fact": "Volume axis (counted volume per curve point)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "22597 points",
+   "source": "curve volume arrays"
+  },
+  {
+   "group": "Axes and clock",
+   "fact": "Time axis (method time)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "end 37.66 min",
+   "source": "curve time"
+  },
+  {
+   "group": "Axes and clock",
+   "fact": "Date and time (UTC) of the run",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "start_utc, start_source, local_utc_offset, end_utc, end_elap",
+   "source": "method start + run-log pauses"
+  },
+  {
+   "group": "Axes and clock",
+   "fact": "Pauses",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "0 (none)",
+   "source": "run log / timeline"
+  },
+  {
+   "group": "Axes and clock",
+   "fact": "CV axis (column volumes passed)",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "needs Vc",
+   "source": "volume axis / Vc"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Set flow per instruction",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "5 instruction(s)",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Flow the pump delivered",
+   "needed_by": "CADET",
+   "status": "derived",
+   "value": "1 of 16 sections fitted",
+   "source": "volume axis"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Which pump the volume axis counts",
+   "needed_by": "CADET",
+   "status": "stored",
+   "value": "named in the run log",
+   "source": "(System) entry"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "System flow curve (measured)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "System flow",
+   "source": "curve"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Sample flow curve (measured)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Sample flow",
+   "source": "curve"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Injection valve positions",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Inject, Manual load",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Column valve position / by-pass",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "-, 1, By-pass by-pass",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Outlet valve positions",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Frac",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Inlet valve A installed",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "installed",
+   "source": "system configuration (Inlet A, Inlet V9-IA)"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Inlet valve B installed",
+   "needed_by": "both",
+   "status": "absent",
+   "value": "none",
+   "source": "system configuration (Inlet B none)"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Sample inlet valve installed",
+   "needed_by": "both",
+   "status": "absent",
+   "value": "none",
+   "source": "system configuration (Sample inlet none)"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Sample pump installed",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "installed",
+   "source": "system configuration (Sample pump)"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Quaternary valve installed",
+   "needed_by": "both",
+   "status": "missing",
+   "value": "not listed",
+   "source": "system configuration (-)"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Inlet positions per section",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "A: assumed/known; B: known; sample: known",
+   "source": "run log + system configuration"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "%B ramps (gradient length > 0)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "0 ramp section(s)",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Holds (flow runs, %B frozen)",
+   "needed_by": "both",
+   "status": "absent",
+   "value": "0 section(s)",
+   "source": "run log"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Buffer contents (components, concentrations)",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores only inlet and %B"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "BufferPro recipe",
+   "needed_by": "CADET",
+   "status": "absent",
+   "value": "-",
+   "source": "NextBufferPrepData"
+  },
+  {
+   "group": "Flow, valves and composition",
+   "fact": "Sample concentration / what the load contains",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN does not store it"
+  },
+  {
+   "group": "Detectors and calibration",
+   "fact": "UV wavelengths",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "UV 1 280 nm; UV 2 295 nm; UV 3 Off nm",
+   "source": "SystemSettingData"
+  },
+  {
+   "group": "Detectors and calibration",
+   "fact": "Extinction coefficient",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Detectors and calibration",
+   "fact": "Conductivity calibration",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "cell constant 46.7 /cm, calibrated 2019-07-17",
+   "source": "CalibrationSettingData"
+  },
+  {
+   "group": "Detectors and calibration",
+   "fact": "pH calibration",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "slope 100.1 %",
+   "source": "CalibrationSettingData"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Injection marks",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "1",
+   "source": "Injection event curve"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Fractions (tube, start, end, volume)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "3 rows (2 collected)",
+   "source": "Fraction event curve"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Peak tables (evaluation)",
+   "needed_by": "display",
+   "status": "stored",
+   "value": "1 table(s)",
+   "source": "evaluation"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Pools",
+   "needed_by": "display",
+   "status": "absent",
+   "value": "0 table(s)",
+   "source": "evaluation"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Material IDs (load, fractions, pools)",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores a Batch ID per run only"
+  },
+  {
+   "group": "Events and material",
+   "fact": "Individual column ID",
+   "needed_by": "both",
+   "status": "missing",
+   "value": "-",
+   "source": "ColumnIndividualData (empty here)"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Batch ID (the run's identity)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "present (masked here)",
+   "source": "run information"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Result (procedure): one per method run",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "1",
+   "source": "Result.xml"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Chromatograms in the result",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Chrom.1 (original)",
+   "source": "Manifest / Chrom.N.Xml"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Settings carried across a New Chromatogram cut",
+   "needed_by": "both",
+   "status": "missing",
+   "value": "unknown",
+   "source": "needs a sample with a cut"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Unit procedures / cycles",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "1 (default)",
+   "source": "caller marks"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Series link (scouting name, run number)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "Scouting1",
+   "source": "method scouting"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Campaign ID",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Process stage (capture, polishing)",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Plant unit / skid ID",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "system name masked",
+   "source": "SystemData Name"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Equipment module per phase (pump, sample feed, fractions)",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "from valve and event use",
+   "source": "run log"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "process_operation (equilibrate, load, wash, elute ...)",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "(empty)",
+   "source": "UNICORN stores phase names only"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Material ID per load",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Material ID per fraction",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "run + tube id",
+   "source": "Fraction event curve"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Pool to next step's load link",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Individual column ID and use count",
+   "needed_by": "both",
+   "status": "missing",
+   "value": "-",
+   "source": "ColumnIndividualData (empty here)"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Buffer lot IDs",
+   "needed_by": "both",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Method",
+   "fact": "Method data / variables",
+   "needed_by": "display",
+   "status": "hint",
+   "value": "35 variable(s)",
+   "source": "MethodData"
+  },
+  {
+   "group": "Method",
+   "fact": "Scouting",
+   "needed_by": "display",
+   "status": "stored",
+   "value": "-",
+   "source": "method"
+  },
+  {
+   "group": "Instrument",
+   "fact": "Instrument model, firmware, system type",
+   "needed_by": "display",
+   "status": "stored",
+   "value": "AKTA pure 25",
+   "source": "InstrumentConfigurationData"
+  },
+  {
+   "group": "Instrument",
+   "fact": "Enabled components (modules)",
+   "needed_by": "both",
+   "status": "stored",
+   "value": "76",
+   "source": "SystemData"
+  }
+ ],
+ "views": {
+  "display": {
+   "note": "computed from the sections each time; never part of the stored record",
+   "steps": [
+    {
+     "start_wall_s": 0.0,
+     "end_wall_s": 2.6,
+     "operation": "OP1",
+     "state": "running",
+     "column_flow": {
+      "value": 0.0,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 0.0,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 3,
+     "folded_note": null
+    },
+    {
+     "start_wall_s": 2.6,
+     "end_wall_s": 3.5,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 8.0,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 3,
+     "folded_note": "first 0.5 s at 0 ml/min (previous phase's set point); first 0.5 s at 0 %B (previous phase's set point); first 0.2 s at 0 %B (previous phase's set point)"
+    },
+    {
+     "start_wall_s": 3.5,
+     "end_wall_s": 79.5,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.0,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 4,
+     "folded_note": null
+    },
+    {
+     "start_wall_s": 79.5,
+     "end_wall_s": 381.1,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.7,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 3,
+     "folded_note": null
+    },
+    {
+     "start_wall_s": 381.1,
+     "end_wall_s": 381.9,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.07,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 1,
+     "folded_note": null
+    },
+    {
+     "start_wall_s": 381.9,
+     "end_wall_s": 460.4,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.07,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 1,
+     "folded_note": null
+    },
+    {
+     "start_wall_s": 460.4,
+     "end_wall_s": 2259.7,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.07,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 1,
+     "folded_note": null
+    }
+   ]
+  }
+ },
+ "warnings": [
+  "inlets: line A shown as 'A1 (assumed)' between 0.0 and 3.3 s: inlet valve A installed (Inlet A, Inlet V9-IA); no position logged yet: its first position",
+  "2.6-3.1 s: volume axis 0.01492 ml, logged system flow x time 0 ml (set flow 0); flow fitted to the axis: one constant flow (too short for a shape)",
+  "sections: inlets: line A shown as 'A1 (assumed)' between 0.0 and 3.3 s: inlet valve A installed (Inlet A, Inlet V9-IA); no position logged yet: its first position",
+  "flow: 2.6-3.1 s: volume axis 0.01492 ml, logged system flow x time 0 ml (set flow 0); flow fitted to the axis: one constant flow (too short for a shape)",
+  "feed from 381.9 s to 460.4 s: injection valve at Inject; no loop volume given, so the whole period counts as feed (D19)",
+  "column-to-UV tubing volume: the instrument doesn't store it, so no tubing CSTR after the column (pass tubing_volume=, D27)",
+  "1 column by-pass window(s) without sample (3.5-79.5 s): UV and conductivity there are not column outlet (D18)",
+  "UV 3_0: channel off (0 nm), skipped",
+  "column: no column type was chosen for the run (column 'Any')",
+  "column: no column length",
+  "column: no column diameter",
+  "column: no column particle diameter"
+ ],
+ "not_known": [
+  "Column geometry: bed height, diameter, particle diameter",
+  "Total liquid volume Vt",
+  "Void volume Vo",
+  "Column to UV tubing volume",
+  "Pre-column tubing: pumps to mixer to injection valve to column",
+  "Sample loop volume",
+  "Sample flow path volume (sample inlet to injection valve)",
+  "UV flow-cell volume",
+  "Conductivity cell volume",
+  "Quaternary valve installed",
+  "Buffer contents (components, concentrations)",
+  "Sample concentration / what the load contains",
+  "Extinction coefficient",
+  "Material IDs (load, fractions, pools)",
+  "Individual column ID",
+  "Settings carried across a New Chromatogram cut",
+  "Unit procedures / cycles",
+  "Campaign ID",
+  "Process stage (capture, polishing)",
+  "Plant unit / skid ID",
+  "process_operation (equilibrate, load, wash, elute ...)",
+  "Material ID per load",
+  "Pool to next step's load link",
+  "Individual column ID and use count",
+  "Buffer lot IDs"
+ ]
+}
