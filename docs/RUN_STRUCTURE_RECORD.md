@@ -8,8 +8,8 @@ built.
 > The Mermaid diagrams, the cycles figure and the transient-states figure are schematics
 > with made-up examples (names such as "Lot X", "Run 1" or "Phase P1" are placeholders, not
 > real data). Figure 7 was also drawn by Claude, from a public example result
-> (`samples/u73_blank.zip`). Check them against the text and the sources before relying on
-> them.
+> (`samples/u73_blank.zip`), and Figure 8 from Cytiva's public instrument documents. Check
+> them against the text and the sources before relying on them.
 
 ## 1. In short
 
@@ -390,6 +390,66 @@ control" (5.2.2.4.2). So:
 
 Source: the system configuration stored in the result.
 
+**The flow path.** Figure 8 follows the order of the high-pressure tubing in Cytiva's
+public documents for ÄKTA avant 25 and ÄKTA pure (References). Solid lines are the path
+both documents show; dashed boxes and lines depend on the system and its installed modules.
+ÄKTA pure's manual says "the configuration of the system is defined by the user", and ÄKTA
+avant 25's documentation lists standard and optional modules. Process-scale systems are not
+covered: no public document was read for them.
+
+```mermaid
+flowchart LR
+    qv["Quaternary valve<br/>Q1-Q4"]:::opt
+    ia["Inlet valve A<br/>A1-A7"] --> pa["System pump A"]
+    ib["Inlet valve B<br/>B1-B7"] --> pb["System pump B"]
+    qv -.-> ia
+    qv -.-> ib
+    pa --> pm["Pressure monitor"]
+    pb --> pm
+    pm --> mix["Mixer"] --> inj["Injection valve"]
+    pm -. "Mixer valve:<br/>mixer by-passed" .-> inj
+    is["Sample inlet valve<br/>S1-S7, Buffer"]:::opt -.-> sp["Sample pump"]:::opt
+    sp -.-> inj
+    inj <--> loop["Sample loop, Superloop,<br/>or Loop valve (1-5 loops)"]
+    inj --> wi(["Waste W1, W2"])
+    inj --> cv["Column valve<br/>column 1-5, flow direction"]
+    cv --> col["Column"] --> uv["UV monitor"]
+    cv -. "by-pass" .-> uv
+    inj -. "no column valve" .-> col
+    uv --> cond["Conductivity<br/>monitor"]
+    cond --> ph["pH valve<br/>electrode in or by-passed;<br/>flow restrictor"]
+    ph --> ov["Outlet valve"]
+    ov --> fc["Fraction collector"]
+    ov --> out(["Outlets"])
+    ov --> wo(["Waste"])
+    classDef opt stroke-dasharray: 5 5
+```
+
+**Figure 8.** The liquid flow path of an ÄKTA lab system, from Cytiva's public documents
+(schematic). Dashed: depends on the system's modules. The column's outlet returns through
+the column valve before the UV monitor.
+
+Each valve on the path, what the record takes from it, and where its position comes from.
+The positions are UNICORN's words (kept under `native`); the set-up comes from the system
+configuration (`system_configuration.py` reads the inlet valves, sample inlet valve, sample
+pump and quaternary valve today), never from this figure:
+
+| Valve | Positions (UNICORN's words) | What the record takes from it | Source |
+|---|---|---|---|
+| Inlet valves A, B, quaternary valve | inlet ports (`A1` ...), quaternary mix | the buffer line and position per section (Decide 22: known / assumed / not known) | run log; set-up from the system configuration |
+| Mixer valve (ÄKTA pure, optional) | via the mixer, or by-passing it | whether the mixer volume lies on the path | run log; set-up from the system configuration |
+| Injection valve | `Manual load`, `Inject`, `System pump waste`, `Direct inject`, `Sample pump load`, `Sample pump waste` | the feed sections and the column flow (D14, D16-D21); CADET's `ValveEvent` | run log |
+| Sample inlet valve, sample pump | sample ports (`S1` ...), `Buffer` | which load a feed section takes (3.1) | run log; set-up from the system configuration |
+| Loop valve (optional) | loop 1-5 | which loop fed; its volume is the caller's (D19) | run log; volume from the caller |
+| Column valve | column position, flow direction, by-pass | column flow zero at by-pass (D14, Decide 16); which column (Vc) | run log; column from the result |
+| pH valve | electrode in the path or by-passed | whether a pH curve was measured in the flow | run log |
+| Outlet valve | fraction collector, outlet ports, waste | flow-through and waste vs eluate (Figure 9) | run log |
+
+The volumes along the path (loop, sample flow path, mixer, the tubing between injection
+valve, column and monitors) are values like any other: from the stored system configuration
+(the mixer), or from the caller, each with its source. The tubing lengths a document lists
+as delivered are not used as defaults (D28): a site's tubing differs.
+
 **Process model** (what it did to the material, 4.1.3): ISA-88 describes a process, without
 equipment, as process stages made of process operations made of process actions. Read on
 chromatography: capture or polishing is a **process stage**; equilibrate, load, wash, elute,
@@ -423,7 +483,7 @@ flowchart LR
     pool -. load of the next step .-> next["Next run"]
 ```
 
-**Figure 8.** Material flow through one run.
+**Figure 9.** Material flow through one run.
 
 What the run itself tells about each material, and how the record would identify it. Masses
 and concentrations are never assumed: they come from the caller, or from a UV curve with a
@@ -501,7 +561,7 @@ section with a linear flow term; an agent sees the state and both flows.
 
 ![Flow set point and actual across Running, Holding, Held, Restarting and Running](images/transient_states.svg)
 
-**Figure 9.** Flow ramps and ISA-88 states around a Pause and a Hold (schematic).
+**Figure 10.** Flow ramps and ISA-88 states around a Pause and a Hold (schematic).
 
 (A synthetic schematic drawn by Claude, generated by `tools/draw_transient_states.py`; not
 data.)
@@ -674,7 +734,7 @@ flowchart LR
     gui --> ref
 ```
 
-**Figure 10.** CADET's parts, and where the run record feeds in.
+**Figure 11.** CADET's parts, and where the run record feeds in.
 
 The record gives CADET what ran (sections, valve events, flow-sheet values such as column
 geometry and mixer volume) and what was measured (references, fractions). What the model
@@ -934,7 +994,7 @@ flowchart LR
     rec --> views["Views<br/>model, display, agent<br/>ISA-88 batch reports"]
 ```
 
-**Figure 11.** Plan, what ran, and the record, in ontology terms.
+**Figure 12.** Plan, what ran, and the record, in ontology terms.
 
 | Word | In PyCORN | Ontology terms |
 |---|---|---|
@@ -1057,3 +1117,13 @@ AVEVA PI System (search excerpts only):
   batch hierarchy"): https://docs.aveva.com/bundle/pi-interface-for-siemens-simatic-batch/page/1010973.html
 - PI Event Frames Generator ("batches that contain unit procedures, operations, and phases"):
   https://docs.aveva.com/bundle/pi-event-frames-generator/page/1011413.html
+
+Cytiva ÄKTA instruments (read 2026-11-15 as text extracted from the PDFs; Figure 8):
+
+- *ÄKTA avant 25 Product Documentation* 28991000 AH: 1.1 standard and optional modules,
+  1.2 liquid flow path (tubing from pump to fraction collector, in order):
+  https://b3p.it.helsinki.fi/manuals/AVANT/Content/PDF/28991000AH.pdf
+- *ÄKTA pure User Manual* 29119969 AC: 2.2 liquid flow path ("a typical system
+  configuration"; "the configuration of the system is defined by the user"), 2.4.4 inlet
+  valves, 2.4.6 injection valve positions, 2.1 mixer, column, pH and outlet valves:
+  https://dnas.dukekunshan.edu.cn/wp-content/uploads/2024/06/AKTA_pure_user_manual.pdf
