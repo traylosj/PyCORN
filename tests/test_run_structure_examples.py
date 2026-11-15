@@ -68,5 +68,6 @@ def test_tracked_examples_are_current(built):
         tracked = os.path.join(TRACKED, page.name)
         assert os.path.exists(tracked), "%s is not in docs/examples: run tools/build_run_structure_examples.py" % page.name
         with open(tracked, "rb") as fh:
-            old = fh.read()
-        assert old == page.read_bytes(), "docs/examples/%s is stale: run tools/build_run_structure_examples.py and commit" % page.name
+            old = fh.read().replace(b"\r\n", b"\n")  # a Windows checkout may have turned LF into CRLF
+        assert old == page.read_bytes().replace(b"\r\n", b"\n"), (
+            "docs/examples/%s is stale: run tools/build_run_structure_examples.py and commit" % page.name)

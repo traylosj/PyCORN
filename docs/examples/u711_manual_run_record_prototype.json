@@ -2346,6 +2346,91 @@
     "material_id_source": "caller (UNICORN stores none)"
    }
   ],
+  "buffers": [
+   {
+    "element_id": "BUF:A",
+    "inlet_line": "A",
+    "positions": [
+     {
+      "original": "A1 (assumed)",
+      "state": "assumed"
+     },
+     {
+      "original": "A2",
+      "state": "known"
+     },
+     {
+      "original": "A3",
+      "state": "known"
+     },
+     {
+      "original": "A4",
+      "state": "known"
+     },
+     {
+      "original": "A1",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": [
+     0.0,
+     100.0
+    ],
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   },
+   {
+    "element_id": "BUF:B",
+    "inlet_line": "B",
+    "positions": [
+     {
+      "original": "B1 (assumed)",
+      "state": "assumed"
+     },
+     {
+      "original": "B2",
+      "state": "known"
+     },
+     {
+      "original": "B3",
+      "state": "known"
+     },
+     {
+      "original": "B4",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": [
+     0.0,
+     100.0
+    ],
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   },
+   {
+    "element_id": "BUF:sample",
+    "inlet_line": "sample",
+    "positions": [
+     {
+      "original": "Buffer (assumed)",
+      "state": "assumed"
+     },
+     {
+      "original": "S3",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": null,
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   }
+  ],
   "fractions": [
    {
     "element_id": "FR:Waste",
@@ -3058,6 +3143,22 @@
   },
   {
    "group": "Above the operation: runs, links, identity",
+   "fact": "Buffers used: inlet lines and positions",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "A A1 (assumed)/A2/A3/A4/A1; B B1 (assumed)/B2/B3/B4; sample Buffer (assumed)/S3",
+   "source": "run log + system configuration"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Buffer contents (components, concentrations) per inlet",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
    "fact": "Buffer lot IDs",
    "needed_by": "both",
    "status": "caller",
@@ -3508,6 +3609,7 @@
   "Material ID per load",
   "Pool to next step's load link",
   "Individual column ID and use count",
+  "Buffer contents (components, concentrations) per inlet",
   "Buffer lot IDs",
   "Method data / variables"
  ]

@@ -987,6 +987,63 @@
     "material_id_source": "caller (UNICORN stores none)"
    }
   ],
+  "buffers": [
+   {
+    "element_id": "BUF:A",
+    "inlet_line": "A",
+    "positions": [
+     {
+      "original": "A1 (assumed)",
+      "state": "assumed"
+     },
+     {
+      "original": "A1",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": [
+     0.0,
+     99.2
+    ],
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   },
+   {
+    "element_id": "BUF:B",
+    "inlet_line": "B",
+    "positions": [
+     {
+      "original": "B",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": [
+     0.0,
+     99.2
+    ],
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   },
+   {
+    "element_id": "BUF:sample",
+    "inlet_line": "sample",
+    "positions": [
+     {
+      "original": "Sample pump inlet",
+      "state": "known"
+     }
+    ],
+    "percent_b_range": null,
+    "contents": null,
+    "lot_id": null,
+    "material_id": null,
+    "material_id_source": "caller (UNICORN stores none)"
+   }
+  ],
   "fractions": [
    {
     "element_id": "FR:Waste",
@@ -1648,6 +1705,22 @@
   },
   {
    "group": "Above the operation: runs, links, identity",
+   "fact": "Buffers used: inlet lines and positions",
+   "needed_by": "both",
+   "status": "derived",
+   "value": "A A1 (assumed)/A1; B B; sample Sample pump inlet",
+   "source": "run log + system configuration"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
+   "fact": "Buffer contents (components, concentrations) per inlet",
+   "needed_by": "CADET",
+   "status": "caller",
+   "value": "-",
+   "source": "UNICORN stores none"
+  },
+  {
+   "group": "Above the operation: runs, links, identity",
    "fact": "Buffer lot IDs",
    "needed_by": "both",
    "status": "caller",
@@ -1887,6 +1960,7 @@
   "Material ID per load",
   "Pool to next step's load link",
   "Individual column ID and use count",
+  "Buffer contents (components, concentrations) per inlet",
   "Buffer lot IDs"
  ]
 }
