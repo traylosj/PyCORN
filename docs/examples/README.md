@@ -19,11 +19,11 @@ still complete, and hovering a bar or box shows its details.
 | Check these first | places in this run that test a decision, each linked to its doc | all |
 | Decisions to review | every open choice with this run's data, the options, the proposed answer, its status (open, decided, proposed) and where the proposal explains it. The items come from `tools/run_structure_decisions.json`; options the spec does not state are marked as placeholders | 11, 9 |
 | 0. Above and beside the operations | linked runs, procedure, unit procedure and cycles, chromatograms, equipment, material, who knows each | 3.1 to 3.4, 3.6 |
-| 1. Levels | procedure, unit procedure, chromatogram, state, operation, phase, activities, section, display step on one clock | 3.5, 3.7 |
+| 1. Levels | procedure, unit procedure, chromatogram, state, operation, phase (task block), equipment phases, section, display step on one clock | 3.5, 3.7 |
 | 2. Set point next to actual | run log, flow fitted to the volume axis, measured curve (broken at pauses) | 3.8 |
 | 3. Curves by role | UV, conductivity, pH, pressure, temperature | |
 | Recipe | the method as hints only: master recipe, control recipe (the values this run used), planned against run, each block tied to the operation it ran in | 5, 3.2 |
-| 4. Tables | operations, display steps (named by operation and activity), states, sections, loads, buffers, the fraction collector (collected fractions and waste lines, with the flow to each), edge cases | 5, Table 16 |
+| 4. Tables | operations, phases (task blocks) and how every called block was classified, equipment phases, display steps (named by operation, phase and activity), states, sections, loads, buffers, the fraction collector (collected fractions and waste lines, with the flow to each), edge cases | 5, Table 16 |
 | 5. Flow path | every volume on the path, stored or not stored | 3.6.1.1 |
 | 6. Every fact | 73 facts display or CADET could need: stored, derived, hint only, caller gives, not stored | 3.9 |
 | 7. Scope rows | the ten roadmap rows as they come out on this run | ROADMAP |

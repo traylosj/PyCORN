@@ -86,9 +86,13 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Method Settings",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "phase",
+        "text": "Method Settings"
+       },
+       "how_found": "the operation has no task block: one phase",
        "start": {
         "wall_s": 1.6,
         "method_s": 1.6
@@ -367,9 +371,13 @@
       {
        "level": "phase",
        "element_id": "OP2/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Equilibrate",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Equilibrate"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 5.8,
         "method_s": 5.8
@@ -803,6 +811,24 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 5.062661,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
       }
      ]
@@ -847,9 +873,13 @@
       {
        "level": "phase",
        "element_id": "OP3/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Inject",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Inject"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 366.3,
         "method_s": 315.3
@@ -1146,22 +1176,25 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 3.1,
+         "unit_of_measure": "ml",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 3.155,
+         "unit_of_measure": "ml",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP3/PH2",
-       "label": "Sample feed",
-       "label_source": "PyCORN",
-       "equipment_module": "sample_feed",
-       "start": {
-        "wall_s": 368.1,
-        "method_s": 317.1
-       },
-       "end": {
-        "wall_s": 546.8,
-        "method_s": 495.8
-       }
       }
      ]
     },
@@ -1205,9 +1238,13 @@
       {
        "level": "phase",
        "element_id": "OP4/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Wash",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Wash"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 547.2,
         "method_s": 496.2
@@ -1342,6 +1379,24 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 3.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 3.06346,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
       }
      ]
@@ -1386,9 +1441,13 @@
       {
        "level": "phase",
        "element_id": "OP5/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Isocratic",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Isocratic"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 733.0,
         "method_s": 682.0
@@ -1691,22 +1750,25 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 5.102447,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP5/PH2",
-       "label": "Fractionation",
-       "label_source": "PyCORN",
-       "equipment_module": "fraction_collector",
-       "start": {
-        "wall_s": 739.2,
-        "method_s": 688.2
-       },
-       "end": {
-        "wall_s": 919.6,
-        "method_s": 868.6
-       }
       }
      ]
     },
@@ -1750,9 +1812,13 @@
       {
        "level": "phase",
        "element_id": "OP6/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Equilibrate_1",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Equilibrate_1"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 1043.6,
         "method_s": 992.6
@@ -2026,9 +2092,55 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 5.102447,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
       }
      ]
+    }
+   ],
+   "equipment_phases": [
+    {
+     "element_id": "EP1",
+     "label": "Sample feed",
+     "label_source": "PyCORN",
+     "equipment_module": "sample_feed",
+     "start": {
+      "wall_s": 368.1
+     },
+     "end": {
+      "wall_s": 546.8
+     },
+     "commanded_by": "OP3/PH1"
+    },
+    {
+     "element_id": "EP2",
+     "label": "Fractionation",
+     "label_source": "PyCORN",
+     "equipment_module": "fraction_collector",
+     "start": {
+      "wall_s": 739.2
+     },
+     "end": {
+      "wall_s": 919.6
+     },
+     "commanded_by": "OP5/PH1"
     }
    ]
   }

@@ -86,9 +86,13 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Method Settings",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "phase",
+        "text": "Method Settings"
+       },
+       "how_found": "the operation has no task block: one phase",
        "start": {
         "wall_s": 0.0,
         "method_s": 0.0
@@ -274,16 +278,20 @@
       {
        "level": "phase",
        "element_id": "OP2/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "PurgeB",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "PurgeB"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
        "start": {
         "wall_s": 2.6,
         "method_s": 2.6
        },
        "end": {
-        "wall_s": 2259.7,
-        "method_s": 2259.7
+        "wall_s": 40.7,
+        "method_s": 40.7
        },
        "sections": [
         {
@@ -476,10 +484,49 @@
          },
          "inlets": {},
          "bypass": true
+        }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "ml",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
         },
         {
+         "value": 5.013333,
+         "unit_of_measure": "ml",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH2",
+       "label": "Purge",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Purge"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
+       "start": {
+        "wall_s": 40.7,
+        "method_s": 40.7
+       },
+       "end": {
+        "wall_s": 79.5,
+        "method_s": 79.5
+       },
+       "sections": [
+        {
          "level": "section",
-         "element_id": "OP2/PH1/SE5",
+         "element_id": "OP2/PH2/SE1",
          "state": "running",
          "start": {
           "wall_s": 40.7,
@@ -523,7 +570,7 @@
         },
         {
          "level": "section",
-         "element_id": "OP2/PH1/SE6",
+         "element_id": "OP2/PH2/SE2",
          "state": "running",
          "start": {
           "wall_s": 41.6,
@@ -572,7 +619,7 @@
         },
         {
          "level": "section",
-         "element_id": "OP2/PH1/SE7",
+         "element_id": "OP2/PH2/SE3",
          "state": "running",
          "start": {
           "wall_s": 78.7,
@@ -618,10 +665,49 @@
           }
          },
          "bypass": true
+        }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "ml",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
         },
         {
+         "value": 5.076003,
+         "unit_of_measure": "ml",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH3",
+       "label": "Equilibrate",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Equilibrate"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
+       "start": {
+        "wall_s": 79.5,
+        "method_s": 79.5
+       },
+       "end": {
+        "wall_s": 379.5,
+        "method_s": 379.5
+       },
+       "sections": [
+        {
          "level": "section",
-         "element_id": "OP2/PH1/SE8",
+         "element_id": "OP2/PH3/SE1",
          "state": "running",
          "start": {
           "wall_s": 79.5,
@@ -667,10 +753,49 @@
           }
          },
          "bypass": false
+        }
+       ],
+       "length": [
+        {
+         "value": 5.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
         },
         {
+         "value": 5.0,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH4",
+       "label": "SampleLoad",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "SampleLoad"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
+       "start": {
+        "wall_s": 379.5,
+        "method_s": 379.5
+       },
+       "end": {
+        "wall_s": 460.4,
+        "method_s": 460.4
+       },
+       "sections": [
+        {
          "level": "section",
-         "element_id": "OP2/PH1/SE9",
+         "element_id": "OP2/PH4/SE1",
          "state": "running",
          "start": {
           "wall_s": 379.5,
@@ -719,7 +844,7 @@
         },
         {
          "level": "section",
-         "element_id": "OP2/PH1/SE10",
+         "element_id": "OP2/PH4/SE2",
          "state": "running",
          "start": {
           "wall_s": 380.4,
@@ -768,7 +893,7 @@
         },
         {
          "level": "section",
-         "element_id": "OP2/PH1/SE11",
+         "element_id": "OP2/PH4/SE3",
          "state": "running",
          "start": {
           "wall_s": 381.1,
@@ -817,7 +942,7 @@
         },
         {
          "level": "section",
-         "element_id": "OP2/PH1/SE12",
+         "element_id": "OP2/PH4/SE4",
          "state": "running",
          "start": {
           "wall_s": 381.9,
@@ -863,10 +988,49 @@
           }
          },
          "bypass": false
+        }
+       ],
+       "length": [
+        {
+         "value": 0.1,
+         "unit_of_measure": "ml",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
         },
         {
+         "value": 0.111183,
+         "unit_of_measure": "ml",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "longer",
+         "cause": null
+        }
+       ]
+      },
+      {
+       "level": "phase",
+       "element_id": "OP2/PH5",
+       "label": "Wash",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "block",
+        "text": "Wash"
+       },
+       "how_found": "a task block of the method (planned length above 0)",
+       "start": {
+        "wall_s": 460.4,
+        "method_s": 460.4
+       },
+       "end": {
+        "wall_s": 2259.7,
+        "method_s": 2259.7
+       },
+       "sections": [
+        {
          "level": "section",
-         "element_id": "OP2/PH1/SE13",
+         "element_id": "OP2/PH5/SE1",
          "state": "running",
          "start": {
           "wall_s": 460.4,
@@ -913,39 +1077,68 @@
          },
          "bypass": false
         }
+       ],
+       "length": [
+        {
+         "value": 3.0,
+         "unit_of_measure": "CV",
+         "kind": "set_point",
+         "basis": "logged",
+         "source": "method"
+        },
+        {
+         "value": 2.998834,
+         "unit_of_measure": "CV",
+         "kind": "actual",
+         "basis": "calculated",
+         "source": "run_log",
+         "status": "as_planned",
+         "cause": null
+        }
        ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH2",
-       "label": "Fractionation",
-       "label_source": "PyCORN",
-       "equipment_module": "fraction_collector",
-       "start": {
-        "wall_s": 380.4,
-        "method_s": 380.4
-       },
-       "end": {
-        "wall_s": 2259.7,
-        "method_s": 2259.7
-       }
-      },
-      {
-       "level": "phase",
-       "element_id": "OP2/PH3",
-       "label": "Sample feed",
-       "label_source": "PyCORN",
-       "equipment_module": "sample_feed",
-       "start": {
-        "wall_s": 381.9,
-        "method_s": 381.9
-       },
-       "end": {
-        "wall_s": 460.4,
-        "method_s": 460.4
-       }
       }
      ]
+    }
+   ],
+   "equipment_phases": [
+    {
+     "element_id": "EP1",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 3.5
+     },
+     "end": {
+      "wall_s": 79.5
+     },
+     "commanded_by": "OP2/PH1"
+    },
+    {
+     "element_id": "EP2",
+     "label": "Fractionation",
+     "label_source": "PyCORN",
+     "equipment_module": "fraction_collector",
+     "start": {
+      "wall_s": 380.4
+     },
+     "end": {
+      "wall_s": 2259.7
+     },
+     "commanded_by": "OP2/PH4"
+    },
+    {
+     "element_id": "EP3",
+     "label": "Sample feed",
+     "label_source": "PyCORN",
+     "equipment_module": "sample_feed",
+     "start": {
+      "wall_s": 381.9
+     },
+     "end": {
+      "wall_s": 460.4
+     },
+     "commanded_by": "OP2/PH4"
     }
    ]
   }
@@ -2237,9 +2430,44 @@
      "absorbed_note": null
     },
     {
-     "label": "Run, by-pass",
+     "label": "Run: PurgeB, by-pass",
      "label_source": "PyCORN",
      "start_wall_s": 2.6,
+     "end_wall_s": 40.7,
+     "operation": "OP2",
+     "state": "running",
+     "column_flow": {
+      "value": 0.0,
+      "unit_of_measure": "mL/min",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "percent_b": {
+      "value": 99.2,
+      "unit_of_measure": "%",
+      "kind": "set_point",
+      "basis": "logged",
+      "source": "run_log"
+     },
+     "sections_joined": 4,
+     "sections": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "absorbed_sections": [
+      3,
+      4,
+      5
+     ],
+     "absorbed_note": "first 0.9 s (sections #3-5) absorbed: 0 %B, by-pass off, 8 ml/min"
+    },
+    {
+     "label": "Run: Purge, by-pass",
+     "label_source": "PyCORN",
+     "start_wall_s": 40.7,
      "end_wall_s": 79.5,
      "operation": "OP2",
      "state": "running",
@@ -2257,28 +2485,20 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 7,
+     "sections_joined": 3,
      "sections": [
-      3,
-      4,
-      5,
-      6,
       7,
       8,
       9
      ],
-     "absorbed_sections": [
-      3,
-      4,
-      5
-     ],
-     "absorbed_note": "first 0.9 s (sections #3-5) absorbed: 0 %B, by-pass off, 8 ml/min"
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
-     "label": "Run",
+     "label": "Run: Equilibrate",
      "label_source": "PyCORN",
      "start_wall_s": 79.5,
-     "end_wall_s": 381.9,
+     "end_wall_s": 379.5,
      "operation": "OP2",
      "state": "running",
      "column_flow": {
@@ -2295,22 +2515,17 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 4,
+     "sections_joined": 1,
      "sections": [
-      10,
-      11,
-      12,
-      13
+      10
      ],
-     "absorbed_sections": [
-      13
-     ],
-     "absorbed_note": "last 0.8 s (section #13) absorbed: 0.07 ml/min"
+     "absorbed_sections": [],
+     "absorbed_note": null
     },
     {
-     "label": "Run, feed",
+     "label": "Run: SampleLoad, feed",
      "label_source": "PyCORN",
-     "start_wall_s": 381.9,
+     "start_wall_s": 379.5,
      "end_wall_s": 460.4,
      "operation": "OP2",
      "state": "running",
@@ -2328,15 +2543,22 @@
       "basis": "logged",
       "source": "run_log"
      },
-     "sections_joined": 1,
+     "sections_joined": 4,
      "sections": [
+      11,
+      12,
+      13,
       14
      ],
-     "absorbed_sections": [],
-     "absorbed_note": null
+     "absorbed_sections": [
+      11,
+      12,
+      13
+     ],
+     "absorbed_note": "first 2.4 s (sections #11-13) absorbed: 0.7 ml/min, feed off"
     },
     {
-     "label": "Run (2)",
+     "label": "Run: Wash",
      "label_source": "PyCORN",
      "start_wall_s": 460.4,
      "end_wall_s": 2259.7,

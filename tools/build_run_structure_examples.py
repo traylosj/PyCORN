@@ -469,8 +469,9 @@ JSON_MAP = [
     ("instrument, column", "instrument model; Vc with its source", "UNICORN", "#path", [("3.6.1", None), ("3.6.1.2", None)]),
     ("procedure", "level PR: the result; chromatograms; links to campaign, series, stage, loads, fractions, pools (all caller's except fraction IDs)", "UNICORN + caller", "#above", [("3.1", None), ("3.4", None)]),
     ("unit_procedures[]", "level UP: label, boundary_source (cycles are the caller's)", "caller", "#above", [("3.3", None)]),
+    ("  .equipment_phases[]", "level EP: sample feed, fractionation (collected fractions only), column by-pass; equipment_module, start, end, commanded_by (the phase that started it); may overlap and cross operations (names proposed)", "PyCORN", "#levels", [("3.5.1", None)]),
     ("  .operations[]", "level OP: id, label, label_source, original, instance, state, process_operation, start/end, column_volume set point and actual", "UNICORN + PyCORN", "#levels", [("3.5", None), ("3.8", None)]),
-    ("    .phases[]", "level PH: one per equipment activity (system flow, sample feed, fractionation; may overlap); label (PyCORN's words), equipment_module; block names stay in each section's original", "PyCORN", "#levels", [("3.5", None), ("3.6.1", None)]),
+    ("    .phases[]", "level PH: one per task block run (a block the operation calls with a planned length), or the operation's own stretch, or the whole operation when it has no task block; label as logged, original, how_found, length (planned and executed); never overlapping", "UNICORN + method", "#levels", [("3.5.1", None), ("3.5", None)]),
     ("      .sections[]", "level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass", "UNICORN + volume axis", "#tables", [("3.5", None), ("3.7", None), ("3.8", None)]),
     ("states[]", "ISA-88 state bands: held, holding, restarting, paused", "PyCORN", "#levels", [("3.7", None)]),
     ("materials", "loads (set point and actual volume), buffers (inlet line, positions, %B range; contents and lot null = caller), fractions (ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
@@ -592,9 +593,9 @@ def analyze(path):
         op["repeats"] = seen[op["name"]]
         op["display_name"] = "%s (%d)" % (op["name"], op["instance"]) if op["repeats"] > 1 else op["name"]
     if not ops:
-        ops = [OrderedDict(name="Manual run (no phases)", original="(none: no method, no Phase lines)", instance=1,
+        ops = [OrderedDict(name="Manual run", original="(none: no method, no Phase lines)", instance=1,
                            repeats=1, a=0.0, b=r["end_elapsed_s"], start_volume=None, end_volume=None, start_cv=None,
-                           end_cv=None, volume_unit=None, synthetic=True, display_name="Manual run (no phases)")]
+                           end_cv=None, volume_unit=None, synthetic=True, display_name="Manual run")]
     for i, op in enumerate(ops, 1):
         op["id"] = "OP%d" % i  # positional key, never shown: the label carries the name
         op["label"] = op["name"]
@@ -608,8 +609,11 @@ def analyze(path):
         A["system_type"] = str(m["value"].iloc[0]) if len(m) else ""
     rd = frames.get("run_details")
     A["batch_id_present"] = bool(rd is not None and len(rd) and rd.astype(str).apply(lambda col: col.str.contains("Batch ID", case=False, na=False)).any().any())
-    A["steps"] = build_steps(S, ops)
-    name_steps(A["steps"], ops)
+    A["phases"] = build_phases(A)
+    A["equipment_phases"] = build_equipment_phases(A)
+    A["phase_list"] = [p for ps in A["phases"].values() for p in ps]
+    A["steps"] = build_steps(S, ops, A)
+    name_steps(A["steps"], ops, A)
     A["lead_in"] = lead_in(S)
     A["states"] = build_states(S, rows)
     A["blocks"] = build_blocks(S)
@@ -644,7 +648,191 @@ def sec_ranges(secs):
     return ", ".join(out)
 
 
-def build_steps(S, ops):
+RUN_START_RE = re.compile(r"^(Method|Manual) Run\b")
+PROCESS_INSTR = ("System flow", "Flow", "Sample flow", "Gradient", "Inlet", "Quaternary", "Column position", "Injection valve")
+STRUCTURAL_INSTR = ("Base", "End_Block")
+WAIT_INSTR = ("Hold until", "Pause", "Hold", "Message", "Next breakpoint")
+
+
+def method_blocks(run):
+    """The method's blocks by name: instruction names, own End_Block breakpoint and the phase name (from MethodData)."""
+    md = run.metadata.get("MethodData")
+    method = md.get("Method") if isinstance(md, dict) else None
+    blocks = (method or {}).get("Blocks") or {}
+    raw = blocks.get("Block") if isinstance(blocks, dict) else None
+    raw = [raw] if isinstance(raw, dict) else (raw or [])
+    out = OrderedDict()
+    for b in raw:
+        ins = (b.get("BlockInstructions") or {}).get("BlockInstruction") or []
+        ins = [ins] if isinstance(ins, dict) else ins
+        end_bp = None
+        for i in ins:
+            if (i.get("ReadableName") or "") == "End_Block":
+                try:
+                    end_bp = float(i.get("BreakPointValue"))
+                except (TypeError, ValueError):
+                    end_bp = None
+        mp = b.get("MethodPhase")
+        out[b.get("BlockName")] = OrderedDict(names=[i.get("ReadableName") or "" for i in ins], end_bp=end_bp,
+                                              phase=mp.get("PhaseName") if isinstance(mp, dict) else None)
+    return out
+
+
+def block_class(info):
+    """
+    Task block or smaller logic, from the method block's own instructions (section 3.5.1 item 6, proposed):
+    structural instructions and waits are ignored; a process instruction or a call of another block makes a
+    task; no instruction of its own is a task (its length does the work); only equipment control is smaller logic.
+    """
+    names = [n for n in info["names"] if n not in STRUCTURAL_INSTR and not n.startswith(WAIT_INSTR)]
+    if "Block" in names or "Loop" in names or any(n.startswith(PROCESS_INSTR) for n in names):
+        return "task", "has a process instruction or calls a block"
+    if not names:
+        return "task", "no instruction of its own: its length does the work"
+    return "smaller logic", "only equipment control (%s)" % ", ".join(sorted(set(names))[:3])
+
+
+def executed_blocks(A):
+    """Executed run-log blocks with their depth under the method run: [dict(name, kind, depth, a, b)], elapsed s."""
+    out, stack = [], []
+    for e in A["r"]["entries"]:
+        t = e["text"]
+        if e["kind"] == "block_start":
+            if RUN_START_RE.match(t):
+                kind, name = "run", t[:10]
+            elif t.startswith("Phase "):
+                kind, name = "phase", strip_phase(t)
+            elif t.startswith("Block "):
+                kind, name = "block", t[6:].strip()
+            else:
+                kind, name = "event", t
+            node = dict(name=name, kind=kind, depth=len(stack), a=e["elapsed_s"], b=None)
+            stack.append(node)
+            out.append(node)
+        elif e["kind"] == "block_end":
+            if t.startswith("End Phase"):
+                while stack:
+                    n = stack.pop()
+                    n["b"] = e["elapsed_s"]
+                    if n["kind"] == "phase":
+                        break
+            elif t.startswith("End_Block") and stack:
+                stack.pop()["b"] = e["elapsed_s"]
+            elif t.startswith("End "):  # the run's end closes what is still open
+                for n in stack:
+                    n["b"] = e["elapsed_s"]
+                stack = []
+    for n in out:
+        if n["b"] is None:
+            n["b"] = A["r"]["end_elapsed_s"]
+    return out
+
+
+def build_phases(A):
+    """
+    Phases as section 3.5.1 reads them: per operation, the task blocks it calls (a planned length above 0 in this
+    run, and not smaller logic by `block_class`), plus its own stretches when it has a planned length of its own;
+    an operation with neither is one phase. A stretch with no planned length of its own joins the next phase (the
+    last one at the end of the operation). Returns {operation id: [phase]} and the rows of every candidate block
+    (`A["phase_candidates"]`). Watch-started blocks are not read as phases yet: no public sample fires one.
+    """
+    ops, hints = A["ops"], A["hints"]
+    mb = method_blocks(A["run"])
+    nodes = executed_blocks(A)
+    rows = [r for r in (hints.blocks if hints and hints.available else [])]
+
+    def planned_row(name, a):
+        # a pause that starts at the block's start sits before or after it on the wall clock: try both
+        after = A["wall"](a)
+        before = after - sum(p["duration_s"] for p in A["pauses"] if abs(p["elapsed_s"] - a) <= 1e-6)
+        return next((r for r in rows if r["block"] == name and min(abs(r["start_s"] - after), abs(r["start_s"] - before)) <= 2.0), None)
+
+    phases, cand = OrderedDict(), []
+    for op in ops:
+        inside = [] if op["synthetic"] else [n for n in nodes if n["a"] >= op["a"] - 1e-6 and n["a"] < op["b"] - 1e-6
+                                             and n["kind"] in ("block", "event") and n["depth"] >= 2]
+        tasks = []
+        for n in inside:
+            if n["kind"] == "event":
+                cand.append(dict(op=op["id"], block=n["name"][:60], depth=n["depth"], planned=None, cls="smaller logic",
+                                 why="started by a watch action: a task only with a process instruction of its own (not read yet)", phase=None))
+                continue
+            if n["depth"] >= 3:
+                cand.append(dict(op=op["id"], block=n["name"], depth=n["depth"], planned=None, cls="step of the outer block",
+                                 why="called by a block that is not a phase", phase=None))
+                continue
+            row = planned_row(n["name"], n["a"])
+            info = mb.get(n["name"])
+            if row is None:
+                cand.append(dict(op=op["id"], block=n["name"], depth=n["depth"], planned=None, cls="smaller logic",
+                                 why="no planned length in this run (zero length)", phase=None))
+                continue
+            cls, why = block_class(info) if info else ("task", "no method block to read")
+            cand.append(dict(op=op["id"], block=n["name"], depth=n["depth"], planned=row, cls=cls, why=why, phase=None))
+            if cls == "task":
+                tasks.append((n, row, cand[-1]))
+        tasks.sort(key=lambda t: t[0]["a"])
+        # the operation's own stretches: gaps between the task blocks, when the operation has a planned length of its own
+        opinfo = next((v for v in mb.values() if v["phase"] and v["phase"].lower() == op["name"].lower()), None)
+        own_len = bool(opinfo and opinfo["end_bp"])
+        items, cursor = [], op["a"]
+        for n, row, c in tasks:
+            if own_len and n["a"] - cursor > CUTOFF_S:
+                items.append(dict(a=cursor, b=n["a"], kind="own", node=None, row=None, cand=None))
+            items.append(dict(a=n["a"], b=n["b"], kind="task", node=n, row=row, cand=c))
+            cursor = n["b"]
+        if own_len and tasks and op["b"] - cursor > CUTOFF_S:
+            items.append(dict(a=cursor, b=op["b"], kind="own", node=None, row=None, cand=None))
+        if not items:
+            items = [dict(a=op["a"], b=op["b"], kind="operation", node=None, row=None, cand=None)]
+        out, seen = [], {}
+        for k, it in enumerate(items):
+            start = op["a"] if k == 0 else items[k - 1]["b"]
+            end = op["b"] if k == len(items) - 1 else it["b"]
+            name = it["node"]["name"] if it["node"] else op["label"]
+            seen[name] = seen.get(name, 0) + 1
+            label = name if seen[name] == 1 else "%s (%d)" % (name, seen[name])
+            row = it["row"]
+            ph = OrderedDict(id="%s/PH%d" % (op["id"], k + 1), label=label, original=name, kind=it["kind"], a=start, b=end,
+                             wa=A["wall"](start), wb=A["wall"](end), planned=row["planned"] if row else None,
+                             base=row["base"] if row else None, executed=row["executed"] if row else None,
+                             status=row["status"] if row else None, cause=row["cause"] if row else None)
+            if it["cand"] is not None:
+                it["cand"]["phase"] = ph["id"]
+            out.append(ph)
+        phases[op["id"]] = out
+    A["phase_candidates"] = cand
+    return phases
+
+
+def build_equipment_phases(A):
+    """Sample feed, fractionation (collected fractions, not waste lines) and column by-pass: equipment phases of the unit procedure."""
+    S, eps = A["S"], []
+    for a, b in _windows(S, lambda s: s.feed):
+        eps.append(dict(label="Sample feed", module="sample_feed", wa=a, wb=b))
+    for a, b in _windows(S, lambda s: s.bypass):
+        eps.append(dict(label="Column by-pass", module="column_valve", wa=a, wb=b))
+    try:
+        fr = [x for x in event_tables.rows(A["ch"], "fraction") if not x["waste"] and x["end_time"] is not None]
+    except Exception:  # noqa: BLE001
+        fr = []
+    if fr:
+        eps.append(dict(label="Fractionation", module="fraction_collector", wa=A["wall"](min(x["start_time"] for x in fr) * 60),
+                        wb=A["wall"](max(x["end_time"] for x in fr) * 60)))
+    eps.sort(key=lambda e: e["wa"])
+    flat = [p for ps in A["phases"].values() for p in ps]
+    for k, e in enumerate(eps, 1):
+        e["id"] = "EP%d" % k
+        e["commanded_by"] = next((p["id"] for p in flat if p["wa"] - 1e-6 <= e["wa"] < p["wb"] - 1e-6), None)
+    return eps
+
+
+def phase_at(A, op_id, mid_elapsed):
+    ps = A["phases"].get(op_id) or []
+    return next((p for p in ps if p["a"] - 1e-6 <= mid_elapsed < p["b"] - 1e-6), ps[-1] if ps else None)
+
+
+def build_steps(S, ops, A=None):
     """
     Display steps (local/DISPLAY_STEPS_PROPOSAL.md, rules 1 to 3). One step per operation, split only
     where flow, %B, feed, by-pass or Hold changes. Every pause is its own Held row. A running piece
@@ -668,6 +856,7 @@ def build_steps(S, ops):
             pieces.append(dict(a=a, b=b, wa=wa, wb=wb, flow=0.0 if s.paused else (s.column_flow_ml_min or 0.0),
                                b_pct=s.percent_b[0] or 0.0, slope=s.percent_b[1], feed=bool(s.feed),
                                bypass=bool(s.bypass), paused=s.paused, held=s.held, op=op["id"], notes=[],
+                               ph=(phase_at(A, op["id"], (a + b) / 2.0) or {}).get("id") if A is not None else None,
                                n_sections=1, parts=[dict(sec=i, a=a, b=b, wa=wa, wb=wb, absorbed=False)]))
             pieces[-1]["parts"][0]["vals"] = {c: pieces[-1][c] for c in STEP_KEYS}
         steps = []
@@ -677,7 +866,7 @@ def build_steps(S, ops):
             k = 1
             while k < len(steps):
                 x, y = steps[k - 1], steps[k]
-                if not x["paused"] and not y["paused"] and all(x[c] == y[c] for c in STEP_KEYS):
+                if not x["paused"] and not y["paused"] and x["ph"] == y["ph"] and all(x[c] == y[c] for c in STEP_KEYS):
                     x["b"], x["wb"] = y["b"], y["wb"]
                     x["parts"] += y["parts"]
                     x["notes"] += y["notes"]
@@ -694,8 +883,9 @@ def build_steps(S, ops):
             for k, st in enumerate(steps):
                 if st["paused"] or st["b"] - st["a"] >= CUTOFF_S:
                     continue
-                before = steps[k - 1] if k and not steps[k - 1]["paused"] else None
-                after = steps[k + 1] if k + 1 < len(steps) and not steps[k + 1]["paused"] else None
+                # a step never crosses a phase boundary: only a neighbour in the same phase can take the piece
+                before = steps[k - 1] if k and not steps[k - 1]["paused"] and steps[k - 1]["ph"] == st["ph"] else None
+                after = steps[k + 1] if k + 1 < len(steps) and not steps[k + 1]["paused"] and steps[k + 1]["ph"] == st["ph"] else None
                 starts = k == 0 or steps[k - 1]["paused"]
                 target = (after or before) if starts else (before or after)
                 # feed, by-pass and Hold are never hidden: the step it joins must have them on too
@@ -736,18 +926,23 @@ def build_steps(S, ops):
     return all_steps
 
 
-def name_steps(steps, ops):
+def name_steps(steps, ops, A=None):
     """
-    Step label (PyCORN): the operation's name as logged plus the activity words that are on
-    (feed, by-pass, Hold), ", " between; a pause is "<operation>, Held". Equal labels are
-    counted in run order and the later ones show "(2)", "(3)": the rule that names repeated
-    operations. Nothing in the label is a number from this run's values.
+    Step label (PyCORN, Table 15): the operation's label, then ": " and the phase label when the operation
+    has more than one phase, then the activity words that are on (feed, by-pass, Hold), ", " between; a
+    pause is "<label>, Held". Equal labels are counted in run order and the later ones show "(2)", "(3)":
+    the rule that names repeated operations. Nothing in the label is a number from this run's values.
     """
     op_name = {o["id"]: o["name"] for o in ops}
+    phases = (A or {}).get("phases") or {}
+    ph_label = {p["id"]: p["label"] for ps in phases.values() for p in ps}
     seen = {}
     for st in steps:
         words = ["Held"] if st["paused"] else [w for k, w in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")) if st[k]]
-        base = ", ".join([op_name[st["op"]]] + words)
+        head = op_name[st["op"]]
+        if len(phases.get(st["op"]) or []) > 1 and st.get("ph") in ph_label:
+            head = "%s: %s" % (head, ph_label[st["ph"]])
+        base = ", ".join([head] + words)
         seen[base] = seen.get(base, 0) + 1
         st["label"] = base if seen[base] == 1 else "%s (%d)" % (base, seen[base])
         st["label_source"] = "PyCORN"
@@ -933,17 +1128,18 @@ def fig_levels(A):
         elif w > 8:
             svg.text(X((op["wa"] + op["wb"]) / 2), top - 4 - 11 * (i % 2), label, 10, INK2, "middle")
 
-    top, h = row("Phase", "UNICORN: block (%d)" % len(A["blocks"]))
-    if not A["blocks"]:
-        svg.text(L + 8, top + 17, "no Block lines in the run log: sections sit directly under the operation", 11, INK2)
-    for i, bl in enumerate(A["blocks"]):
+    top, h = row("Phase", "task block (%d)" % len(A["phase_list"]))
+    for i, bl in enumerate(A["phase_list"]):
         w = X(bl["wb"]) - X(bl["wa"])
-        svg.rect(X(bl["wa"]), top, w - 1, h, LEVEL_FILLS[i % 2], 3, "%s: %.1f - %.1f s" % (bl["name"], bl["wa"], bl["wb"]))
+        how = {"task": "task block", "own": "the operation's own stretch", "operation": "the operation has no task block: one phase"}[bl["kind"]]
+        planned = (", planned %s %s, ran %s" % (f(bl["planned"], 2), bl["base"], f(bl["executed"], 2))) if bl["planned"] is not None else ""
+        svg.rect(X(bl["wa"]), top, w - 1, h, LEVEL_FILLS[i % 2], 3, "%s (%s): %s, %.1f - %.1f s%s" % (bl["label"], bl["id"], how, bl["wa"], bl["wb"], planned),
+                 dash="4 3" if bl["kind"] == "operation" else None, stroke="#8d8c88" if bl["kind"] == "operation" else None)
         if w > 80:
-            svg.text(X(bl["wa"]) + 5, top + 17, bl["name"], 10.5)
+            svg.text(X(bl["wa"]) + 5, top + 17, bl["label"], 10.5)
 
     top, h = row("", "", h=68)
-    svg.text(L - 12, top - 8, "Activities", 12, INK, "end", "600")
+    svg.text(L - 12, top - 8, "Equipment phases", 12, INK, "end", "600")
     bar = 20  # bar height of the three activity rows (feed, by-pass, fractions), one row every 24
     for s in S:
         if s.paused:
@@ -1251,7 +1447,7 @@ def above_run(A):
     pk = getattr(A["ch"], "peak_tables", None) or {}
     pl = getattr(A["ch"], "pool_tables", None) or {}
     col = ((A["view"].column or {}).get("name") if A["view"] else None) or "(no column type named)"
-    bl = len(A["blocks"])
+    bl = len(A["phase_list"])
     return [
         ("chain", "Campaign / series", ["scouting table: %s" % ("%d run(s), %d variable(s)" % (len(scout.get("runs") or []), len(scout.get("variables") or [])) if series else "none"),
                                         "campaign ID: caller"], "stored" if series else "caller",
@@ -1262,7 +1458,7 @@ def above_run(A):
          "one by default; a repeat in the logged phase order is only offered as a suggested rule, never applied (section 3.3)"),
         ("chain", "Operations", ["%d (UNICORN phases)" % len(ops), "synthetic: no phases" if ops[0]["synthetic"] else "from Phase lines"], "hint" if ops[0]["synthetic"] else "stored",
          "the run log's Phase lines"),
-        ("chain", "Phases", ["%d (UNICORN blocks)" % bl, "equipment module: derived"], "stored" if bl else "missing", "the run log's Block lines"),
+        ("chain", "Phases", ["%d (task blocks)" % bl, "equipment phases: %d" % len(A["equipment_phases"])], "derived", "task blocks of the method, run values applied (section 3.5.1)"),
         ("chain", "Sections", ["%d (executed instructions)" % len([s for s in A["S"] if not s.paused]), "CADET-Process: Phase"], "derived", "from what ran"),
         ("side", "Chromatograms", ["%d: %s" % (len(A["chroms"]), ", ".join("%s (%s)" % (c["name"], c["kind"]) for c in A["chroms"])[:44]), "cut settings: not known (needs a sample)"],
          "stored" if len(A["chroms"]) == 1 else "hint", "several chromatograms: how the run log records the cut is unverified (section 3.4)"),
@@ -1984,22 +2180,25 @@ def record(A):
                         column_volume=[val(A["op_values"][op["id"]]["set"], "mL", "set_point", "calculated", "run_log"),
                                        val(A["op_values"][op["id"]]["actual"], "mL", "actual", "calculated", "volume_axis")],
                         phases=[])
-        # phases are equipment activities (Table 6), not UNICORN blocks: the system pump's flow and
-        # gradient over the whole operation, plus the sample feed and fractionation where they run
-        # (they may overlap). Block names stay in each section's original.
-        ph = OrderedDict(level="phase", element_id="%s/PH1" % op["id"], label="System flow", label_source="PyCORN",
-                         equipment_module="system_pump", start=o["start"], end=o["end"], sections=[])
-        others = []
-        feed = None
+        # phases are task blocks (section 3.5.1): the blocks the operation calls with a planned length, run
+        # values applied. Each section goes under the phase it falls in. Feed, fractionation and by-pass are
+        # equipment phases, listed on the unit procedure.
+        phase_objs = []
+        for p in A["phases"][op["id"]]:
+            ph = OrderedDict(level="phase", element_id=p["id"], label=p["label"], label_source="UNICORN",
+                             original=OrderedDict(level="block" if p["kind"] == "task" else "phase", text=p["original"]),
+                             how_found={"task": "a task block of the method (planned length above 0)",
+                                        "own": "the operation's own stretch (it has a planned length of its own)",
+                                        "operation": "the operation has no task block: one phase"}[p["kind"]],
+                             start=OrderedDict(wall_s=round(p["wa"], 3), method_s=round(p["a"], 3)),
+                             end=OrderedDict(wall_s=round(p["wb"], 3), method_s=round(p["b"], 3)), sections=[])
+            if p["planned"] is not None:
+                ph["length"] = [val(p["planned"], p["base"], "set_point", "logged", "method"),
+                                val(p["executed"], p["base"], "actual", "calculated", "run_log", status=p["status"], cause=p["cause"])]
+            phase_objs.append((p, ph))
         for k, s, row in blocks_by_op.get(op["id"], []):
-            if s.feed and not s.paused:
-                if feed is None:
-                    feed = OrderedDict(level="phase", label="Sample feed", label_source="PyCORN", equipment_module="sample_feed",
-                                       start=OrderedDict(wall_s=round(s.start_s, 3), method_s=round(s.elapsed_start_s, 3)))
-                    others.append(feed)
-                feed["end"] = OrderedDict(wall_s=round(s.end_s, 3), method_s=round(s.elapsed_end_s, 3))
-            elif not s.paused:
-                feed = None
+            mid = (s.elapsed_start_s + s.elapsed_end_s) / 2.0 if not s.paused else s.elapsed_start_s
+            p, ph = next(((p, ph) for p, ph in phase_objs if p["a"] - 1e-6 <= mid < p["b"] - 1e-6), phase_objs[-1])
             sec = OrderedDict(level="section", element_id="%s/SE%d" % (ph["element_id"], len(ph["sections"]) + 1), state="held" if s.paused else ("paused" if s.held else "running"),
                               start=OrderedDict(wall_s=round(s.start_s, 3), method_s=round(s.elapsed_start_s, 3)), end=OrderedDict(wall_s=round(s.end_s, 3), method_s=round(s.elapsed_end_s, 3)))
             if s.paused:
@@ -2015,17 +2214,12 @@ def record(A):
                 sec["inlets"] = {k2: OrderedDict(position=v2, state=(s.inlet_states.get(k2) or {}).get("state")) for k2, v2 in (s.inlets or {}).items()}
                 sec["bypass"] = s.bypass
             ph["sections"].append(sec)
-        collected = [(fr["start_time"] * 60, fr["end_time"] * 60) for fr in fractions if fr["end_time"] * 60 > op["a"] and fr["start_time"] * 60 < op["b"]]
-        if collected:
-            a, b = max(op["a"], min(x[0] for x in collected)), min(op["b"], max(x[1] for x in collected))
-            others.append(OrderedDict(level="phase", label="Fractionation", label_source="PyCORN", equipment_module="fraction_collector",
-                                      start=OrderedDict(wall_s=round(A["wall"](a), 3), method_s=round(a, 3)),
-                                      end=OrderedDict(wall_s=round(A["wall"](b), 3), method_s=round(b, 3))))
-        others.sort(key=lambda p: p["start"]["method_s"])
-        o["phases"] = [ph]
-        for n, p in enumerate(others, 2):
-            o["phases"].append(OrderedDict([("level", "phase"), ("element_id", "%s/PH%d" % (op["id"], n))] + [(k2, v2) for k2, v2 in p.items() if k2 != "level"]))
+        o["phases"] = [ph for p, ph in phase_objs]
         ups["operations"].append(o)
+    # equipment phases (ISA-88.01 3.18): equipment control, not children of operations; names proposed (3.5.1)
+    ups["equipment_phases"] = [OrderedDict(element_id=e["id"], label=e["label"], label_source="PyCORN", equipment_module=e["module"],
+                                           start=OrderedDict(wall_s=round(e["wa"], 3)), end=OrderedDict(wall_s=round(e["wb"], 3)),
+                                           commanded_by=e["commanded_by"]) for e in A["equipment_phases"]]
     rec["unit_procedures"] = [ups]
     rec["states"] = [OrderedDict(state=b["state"], start_wall_s=round(b["wa"], 3), end_wall_s=round(b["wb"], 3), how_found=b["why"]) for b in A["states"]]
     loads, cur = [], []
@@ -2378,6 +2572,9 @@ def _text_data(A):
         "scouting_series": ("Scouting table: %d run(s)." % len(scout.get("runs") or [])) if scout.get("runs") else "No scouting table.",
         "calibration": "Extinction coefficient: from the caller (UNICORN stores none).",
         "none": "-",
+        "phases": "%d phases in %d operations; %d blocks called by the operations are smaller logic or steps." % (
+            len(A["phase_list"]), len(A["ops"]), len([c for c in A["phase_candidates"] if c["cls"] != "task"])),
+        "t8": "; ".join("%s: %s" % (c["block"][:24], c["why"][:48]) for c in A["phase_candidates"] if c["cls"] == "smaller logic" and c["planned"] is not None) or "No block with a planned length is classified smaller logic in this run.",
     }
 
 
@@ -2410,11 +2607,57 @@ SESSION_DECISIONS = [
     dict(id="extinction-needed-by", title="Who needs the extinction coefficient", status="decided", data_key="calibration",
          question="Does the display or CADET need the extinction coefficient?", options=["CADET only.", "Both: the display for mg/ml, CADET for its detector calibration."],
          proposed="Both (owner).", links=["rs:3.9", "rst:14"]),
+    dict(id="phases-reading-d", title="Which blocks are phases (reading D)", status="decided", data_key="phases",
+         question="What is a phase, and what are the operations?",
+         options=["Operation = UNICORN phase, phase = equipment activity (the earlier reading).",
+                  "Operation = each element the main block calls, phase = task block, equipment activities in their own list."],
+         proposed="Second option (owner, 2026-11-15). Nested blocks are steps, loop iterations are repeated phases, a watch-started phase stays sequential, "
+                  "the pump's whole-run flow is dropped, display steps never cross a phase boundary.", links=["rs:3.5.1", "rst:6", "rst:15"]),
+    dict(id="task-block-test", title="Task block or smaller logic (test T8)", status="proposed", data_key="t8",
+         question="How is a block with a planned length that only controls equipment (for example one that stops fractionation) told from a task?",
+         options=["Every block with a planned length is a task.", "A block whose own instructions only control equipment is smaller logic (waits ignored); a block with a process instruction or a call is a task."],
+         proposed="Second option, proposed on thin evidence: the public samples show only zero-length smaller logic. The caller can list block names to force either reading.",
+         links=["rs:3.5.1"]),
+    dict(id="steps-below-phase", title="Store steps and transitions below the phase", status="open", data_key="none",
+         question="Does the record store IEC-style steps and transitions derived from breakpoints and zero-length blocks?",
+         options=["No: sections stay the lowest stored level (today).", "Yes: store them under each phase."],
+         proposed="Open for a possible future; the owner does not want it now.", links=["rs:3.5.1", "rs:11"]),
     dict(id="recipe-section", title="Recipe information on this page", status="proposed", data_key="none",
          question="Does the record carry the method as master and control recipe, as hints?",
          options=["Yes: a Method part in the record and a Recipe section here.", "No: the method stays raw text only."],
          proposed="Yes (section 5, Method row). Built in this prototype; nothing is built in the library.", links=["rs:5", "rs:3.2"]),
 ]
+
+
+def phases_html(A):
+    """Phases per operation, how every candidate block was classified, and the equipment phases (section 3.5.1)."""
+    out = ["<p class='lead'>A phase is a task block: a block the operation reaches by a Block or Loop call, with a planned length above 0 "
+           "(this run's variable values applied). The test that separates a task from smaller logic is proposed (3.5.1 item 6): a block that only "
+           "controls equipment, or has no planned length in this run, is smaller logic. Blocks inside a task block are steps of it. A watch-started "
+           "block is not read as a phase yet: no public sample fires one.</p>"]
+    rows = []
+    for op in A["ops"]:
+        for p in A["phases"][op["id"]]:
+            how = {"task": "task block", "own": "operation's own stretch", "operation": "operation has no task block"}[p["kind"]]
+            rows.append([p["id"], op["label"], p["label"], how, f(p["wa"], 1), f(p["wb"], 1),
+                         ("%s %s" % (f(p["planned"], 2), p["base"])) if p["planned"] is not None else "-",
+                         f(p["executed"], 2) if p["executed"] is not None else "-", p["status"] or "-"])
+    out.append("<h4>Phases</h4>" + table(["id", "operation", "phase", "how found", "start s", "end s", "planned", "ran (same base)", "status"], rows, ""))
+    crow = []
+    phase_of = {p["id"]: p["label"] for p in A["phase_list"]}
+    for c in A["phase_candidates"]:
+        pr = c["planned"]
+        crow.append([c["op"], c["block"], c["depth"], ("%s %s" % (f(pr["planned"], 2), pr["base"])) if pr else "-", c["cls"], c["why"],
+                     phase_of.get(c["phase"], "-")])
+    out.append("<h4>Every block the operations called, and how it was classified</h4>" + (
+        table(["operation", "block as logged", "depth", "planned length", "class", "why", "phase"], crow, "")
+        if crow else "<p class='none'>The operations call no blocks: each is one phase (no method, or no Block lines).</p>"))
+    erows = [[e["id"], e["label"], e["module"], f(e["wa"], 1), f(e["wb"], 1), e["commanded_by"] or "-"] for e in A["equipment_phases"]]
+    out.append("<h4>Equipment phases (feed, fractionation, by-pass)</h4><p class='lead'>Equipment control, not children of operations: they may overlap "
+               "and cross operation boundaries. Fractionation counts collected fractions only: a waste line is not a fractionation.</p>" + (
+                   table(["id", "equipment phase", "equipment module", "start s", "end s", "commanded by (phase)"], erows, "")
+                   if erows else "<p class='none'>No feed, fractionation or by-pass in this run.</p>"))
+    return "\n".join(out)
 
 
 def decisions_html(A):
@@ -2460,7 +2703,7 @@ def page(A, inv, rec_name):
     S = A["S"]
     vc = (A["view"].column or {}).get("vc_m3") if A["view"] else None
     steps_n = len([x for x in A["steps"] if not x["paused"]])
-    tiles = [("%d" % len(A["ops"]), "operations"), ("%d" % len(A["blocks"]), "phases (blocks)"),
+    tiles = [("%d" % len(A["ops"]), "operations"), ("%d" % len(A["phase_list"]), "phases (task blocks)"), ("%d" % len(A["equipment_phases"]), "equipment phases"),
              ("%d" % len([s for s in S if not s.paused]), "sections (pauses not counted)"), ("%d" % steps_n, "running display steps"),
              ("%d" % len(A["pauses"]), "pauses"), ("%d / %d" % (len([x for x in A["rows"] if x and x["fitted"]]), len([x for x in A["rows"] if x])), "sections fitted to the volume axis"),
              ("%s min" % f((A["end_wall"] or 0) / 60, 1), "wall-clock length"), ("%s ml" % f(vc * 1e6, 2) if vc else "none", "Vc"),
@@ -2492,8 +2735,9 @@ def page(A, inv, rec_name):
                  'procedure and cycles, chromatograms, equipment, material. Border: green UNICORN stores it, blue PyCORN works it out, amber a hint only, '
                  'orange dashed the caller supplies it, red dashed UNICORN lacks it.</p>%s<div class="fig">%s</div>' % (
                      docs(rs("3.1"), rs("3.2"), rs("3.3"), rs("3.4"), rst(3), rst(4), rst(5), rsf(2), rsf(3), rsf(6)), safe("above", fig_hierarchy, A)))
-    parts.append('<h2 id="levels">1. Levels, states and display steps</h2><p class="lead">Operation = UNICORN phase, phase = '
-                 'UNICORN block, section = one executed instruction. State follows ISA-88 (Pause is Held, Hold is Paused).</p>%s<div class="fig">%s</div>' % (
+    parts.append('<h2 id="levels">1. Levels, states and display steps</h2><p class="lead">Operation = UNICORN phase (or a top-level block), phase = '
+                 'task block (a block the operation calls with a planned length), section = one executed instruction. Feed, fractionation and by-pass are '
+                 'equipment phases (bottom rows). State follows ISA-88 (Pause is Held, Hold is Paused).</p>%s<div class="fig">%s</div>' % (
                      docs(rs("3.5"), rst(6), rsf(7), rs("3.7"), rst(11), rst(12), rsf(10), rst(22), rst(23), decide(23), decide(18)), safe("levels", fig_levels, A)))
     parts.append('<h3>Where sections were joined</h3><p class="lead">The same display steps with every original section as a cell. '
                  'Long runs hide the short pieces in the figure above.</p><div class="fig">%s</div>' % safe("joins", fig_joins, A))
@@ -2506,7 +2750,8 @@ def page(A, inv, rec_name):
         docs(rs("5"), rs("3.2"), ref("Method hints", UG, "Method hints")), safe("recipe", recipe_html, A)))
     parts.append('<h2 id="tables">4. Tables</h2>' + docs(rs("5"), rst(17), rst(18), rst(21), ref("Export guide", EG, "Phase window statistics")))
     parts.append("<h3>Operations, with set point and actual volumes</h3>" + safe("ops", ops_table, A))
-    parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per operation, split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
+    parts.append("<h3>Phases (reading D) and the blocks they come from</h3>" + docs(rs("3.5.1"), rst(6), rst(15), rst(16)) + safe("phases", phases_html, A))
+    parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per phase (a step never crosses a phase boundary), split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
                  "Rule 3: a piece under 10 s joins the step after it at the start of an operation or after a pause, else the step before it. A Hold, feed or by-pass is never hidden: a short piece that has one joins only a step that has it too. "
                  "Bold rows absorbed such a piece (orange in the figure). The sections table below has the same # numbers.</p>" + safe("steps", steps_table, A))
     parts.append("<h3>States other than Running</h3>" + safe("states", states_html, A))

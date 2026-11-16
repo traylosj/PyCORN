@@ -49,7 +49,7 @@
     {
      "level": "operation",
      "element_id": "OP1",
-     "label": "Manual run (no phases)",
+     "label": "Manual run",
      "label_source": "UNICORN",
      "original": {
       "level": "phase",
@@ -86,9 +86,13 @@
       {
        "level": "phase",
        "element_id": "OP1/PH1",
-       "label": "System flow",
-       "label_source": "PyCORN",
-       "equipment_module": "system_pump",
+       "label": "Manual run",
+       "label_source": "UNICORN",
+       "original": {
+        "level": "phase",
+        "text": "Manual run"
+       },
+       "how_found": "the operation has no task block: one phase",
        "start": {
         "wall_s": 0.0,
         "method_s": 0.0
@@ -2268,38 +2272,127 @@
          "bypass": true
         }
        ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP1/PH2",
-       "label": "Sample feed",
-       "label_source": "PyCORN",
-       "equipment_module": "sample_feed",
-       "start": {
-        "wall_s": 3.7,
-        "method_s": 3.7
-       },
-       "end": {
-        "wall_s": 302.014,
-        "method_s": 213.0
-       }
-      },
-      {
-       "level": "phase",
-       "element_id": "OP1/PH3",
-       "label": "Fractionation",
-       "label_source": "PyCORN",
-       "equipment_module": "fraction_collector",
-       "start": {
-        "wall_s": 899.214,
-        "method_s": 574.1
-       },
-       "end": {
-        "wall_s": 1076.914,
-        "method_s": 614.4
-       }
       }
      ]
+    }
+   ],
+   "equipment_phases": [
+    {
+     "element_id": "EP1",
+     "label": "Sample feed",
+     "label_source": "PyCORN",
+     "equipment_module": "sample_feed",
+     "start": {
+      "wall_s": 3.7
+     },
+     "end": {
+      "wall_s": 145.9
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP2",
+     "label": "Sample feed",
+     "label_source": "PyCORN",
+     "equipment_module": "sample_feed",
+     "start": {
+      "wall_s": 234.914
+     },
+     "end": {
+      "wall_s": 302.014
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP3",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 302.014
+     },
+     "end": {
+      "wall_s": 600.814
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP4",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 836.914
+     },
+     "end": {
+      "wall_s": 906.914
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP5",
+     "label": "Fractionation",
+     "label_source": "PyCORN",
+     "equipment_module": "fraction_collector",
+     "start": {
+      "wall_s": 899.214
+     },
+     "end": {
+      "wall_s": 1076.914
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP6",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 922.914
+     },
+     "end": {
+      "wall_s": 927.014
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP7",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 943.914
+     },
+     "end": {
+      "wall_s": 954.014
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP8",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 1010.914
+     },
+     "end": {
+      "wall_s": 1018.314
+     },
+     "commanded_by": "OP1/PH1"
+    },
+    {
+     "element_id": "EP9",
+     "label": "Column by-pass",
+     "label_source": "PyCORN",
+     "equipment_module": "column_valve",
+     "start": {
+      "wall_s": 1065.914
+     },
+     "end": {
+      "wall_s": 1076.914
+     },
+     "commanded_by": "OP1/PH1"
     }
    ]
   }
@@ -3410,7 +3503,7 @@
    "note": "computed from the sections each time; never part of the stored record",
    "steps": [
     {
-     "label": "Manual run (no phases), feed",
+     "label": "Manual run, feed",
      "label_source": "PyCORN",
      "start_wall_s": 0.0,
      "end_wall_s": 145.9,
@@ -3447,7 +3540,7 @@
      "absorbed_note": "first 3.7 s (sections #0-2) absorbed: 0 ml/min, 0 %B, feed off"
     },
     {
-     "label": "Manual run (no phases), Held",
+     "label": "Manual run, Held",
      "label_source": "PyCORN",
      "start_wall_s": 145.9,
      "end_wall_s": 145.9,
@@ -3463,7 +3556,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), feed (2)",
+     "label": "Manual run, feed (2)",
      "label_source": "PyCORN",
      "start_wall_s": 234.914,
      "end_wall_s": 302.014,
@@ -3494,7 +3587,7 @@
      "absorbed_note": "first 4.4 s (section #7) absorbed: 100 %B"
     },
     {
-     "label": "Manual run (no phases), by-pass",
+     "label": "Manual run, by-pass",
      "label_source": "PyCORN",
      "start_wall_s": 302.014,
      "end_wall_s": 546.714,
@@ -3530,7 +3623,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (2)",
+     "label": "Manual run, by-pass (2)",
      "label_source": "PyCORN",
      "start_wall_s": 546.714,
      "end_wall_s": 600.814,
@@ -3560,7 +3653,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), Held (2)",
+     "label": "Manual run, Held (2)",
      "label_source": "PyCORN",
      "start_wall_s": 600.814,
      "end_wall_s": 600.814,
@@ -3576,7 +3669,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (3)",
+     "label": "Manual run, by-pass (3)",
      "label_source": "PyCORN",
      "start_wall_s": 836.914,
      "end_wall_s": 906.914,
@@ -3607,7 +3700,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), Held (3)",
+     "label": "Manual run, Held (3)",
      "label_source": "PyCORN",
      "start_wall_s": 906.914,
      "end_wall_s": 906.914,
@@ -3623,7 +3716,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (4)",
+     "label": "Manual run, by-pass (4)",
      "label_source": "PyCORN",
      "start_wall_s": 922.914,
      "end_wall_s": 927.014,
@@ -3651,7 +3744,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), Held (4)",
+     "label": "Manual run, Held (4)",
      "label_source": "PyCORN",
      "start_wall_s": 927.014,
      "end_wall_s": 927.014,
@@ -3667,7 +3760,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (5)",
+     "label": "Manual run, by-pass (5)",
      "label_source": "PyCORN",
      "start_wall_s": 943.914,
      "end_wall_s": 954.014,
@@ -3695,7 +3788,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), Held (5)",
+     "label": "Manual run, Held (5)",
      "label_source": "PyCORN",
      "start_wall_s": 954.014,
      "end_wall_s": 954.014,
@@ -3711,7 +3804,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (6)",
+     "label": "Manual run, by-pass (6)",
      "label_source": "PyCORN",
      "start_wall_s": 1010.914,
      "end_wall_s": 1018.314,
@@ -3739,7 +3832,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), Held (6)",
+     "label": "Manual run, Held (6)",
      "label_source": "PyCORN",
      "start_wall_s": 1018.314,
      "end_wall_s": 1018.314,
@@ -3755,7 +3848,7 @@
      "absorbed_note": null
     },
     {
-     "label": "Manual run (no phases), by-pass (7)",
+     "label": "Manual run, by-pass (7)",
      "label_source": "PyCORN",
      "start_wall_s": 1065.914,
      "end_wall_s": 1076.914,
