@@ -32,8 +32,8 @@
    "campaign_id": null,
    "series": null,
    "process_stage": null,
-   "loads": [],
-   "fractions": [],
+   "process_inputs": [],
+   "process_outputs": [],
    "pools": [],
    "note": "all caller-supplied except fraction IDs (run + tube)"
   }
@@ -2604,8 +2604,9 @@
   }
  ],
  "materials": {
-  "loads": [
+  "process_inputs": [
    {
+    "kind": "load",
     "element_id": "LOAD1",
     "unit_procedure": "UP1",
     "injection_valve": "Inject",
@@ -2622,10 +2623,9 @@
     ],
     "material_id": null,
     "material_id_source": "caller (UNICORN stores none)"
-   }
-  ],
-  "buffers": [
+   },
    {
+    "kind": "buffer",
     "element_id": "BUF:A",
     "inlet_line": "A",
     "positions": [
@@ -2660,6 +2660,7 @@
     "material_id_source": "caller (UNICORN stores none)"
    },
    {
+    "kind": "buffer",
     "element_id": "BUF:B",
     "inlet_line": "B",
     "positions": [
@@ -2690,6 +2691,7 @@
     "material_id_source": "caller (UNICORN stores none)"
    },
    {
+    "kind": "buffer",
     "element_id": "BUF:sample",
     "inlet_line": "sample",
     "positions": [
@@ -2709,9 +2711,9 @@
     "material_id_source": "caller (UNICORN stores none)"
    }
   ],
-  "fractions": [
+  "process_outputs": [
    {
-    "element_id": "FR:Waste",
+    "element_id": "OUT:Waste",
     "unit_procedure": "UP1",
     "role": "waste_line",
     "goes_to": "waste",
@@ -2731,7 +2733,7 @@
     "material_id_source": "none: a waste line is not a sample"
    },
    {
-    "element_id": "FR:Out 1",
+    "element_id": "OUT:Out 1",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
@@ -2751,7 +2753,7 @@
     "material_id_source": "derived (run + tube)"
    },
    {
-    "element_id": "FR:Out 2",
+    "element_id": "OUT:Out 2",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
@@ -2771,7 +2773,7 @@
     "material_id_source": "derived (run + tube)"
    },
    {
-    "element_id": "FR:Out 3",
+    "element_id": "OUT:Out 3",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
@@ -2791,7 +2793,7 @@
     "material_id_source": "derived (run + tube)"
    },
    {
-    "element_id": "FR:Out 4",
+    "element_id": "OUT:Out 4",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
@@ -2811,7 +2813,7 @@
     "material_id_source": "derived (run + tube)"
    },
    {
-    "element_id": "FR:Out-Waste",
+    "element_id": "OUT:Out-Waste",
     "unit_procedure": "UP1",
     "role": "waste_line",
     "goes_to": "waste",

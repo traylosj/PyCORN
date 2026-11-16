@@ -233,6 +233,19 @@ def _iso(value):
     return plain(value) if value is not None else None
 
 
+def _system_type(run, result):
+    """The system's model as the instrument configuration names it (e.g. 'AKTA pure 25').
+
+    `Result.SystemTypeName` is UNICORN's internal code (e.g. 'NEXTAKTAchromatography'), used
+    only when the configuration has no description."""
+    from .run_details import summary_items
+    try:
+        model = dict(summary_items(run)).get("Instrument")
+    except Exception:  # noqa: BLE001  (a run without the configuration keeps the stored code)
+        model = None
+    return model or result.get("SystemTypeName")
+
+
 def _source(run, label):
     """Where the run was read from: kind, label, file name and member, or the ResultID (never a server or database)."""
     origin = run.origin or {}
@@ -351,7 +364,7 @@ def run_summary(run, mask=True, label=None, names=None):
         ("source", _source(run, label)),
         ("folder", result.get("FolderPath") or (run.container or {}).get("folder")),
         ("run_start", _run_start(run)),
-        ("system", OrderedDict([("name", result.get("SystemName")), ("type", result.get("SystemTypeName"))])),
+        ("system", OrderedDict([("name", result.get("SystemName")), ("type", _system_type(run, result))])),
         ("unicorn_version", run.unicorn_version),
         ("column", _column(run)),
         ("variables", _variables(run)),

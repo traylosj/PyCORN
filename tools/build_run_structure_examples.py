@@ -467,14 +467,14 @@ JSON_MAP = [
     ("record_version, source_system", "which layout and which software wrote the data", "PyCORN", "#record", [("5", None)]),
     ("batch_id", "the run's identity (masked here)", "UNICORN", "#above", [("3.1", None)]),
     ("instrument, column", "instrument model; Vc with its source", "UNICORN", "#path", [("3.6.1", None), ("3.6.1.2", None)]),
-    ("procedure", "level PR: the result; chromatograms; links to campaign, series, stage, loads, fractions, pools (all caller's except fraction IDs)", "UNICORN + caller", "#above", [("3.1", None), ("3.4", None)]),
+    ("procedure", "level PR: the result; chromatograms; links to campaign, series, stage, process inputs, process outputs, pools (all caller's except process output IDs)", "UNICORN + caller", "#above", [("3.1", None), ("3.4", None)]),
     ("unit_procedures[]", "level UP: label, boundary_source (cycles are the caller's)", "caller", "#above", [("3.3", None)]),
     ("  .equipment_phases[]", "level EP: sample feed, fractionation (collected fractions only), column by-pass; equipment_module, start, end, commanded_by (the phase that started it); may overlap and cross operations (names proposed)", "PyCORN", "#levels", [("3.5.1", None)]),
     ("  .operations[]", "level OP: id, label, label_source, original, instance, state, process_operation, start/end, column_volume set point and actual", "UNICORN + PyCORN", "#levels", [("3.5", None), ("3.8", None)]),
     ("    .phases[]", "level PH: one per task block run (a block the operation calls with a planned length), or the operation's own stretch, or the whole operation when it has no task block; label as logged, original, how_found, length (planned and executed); never overlapping", "UNICORN + method", "#levels", [("3.5.1", None), ("3.5", None)]),
     ("      .sections[]", "level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass", "UNICORN + volume axis", "#tables", [("3.5", None), ("3.7", None), ("3.8", None)]),
     ("states[]", "ISA-88 state bands: held, holding, restarting, paused", "PyCORN", "#levels", [("3.7", None)]),
-    ("materials", "loads (set point and actual volume), buffers (inlet line, positions, %B range; contents and lot null = caller), fractions (ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
+    ("materials", "process inputs (kind load: set point volume; kind buffer: inlet line, positions, %B range; contents and lot null = caller), process outputs (collected fractions and waste lines; ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
     ("volumes", "every volume on the flow path with status stored / not stored", "UNICORN", "#path", [("3.6.1.1", None)]),
     ("facts[]", "the inventory: every fact, who needs it, its status and source", "all", "#facts", [("3.9", None)]),
     ("views.display.steps[]", "display steps. A view, not part of the record: computed from sections each time", "PyCORN", "#levels", [("3.5", None)]),
@@ -607,6 +607,8 @@ def analyze(path):
     if st is not None and len(st):
         m = st[(st["group"] == "instrument configuration") & (st["item"] == "SystemTypeName")]
         A["system_type"] = str(m["value"].iloc[0]) if len(m) else ""
+    # SystemTypeName is UNICORN's internal code (e.g. NEXTAKTAchromatography); the configuration's Description names the system
+    A["system_type"] = A["instrument"] or A["system_type"]
     rd = frames.get("run_details")
     A["batch_id_present"] = bool(rd is not None and len(rd) and rd.astype(str).apply(lambda col: col.str.contains("Batch ID", case=False, na=False)).any().any())
     A["phases"] = build_phases(A)
@@ -1099,9 +1101,10 @@ def fig_levels(A):
     top, h = row("Procedure", "UNICORN: result = one run")
     svg.rect(X(0), top, X(end_w) - X(0), h, "#c7c6c1", 3, "PR: one result = one method run = one batch (ISA-88 procedure). Linked to other runs only through material and series (section 3.1).")
     svg.text(X(0) + 6, top + 17, "PR  result (batch), %s - %s min wall clock" % (A["file"], f(end_w / 60.0, 1)), 11.5)
-    top, h = row("Unit procedure", "UP1 (one by default)")
-    svg.rect(X(0), top, X(end_w) - X(0), h, "#d9d8d3", 3, "UP1: one unit procedure by default. Several only when the caller marks cycles (section 3.3).", stroke="#8d8c88", dash="4 3")
-    svg.text(X(0) + 6, top + 17, "UP1  whole run on one unit (%s); cycles: none marked (caller's rule)" % (A["system_type"] or "system"), 11.5)
+    up = up_label(A)
+    top, h = row("Unit procedure", "one by default")
+    svg.rect(X(0), top, X(end_w) - X(0), h, "#d9d8d3", 3, "%s: one unit procedure by default. Several only when the caller marks cycles (section 3.3)." % up, stroke="#8d8c88", dash="4 3")
+    svg.text(X(0) + 6, top + 17, "%s  whole run on one unit (%s); cycles: none marked (caller's rule)" % (up, A["system_type"] or "system"), 11.5)
     top, h = row("Chromatogram", "data, not a level (%d)" % len(A["chroms"]), h=22)
     for i, c in enumerate(A["chroms"]):
         w = (X(end_w) - X(0)) / len(A["chroms"])
@@ -1454,7 +1457,7 @@ def above_run(A):
          "UNICORN stores the scouting link (name, run number) when the method has scouting; a production campaign is the caller's"),
         ("chain", "Process stage", ["capture, polishing ...", "UNICORN has none"], "caller", "ISA-88 process stage: not stored by UNICORN"),
         ("chain", "Procedure = result", ["1 per result (batch)", "Batch ID: %s (masked)" % ("stored" if A["batch_id_present"] else "not found")], "stored", "one method run; Batch ID is the run's identity"),
-        ("chain", "Unit procedure", ["UP1 (1)", "cycles: caller marks" + (("; hint: %s repeats" % ", ".join(repeats)) if repeats else "")], "derived",
+        ("chain", "Unit procedure", ["%s (1)" % up_label(A)[:24], "cycles: caller marks" + (("; hint: %s repeats" % ", ".join(repeats)) if repeats else "")], "derived",
          "one by default; a repeat in the logged phase order is only offered as a suggested rule, never applied (section 3.3)"),
         ("chain", "Operations", ["%d (UNICORN phases)" % len(ops), "synthetic: no phases" if ops[0]["synthetic"] else "from Phase lines"], "hint" if ops[0]["synthetic"] else "stored",
          "the run log's Phase lines"),
@@ -1465,13 +1468,13 @@ def above_run(A):
         ("side", "Unit (equipment)", [A["instrument"][:24] or "-", "system type %s" % (A["system_type"] or "-"), "plant unit ID: caller"], "stored", "InstrumentConfigurationData; the plant's unit or skid ID is the caller's"),
         ("side", "Column (equipment)", [col[:26], "individual column ID: not stored", "use count: across runs"], "hint" if col.startswith("(") else "stored",
          "ColumnTypeData names the type; ColumnIndividualData is empty on these samples (section 3.6.1.2)"),
-        ("side", "Loads (material in)", ["%d feed(s), %d injection mark(s)" % (feeds, len(inj)), "material ID: caller"], "caller" if feeds else "absent", "a feed's lot or sample ID is the caller's"),
-        ("side", "Buffers (material in)", ["lines: " + "; ".join("%s %s" % (k, "/".join(v)) for k, v in buffers_used(A)["lines"].items() if k != "sample") if buffers_used(A)["lines"] else "lines: -",
+        ("side", "Process input: loads", ["%d feed(s), %d injection mark(s)" % (feeds, len(inj)), "material ID: caller"], "caller" if feeds else "absent", "a feed's lot or sample ID is the caller's"),
+        ("side", "Process input: buffers", ["lines: " + "; ".join("%s %s" % (k, "/".join(v)) for k, v in buffers_used(A)["lines"].items() if k != "sample") if buffers_used(A)["lines"] else "lines: -",
                                            "%%B %s to %s" % (f(buffers_used(A)["pct"][0], 0), f(buffers_used(A)["pct"][1], 0)) if buffers_used(A)["pct"] else "%B: -",
                                            "BufferPro: %s" % ("recipe stored (hint)" if buffers_used(A)["bufferpro"] else "none"),
                                            "contents, lot IDs: caller"], "caller",
          "UNICORN stores the inlet line, position and %B per section, never what the buffer contains or its lot (sections 3.6.3.1, 3.6.3.2)"),
-        ("side", "Fractions / flow-through (out)", ["%d collected" % len(fr), "ID = run + tube (derived)"], "derived" if fr else "absent", "IDs PyCORN can make itself"),
+        ("side", "Process output: fractions, waste", ["%d collected" % len(fr), "ID = run + tube (derived)"], "derived" if fr else "absent", "IDs PyCORN can make itself"),
         ("side", "Pools and next load", ["%d peak table(s), %d pool table(s)" % (len(pk), len(pl)), "pool to next load: caller"], "caller", "UNICORN does not store which pool became which load"),
     ]
 
@@ -2004,14 +2007,14 @@ def materials_html(A):
         feeds.append(["LOAD%d" % i, "%s -> %s s" % (f(g[0].start_s, 1), f(g[-1].end_s, 1)), g[0].injection_valve,
                       f(set_ml, 3), f(act_ml, 3), (sa[i - 1].get("sample_volume") if i - 1 < len(sa) else "-"),
                       "(caller gives the lot / sample ID)"])
-    out.append("<h4>Loads (feeds)</h4>" + (table(["id", "span (wall clock)", "valve", "volume set point (ml)", "volume actual (ml)",
+    out.append("<h4>Process inputs: loads (feeds)</h4>" + (table(["id", "span (wall clock)", "valve", "volume set point (ml)", "volume actual (ml)",
                                                    "method's planned sample volume", "material ID"], feeds, "")
                                            if feeds else "<p class='none'>No feed section (no injection valve at Inject / Direct inject).</p>"))
     bu = buffers_used(A)
     buf_rows = [["BUF:%s" % line, line, ", ".join(label if label.endswith((" (assumed)", " (not known)")) else "%s (%s)" % (label, state) for label, state in used.items()),
                  ("%s to %s %%B" % (f(bu["pct"][0], 0), f(bu["pct"][1], 0))) if line != "sample" and bu["pct"] else "-", "(caller)", "(caller)"]
                 for line, used in bu["lines"].items()]
-    out.append("<h4>Buffers (inlet lines used)</h4>" + table(["id", "line", "positions used (state)", "%B range", "contents", "lot ID"], buf_rows, "") +
+    out.append("<h4>Process inputs: buffers (inlet lines used)</h4>" + table(["id", "line", "positions used (state)", "%B range", "contents", "lot ID"], buf_rows, "") +
                "<p class='none'>%s</p>" % ("BufferPro recipe stored in the result (hint only)." if bu["bufferpro"] else "No BufferPro recipe stored. UNICORN never stores what a buffer contains."))
     fr = []
     waste_ml, sample_ml, per_line = 0.0, 0.0, OrderedDict()
@@ -2026,7 +2029,7 @@ def materials_html(A):
             role = "collected fraction (sample)"
         fr.append(["%s:%s" % ("RUN", x["name"]), x["name"], "waste" if x["waste"] else "fraction collector", role,
                    f(x["start_time"], 3), f(x["end_time"], 3), f(x["length_volume"], 2), "-" if x["waste"] else "(caller)"])
-    out.append("<h4>Fraction collector: where the flow went</h4>" + (table(
+    out.append("<h4>Process outputs (fraction collector and waste)</h4>" + (table(
         ["id (run + tube)", "UNICORN tube", "goes to", "role", "start min", "end min", "volume ml", "material ID"], fr, "")
         if fr else "<p class='none'>No fraction event curve.</p>"))
     if fr:
@@ -2162,7 +2165,7 @@ def record(A):
     rec["column"] = OrderedDict(vc=val(vc * 1e6 if vc else None, "mL", "set_point", "given" if False else "logged", "curves"))
     rec["procedure"] = OrderedDict(level="procedure", element_id="PR", original=OrderedDict(level="result", text=A["file"]),
                                    chromatograms=[OrderedDict(name=c["name"], kind=c["kind"]) for c in A["chroms"]],
-                                   links=OrderedDict(campaign_id=None, series=None, process_stage=None, loads=[], fractions=[],
+                                   links=OrderedDict(campaign_id=None, series=None, process_stage=None, process_inputs=[], process_outputs=[],
                                                      pools=[], note="all caller-supplied except fraction IDs (run + tube)"))
     ups = OrderedDict(level="unit_procedure", element_id="UP1", label=up_label(A), label_source="UNICORN", boundary_source="default", operations=[])
     blocks_by_op = {}
@@ -2232,22 +2235,24 @@ def record(A):
     if cur:
         loads.append(cur)
     bu = buffers_used(A)
-    mats = OrderedDict(loads=[], buffers=[OrderedDict(
-        element_id="BUF:%s" % line, inlet_line=line,
+    # ISA-88.01 5.3.2.2 formula: process inputs (loads and buffers, told apart by `kind`) and process outputs
+    mats = OrderedDict(process_inputs=[], process_outputs=[], pools=OrderedDict(
+        peak_tables=len(getattr(A["ch"], "peak_tables", None) or {}), pool_tables=len(getattr(A["ch"], "pool_tables", None) or {})))
+    mats["process_inputs"] = [OrderedDict(
+        kind="buffer", element_id="BUF:%s" % line, inlet_line=line,
         positions=[OrderedDict(original=label, state=state) for label, state in used.items()],
         percent_b_range=list(bu["pct"]) if line != "sample" and bu["pct"] else None,
         contents=None, lot_id=None, material_id=None, material_id_source="caller (UNICORN stores none)")
-        for line, used in bu["lines"].items()], fractions=[], pools=OrderedDict(peak_tables=len(getattr(A["ch"], "peak_tables", None) or {}),
-                                                                  pool_tables=len(getattr(A["ch"], "pool_tables", None) or {})))
+        for line, used in bu["lines"].items()]
     for i, g in enumerate(loads, 1):
         set_ml = sum((s.column_flow_ml_min or 0) * (s.elapsed_end_s - s.elapsed_start_s) / 60.0 for s in g)
-        mats["loads"].append(OrderedDict(
-            element_id="LOAD%d" % i, unit_procedure="UP1", injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
+        mats["process_inputs"].insert(i - 1, OrderedDict(
+            kind="load", element_id="LOAD%d" % i, unit_procedure="UP1", injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
             volume=[val(set_ml, "mL", "set_point", "calculated", "run_log")],
             material_id=None, material_id_source="caller (UNICORN stores none)"))
     for x in event_tables.rows(A["ch"], "fraction"):
         waste = bool(x["waste"])
-        mats["fractions"].append(OrderedDict(element_id="FR:%s" % x["name"], unit_procedure="UP1",
+        mats["process_outputs"].append(OrderedDict(element_id="OUT:%s" % x["name"], unit_procedure="UP1",
                                              role="waste_line" if waste else "collected_fraction", goes_to="waste" if waste else "fraction_collector",
                                              is_sample=not waste,
                                              start_min=round(x["start_time"], 4), end_min=round(x["end_time"], 4),
@@ -2761,7 +2766,7 @@ def page(A, inv, rec_name):
                "the first flow section. Pauses and later zero-flow stretches are not merged.</p>" % (
                    sec_ranges(li["secs"]), li["start_s"], li["end_s"], li["last_start_s"])) if li else ""
     parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + li_note + safe("sections", sections_table, A))
-    parts.append("<h3>Material: loads, fractions, pools</h3>" + safe("materials", materials_html, A))
+    parts.append("<h3>Material: process inputs, process outputs, pools</h3>" + safe("materials", materials_html, A))
     parts.append("<h3>Edge cases (Table 16) on this run</h3>" + docs(rst(16)) + safe("edge", edge_cases_html, A))
     parts.append('<h2 id="path">5. Flow path and the volumes on it</h2><p class="lead">Which volumes UNICORN stores, which it does not. CADET needs the red ones from the caller.</p>%s<div class="fig">%s</div>' % (
         docs(rs("3.6.1"), rs("3.6.1.1"), rst(7), rsf("8a"), rsf("8b"), rs("3.6.1.2"), ref("D19, D21, D27, D28", RM_, "Decisions"), ref("CADET guide: model values", CG, "Your model values")),
