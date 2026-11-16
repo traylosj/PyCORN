@@ -335,6 +335,18 @@ def test_blocks_and_set_marks():
     assert len(to_frame(r)) == 3
 
 
+def test_watch_action_runs_inside_its_block_and_its_end_block_ends_only_itself():
+    watch = "Watch Condition Occurred UV 1 Greater than 5.0 {mAU} act"
+    events = _start(_block(0.0, "Phase Equilibration"), _block(0.0, "Block Equilibrate"),
+                    _block(1.0, watch), _e(1.0, "System flow 1.000 {ml/min} Off"), _block(1.5, "End_Block", start=False),
+                    _e(2.5, "System flow 2.000 {ml/min} Off"), _block(3.0, "End_Block", start=False),
+                    _block(3.0, "End Phase", start=False), _e(4.0, "End 1/1/2024", status=""))
+    r = run_log_sections(_run(events))
+    blocks = [(round(s.elapsed_start_s), s.block) for s in r["sections"]]
+    # the block name holds through the watch action and after its End_Block, until the block's own End_Block
+    assert blocks == [(0, "Equilibrate"), (60, "Equilibrate"), (150, "Equilibrate"), (180, None)]
+
+
 def test_span_details_join_a_split_ramp_and_skip_pauses():
     # ramp 0 -> 100 %B over 4 min from 1 min, split by a flow change at 3 min and a 30 s pause at 2 min
     events = _start(_e(1.0, "Gradient 100.0 {%B} 4.00 {min}"), _e(3.0, "System flow 1.000 {ml/min} Off"),

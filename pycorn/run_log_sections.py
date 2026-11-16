@@ -303,6 +303,10 @@ def _apply(state, entry, warnings, unrecognized):
             state.phase, state.blocks = _name(text, "Phase "), []
         elif text.startswith("Block "):
             state.blocks.append(_name(text, "Block "))
+        elif not RUN_START.match(text):
+            # a watch action ('Watch Condition Occurred ...') or another logged call: it runs inside
+            # the block it started in, and its End_Block ends only itself
+            state.blocks.append(state.blocks[-1] if state.blocks else None)
         return False
     if kind == "block_end":
         if text.startswith("End Phase"):

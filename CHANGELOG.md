@@ -15,6 +15,11 @@ changed since your files were made.
 
 ## Unreleased
 
+**Fixed: a watch action ended the block around it.** The `End_Block` of a watch action closed the
+block it ran inside, so later sections lost their block name and `method_hints` cut the block
+short. A watch action now runs inside its block and ends only itself. Results without a fired
+watch action are unchanged.
+
 **Fixed: a block the run ended inside was reported as not run.** `method_hints` paired each
 `Block` start with an `End_Block` line, so a run that ended (or was ended) inside a block, with
 no `End_Block`, dropped that block: it showed under "blocks not run" although it had sections

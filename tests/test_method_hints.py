@@ -151,6 +151,21 @@ def test_block_open_at_the_run_end_is_cut_off_not_unrun():
     assert "Wash" not in h.blocks_not_run
 
 
+def test_watch_action_inside_a_block_does_not_end_the_block():
+    # Load runs 1-2 min; a watch action starts at 1.2 and ends at 1.4: the block still ran its 2 ml
+    events = [_e(0.0, "Method Run 1/1/2024 10:00:00 AM -05:00", subtype="BlockStart", status=""),
+              _e(0.0, "System flow 2.000 {ml/min} Off"), _block(1.0, "Block Load"), _e(1.01, "Injection valve Inject"),
+              _block(1.2, "Watch Condition Occurred UV 1 Greater than 5.0 {mAU} act"), _block(1.4, "End_Block", start=False),
+              _e(2.0, "Injection valve Manual load"), _block(2.0, "End_Block", start=False), _e(8.0, "End 1/1/2024", status="")]
+    run = _run(events)
+    run.metadata["MethodData"] = _method([LOAD, WASH, MAIN])
+    run.result["search_criteria"] = [{"Name": "VariableValue", "Keyword1": "SampleVol", "Keyword2": "2.00"}]
+    h = method_hints(run)
+    load = next(b for b in h.blocks if b["block"] == "Load")
+    assert (load["executed"], load["status"]) == (pytest.approx(2.0), "as_planned")
+    assert h.blocks_not_run == ["Wash"]
+
+
 def test_injection_in_a_block_the_run_ended_in_is_ended_early_without_a_warning():
     # the valve is at Inject for 1 min (2 ml of the planned 5) when the run ends: no End_Block
     events = [_e(0.0, "Method Run 1/1/2024 10:00:00 AM -05:00", subtype="BlockStart", status=""),

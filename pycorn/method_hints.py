@@ -235,13 +235,16 @@ def _block_runs(entries, end_s=None):
     for e in entries:
         if e["kind"] == "block_start" and e["text"].startswith("Block "):
             stack.append((e["text"][len("Block "):].strip(), e["elapsed_s"]))
+        elif e["kind"] == "block_start" and not e["text"].startswith(("Phase ", "Method Run", "Manual Run")):
+            stack.append((None, e["elapsed_s"]))  # a watch action: its End_Block ends it, not the block around it
         elif e["kind"] == "block_end" and e["text"].startswith("End_Block") and stack:
             name, t0 = stack.pop()
-            runs.append((name, t0, e["elapsed_s"]))
-    cut = {name for name, _ in stack}
+            if name is not None:
+                runs.append((name, t0, e["elapsed_s"]))
+    cut = {name for name, _ in stack if name is not None}
     if stack:
         end = max([entries[-1]["elapsed_s"]] + ([end_s] if end_s is not None else []))
-        runs += [(name, t0, end) for name, t0 in stack]
+        runs += [(name, t0, end) for name, t0 in stack if name is not None]
     runs.sort(key=lambda r: r[1])
     return runs, cut
 
