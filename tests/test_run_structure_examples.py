@@ -15,7 +15,7 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(ROOT, "tools", "build_run_structure_examples.py")
 TRACKED = os.path.join(ROOT, "docs", "examples")
-SECTIONS = ["checks", "above", "levels", "setact", "curves", "tables", "path", "facts", "scope", "record", "raw", "warn"]
+SECTIONS = ["checks", "above", "levels", "setact", "curves", "tables", "path", "facts", "scope", "record", "warn"]
 
 
 @pytest.fixture(scope="module")

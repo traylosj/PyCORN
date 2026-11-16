@@ -384,43 +384,50 @@ def _redact(obj):
     return obj
 
 
+class _Boxes(OrderedDict):
+    """Raw boxes by key. `append` is the old list call: (key, html)."""
+    def append(self, item):
+        self[item[0]] = item[1]
+
+
 def raw_html(A):
+    """The raw UNICORN output boxes by key; the page puts each next to the interpretation built from it (`source_boxes`)."""
     run, ch, r = A["run"], A["ch"], A["r"]
     fr = A["frames"]
-    out = []
+    out = _Boxes()
     # the Logbook itself is shown with the phases, with the step boundaries marked (run_log_html)
     ent = ["%10.2f s  %-18s %s" % (e["elapsed_s"], e["kind"], e["text"]) for e in r["entries"]]
-    out.append(raw("Run-log instructions PyCORN read as executed (run_log_sections)", "derived from the Logbook: %d entries" % len(ent), "\n".join(ent),
-                   "kind is PyCORN's reading; lines that match no kind are ignored for sections."))
+    out.append(("entries", raw("Run-log instructions PyCORN read as executed (run_log_sections)", "derived from the Logbook: %d entries" % len(ent), "\n".join(ent),
+                   "kind is PyCORN's reading; lines that match no kind are ignored for sections.")))
     ev = []
     for kind in ("phase", "injection", "fraction"):
         ev.append("-- %s event curve" % kind)
         for x in event_tables.rows(ch, kind):
             ev.append("   %-26s start %9.3f min  end %9.3f min  start vol %9s ml  length %9s ml%s" % (
                 (x["name"] or "")[:26], x["start_time"] or 0.0, x["end_time"] or 0.0, f(x["start_volume"], 3), f(x["length_volume"], 3), "   (pseudo row)" if x["pseudo"] else ""))
-    out.append(raw("Phase, Injection and Fraction event curves", "event curves of the chromatogram", "\n".join(ev)))
-    out.append(raw("System settings the run was started with", "SystemSettingData (%d rows)" % len(fr["system_settings"]) if fr["system_settings"] is not None else 0, frame_text(fr["system_settings"], 500)))
+    out.append(("events", raw("Phase, Injection and Fraction event curves", "event curves of the chromatogram", "\n".join(ev))))
+    out.append(("settings", raw("System settings the run was started with", "SystemSettingData (%d rows)" % len(fr["system_settings"]) if fr["system_settings"] is not None else 0, frame_text(fr["system_settings"], 500))))
     inst = fr["instrument"]
     if inst is not None and len(inst):
         comp = inst[inst["group"] == "enabled components"]["item"].tolist()
-        out.append(raw("Instrument configuration, system, mixer and UV items", "InstrumentConfigurationData, StrategyData, SystemData (network items removed)",
-                       frame_text(inst[inst["group"] != "enabled components"]) + "\n\nEnabled components (%d):\n  %s" % (len(comp), "\n  ".join(map(str, comp)))))
+        out.append(("instrument", raw("Instrument configuration, system, mixer and UV items", "InstrumentConfigurationData, StrategyData, SystemData (network items removed)",
+                       frame_text(inst[inst["group"] != "enabled components"]) + "\n\nEnabled components (%d):\n  %s" % (len(comp), "\n  ".join(map(str, comp))))))
     try:
         sysd = run_details._doc(run, "SystemData", "Systems").get("System") or {}
         import base64
         mixer = sysd.get("MixerInformation")
         if mixer:
-            out.append(raw("MixerInformation as stored (base64 decoded)", "SystemData / MixerInformation",
-                           base64.b64decode(mixer).decode("utf-8", "replace"), "The only stored volume on the flow path besides the delay settings."))
+            out.append(("mixer", raw("MixerInformation as stored (base64 decoded)", "SystemData / MixerInformation",
+                           base64.b64decode(mixer).decode("utf-8", "replace"), "The only stored volume on the flow path besides the delay settings.")))
     except Exception as exc:  # noqa: BLE001
-        out.append(raw("MixerInformation", "SystemData", "[unavailable: %s]" % exc))
-    out.append(raw("Column type as stored", "ColumnTypeData (%d rows)" % len(fr["column"]) if fr["column"] is not None else 0, frame_text(fr["column"], 300)))
-    out.append(raw("Calibration records", "CalibrationSettingData", frame_text(fr["calibration"])))
+        out.append(("mixer", raw("MixerInformation", "SystemData", "[unavailable: %s]" % exc)))
+    out.append(("column", raw("Column type as stored", "ColumnTypeData (%d rows)" % len(fr["column"]) if fr["column"] is not None else 0, frame_text(fr["column"], 300))))
+    out.append(("calibration", raw("Calibration records", "CalibrationSettingData", frame_text(fr["calibration"]))))
     try:
-        out.append(raw("Method steps (as UNICORN's report lays them out)", "MethodData", frame_text(run_details.method_steps_frame(run), 300), "A template: hints only (D17)."))
-        out.append(raw("Method variables as this run used them", "MethodData variables", frame_text(run.variables(), 120)))
+        out.append(("method", raw("Method steps (as UNICORN's report lays them out)", "MethodData", frame_text(run_details.method_steps_frame(run), 300), "A template: hints only (D17).")
+                    + raw("Method variables as this run used them", "MethodData variables", frame_text(run.variables(), 120))))
     except Exception as exc:  # noqa: BLE001
-        out.append(raw("Method", "MethodData", "[unavailable: %s]" % exc))
+        out.append(("method", raw("Method", "MethodData", "[unavailable: %s]" % exc)))
     cl = []
     for name, c in ch.curves.items():
         t = np.asarray(c.time, dtype=float) if c.time is not None else None
@@ -428,7 +435,7 @@ def raw_html(A):
             name[:34], c.data_type, c.unit or "-", len(c.values) if c.values is not None else 0,
             f(float(t[0]), 3) if t is not None and len(t) else "-", f(float(t[-1]), 3) if t is not None and len(t) else "-", c.time_unit or "",
             ", ".join(f(float(v), 4) for v in (c.values[:4] if c.values is not None else []))))
-    out.append(raw("Curve inventory (values stay in the zip)", "Chrom.N.Xml and the point files", "\n".join(cl)))
+    out.append(("curves", raw("Curve inventory (values stay in the zip)", "Chrom.N.Xml and the point files", "\n".join(cl))))
     dl = []
     for i, (s, row) in enumerate(zip(A["S"], A["rows"])):
         if row is None:
@@ -437,16 +444,16 @@ def raw_html(A):
         dl.append("%3d  %8.1f-%8.1f s  pump %-6s set %7s ml/min  set x time %8s ml  axis %8s ml  %s" % (
             i, s.start_s, s.end_s, row["pump"], f(row["set_ml_min"], 3), f(row["logged_ml"], 4), f(row["axis_ml"], 4),
             ("FITTED %s: %s" % (row["kind"], "; ".join("%.1f-%.1f s @ %s ml/min slope %s" % (a, b, f(q, 3), f(sl, 4)) for a, b, q, sl in row["pieces"]))) if row["fitted"] else ""))
-    out.append(raw("Delivered-flow fit, section by section", "delivered_flow.py on the volume axis", "\n".join(dl)))
+    out.append(("delivered", raw("Delivered-flow fit, section by section", "delivered_flow.py on the volume axis", "\n".join(dl))))
     try:
         from pycorn.summary import run_summary
-        out.append(raw("Today's machine output: pycorn inspect --json (masked)", "run_summary(run)", json.dumps(run_summary(run), indent=1, default=str)[:60000]))
+        out.append(("json", raw("Today's machine output: pycorn inspect --json (masked)", "run_summary(run)", json.dumps(run_summary(run), indent=1, default=str)[:60000])))
     except Exception as exc:  # noqa: BLE001
-        out.append(raw("pycorn inspect --json", "run_summary", "[unavailable: %s]" % exc))
+        out.append(("json", raw("pycorn inspect --json", "run_summary", "[unavailable: %s]" % exc)))
     if A["view"]:
-        out.append(raw("What CADET gets from UNICORN alone: model view, column and system", "model_view(run), no caller input",
-                       json.dumps({"column": A["view"].column, "system": A["view"].system, "warnings": A["view"].warnings}, indent=1, default=str)))
-    return "\n".join(out)
+        out.append(("json_cadet", raw("What CADET gets from UNICORN alone: model view, column and system", "model_view(run), no caller input",
+                       json.dumps({"column": A["view"].column, "system": A["view"].system, "warnings": A["view"].warnings}, indent=1, default=str))))
+    return out
 
 
 # ----------------------------------------------------------------------------------------------
@@ -2840,6 +2847,16 @@ def page(A, inv, rec_name):
     def docs(*items):
         return '<p class="docs">Explained in: %s</p>' % links(*items)
 
+    boxes = safe("raw", raw_html, A)  # the raw UNICORN output boxes by key, or the error text
+    if isinstance(boxes, str):
+        parts.append(boxes)
+        boxes = {}
+
+    def src(*keys):
+        """The raw output the interpretation above was read from, collapsed, next to it."""
+        html = "".join(boxes.get(k, "") for k in keys)
+        return ("<h4>Source: as UNICORN exported it</h4>" + html) if html else ""
+
     parts.append('<h2 id="checks">Check these first</h2><p class="lead">Generated from this run: each item is a place where a reading or a '
                  'scope choice shows up in the data. Links go to the markdown that explains the decision.</p>%s' % checks_html)
     parts.append('<h2 id="decide">Decisions to review</h2><p class="lead">Every open choice in the proposal, with what this run shows, the options, '
@@ -2856,14 +2873,14 @@ def page(A, inv, rec_name):
                  'Long runs hide the short pieces in the figure above.</p><div class="fig">%s</div>' % safe("joins", fig_joins, A))
     parts.append('<h2 id="setact">2. Set point next to actual</h2><p class="lead">What the method set, what the pump delivered, what UNICORN measured. '
                  'Measured traces have a gap at each pause: no data is stored while the run is held.</p>%s<div class="fig">%s</div>' % (
-                     docs(rs("3.8"), rst(13), rst(18), decide(6), decide(15), decide(18), ref("Scope row 8", RM_, "Scope decisions for CADET")), safe("setact", fig_setpoint_actual, A)))
+                     docs(rs("3.8"), rst(13), rst(18), decide(6), decide(15), decide(18), ref("Scope row 8", RM_, "Scope decisions for CADET")), safe("setact", fig_setpoint_actual, A)) + src("delivered"))
     parts.append('<h2 id="curves">3. Measured curves by role</h2>%s<div class="fig">%s</div>' % (
-        docs(ref("Finding curves by role", UG, "Finding Curves: by Role, Not by Name"), ref("Axes", UG, "Axes"), rs("5")), safe("curves", fig_curves, A)))
-    parts.append('<h2 id="recipe">Recipe: the method as downstream receives it</h2>%s%s' % (
-        docs(rs("5"), rs("3.2"), ref("Method hints", UG, "Method hints")), safe("recipe", recipe_html, A)))
+        docs(ref("Finding curves by role", UG, "Finding Curves: by Role, Not by Name"), ref("Axes", UG, "Axes"), rs("5")), safe("curves", fig_curves, A)) + src("curves"))
+    parts.append('<h2 id="recipe">Recipe: the method as downstream receives it</h2>%s%s%s' % (
+        docs(rs("5"), rs("3.2"), ref("Method hints", UG, "Method hints")), safe("recipe", recipe_html, A), src("method")))
     parts.append('<h2 id="tables">4. Tables</h2>' + docs(rs("5"), rst(17), rst(18), rst(21), ref("Export guide", EG, "Phase window statistics")))
     parts.append("<h3>Operations, with set point and actual volumes</h3>" + safe("ops", ops_table, A))
-    parts.append("<h3>Phases (reading D) and the blocks they come from</h3>" + docs(rs("3.5.1"), rst(6), rst(15), rst(16)) + safe("phases", phases_html, A))
+    parts.append("<h3>Phases (reading D) and the blocks they come from</h3>" + docs(rs("3.5.1"), rst(6), rst(15), rst(16)) + safe("phases", phases_html, A) + src("events"))
     parts.append("<h3>The run log, with the operation, phase and step boundaries marked</h3>" + safe("runlog", run_log_html, A))
     parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per phase (a step never crosses a phase boundary), split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
                  "Rule 3: a piece under 10 s joins the step after it at the start of an operation or after a pause, else the step before it. A Hold, feed or by-pass is never hidden: a short piece that has one joins only a step that has it too. "
@@ -2874,20 +2891,18 @@ def page(A, inv, rec_name):
                "They merge into one zero-flow section, so the time axis and the signals stay aligned. The valves as set at %.1f s carry into "
                "the first flow section. Pauses and later zero-flow stretches are not merged.</p>" % (
                    sec_ranges(li["secs"]), li["start_s"], li["end_s"], li["last_start_s"])) if li else ""
-    parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + li_note + safe("sections", sections_table, A))
+    parts.append("<h3>Sections (the CADET side, 1:1 with today's table)</h3>" + li_note + safe("sections", sections_table, A) + src("entries"))
     parts.append("<h3>Material: process inputs, process outputs, pools</h3>" + safe("materials", materials_html, A))
     parts.append("<h3>Edge cases (Table 16) on this run</h3>" + docs(rst(16)) + safe("edge", edge_cases_html, A))
     parts.append('<h2 id="path">5. Flow path and the volumes on it</h2><p class="lead">Which volumes UNICORN stores, which it does not. CADET needs the red ones from the caller.</p>%s<div class="fig">%s</div>' % (
         docs(rs("3.6.1"), rs("3.6.1.1"), rst(7), rsf("8a"), rsf("8b"), rs("3.6.1.2"), ref("D19, D21, D27, D28", RM_, "Decisions"), ref("CADET guide: model values", CG, "Your model values")),
-        safe("path", fig_flowpath, A, inv)))
-    parts.append('<h2 id="facts">6. Every fact UNICORN provides (or does not) that display or CADET could need</h2>%s%s' % (
-        docs(rs("3.9"), rs("9"), rs("10")), safe("inventory", inventory_html, inv)))
+        safe("path", fig_flowpath, A, inv)) + src("column", "mixer", "instrument"))
+    parts.append('<h2 id="facts">6. Every fact UNICORN provides (or does not) that display or CADET could need</h2>%s%s%s' % (
+        docs(rs("3.9"), rs("9"), rs("10")), safe("inventory", inventory_html, inv), src("settings", "calibration")))
     parts.append('<h2 id="scope">7. The ten scope rows on this run</h2><p class="lead">Nothing is decided; this shows what each row produces here.</p>%s%s' % (
         docs(ref("ROADMAP: Scope decisions for CADET", RM_, "Scope decisions for CADET")), safe("scope", scope_html, A)))
-    parts.append('<h2 id="record">8. The JSON: what is in it</h2>%s%s' % (docs(rs("5"), rst(17), rst(18), rst(19), rs("7"), rs("8")), safe("json", json_section, A, rec_name)))
-    parts.append('<h2 id="raw">9. Raw UNICORN output, as extracted</h2><p class="lead">The text and tables PyCORN read from the result, scrollable. Everything above is derived from these.</p>%s%s' % (
-        docs(rs("3.2"), rs("3.4"), ref("Run structure review: evidence", RV, "5. Evidence")), safe("raw", raw_html, A)))
-    parts.append('<h2 id="warn">10. Warnings from today\'s readers</h2><ul class="warn">%s</ul>' % "".join("<li>%s</li>" % E(w) for w in uniq))
+    parts.append('<h2 id="record">8. The JSON: what is in it</h2>%s%s%s' % (docs(rs("5"), rst(17), rst(18), rst(19), rs("7"), rs("8")), safe("json", json_section, A, rec_name), src("json", "json_cadet")))
+    parts.append('<h2 id="warn">9. Warnings from today\'s readers</h2><ul class="warn">%s</ul>' % "".join("<li>%s</li>" % E(w) for w in uniq))
     parts.append("</main><script>%s</script></body></html>" % (ZOOM_JS + TOC_JS))
     return add_toc("\n".join(parts))
 
