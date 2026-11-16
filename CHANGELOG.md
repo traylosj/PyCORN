@@ -38,7 +38,7 @@ changed since your files were made.
   phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a CADET form on
   the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-## Unreleased
+## 0.37.1 (2026-11-15)
 
 **New: a `waste` column in the fraction table.** A tube whose name contains "waste" (`Waste`,
 `Waste(Frac)`, `Out-Waste`) is a waste line, not a fraction. Row 0 always is one. The flow to

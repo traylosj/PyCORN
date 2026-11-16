@@ -13,7 +13,7 @@ import functools
 import os
 import subprocess
 
-__version__ = "0.37.0"
+__version__ = "0.37.1"
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
