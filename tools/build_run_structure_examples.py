@@ -1458,7 +1458,7 @@ def fig_curves(A):
             series.append(dict(points=with_gaps(tx, vy, A["pauses"], A["wall"]), color=PALETTE[k % len(PALETTE)], width=1.2,
                                label="%s (%s)" % (c.name, c.unit or "-")))
         if series:
-            y = panel(svg, A, X, y, height, title, unit, series, ymin=None)
+            y = panel(svg, A, X, y, height, title, unit, series, ymin=None, step_edges=True)
     axis_ticks(svg, A, X, y)
     svg.y = y + 26
     return svg.out()
@@ -2401,6 +2401,10 @@ code{background:#eeede9;padding:0 4px;border-radius:3px}
 .fig{margin:8px 0;overflow:hidden;border:1px solid #e4e3df;border-radius:5px;background:#fcfcfb}
 .zbar{padding:4px 8px;background:#f1f0ec;border-bottom:1px solid #e4e3df;font-size:12px;color:#52514e}
 .zbar button{font-size:12px;margin-right:4px;min-width:28px;cursor:pointer}
+.rlog{max-height:560px;overflow:auto;background:#101418;color:#d7e0ea;padding:6px 0;font:11.5px/1.5 Consolas,monospace;border-radius:5px;margin:4px 0 10px}
+.rlog div{white-space:pre;padding:0 10px} .rlog .mk-op,.rlog .mk-ph,.rlog .mk-step,.rlog .mk-sec{font-family:inherit;font-weight:600;color:#101418;margin:2px 0}
+.mk-op{background:#c7c6c1} .mk-ph{background:#d9d8d3} .mk-step{background:#86b6ef} .mk-sec{background:#f0b45a}
+p.lead .mk-op,p.lead .mk-ph,p.lead .mk-step,p.lead .mk-sec{padding:0 6px;border-radius:3px}
 pre.raw{max-height:340px;overflow:auto;background:#101418;color:#d7e0ea;padding:10px;font-size:11.5px;border-radius:5px;white-space:pre;margin:4px 0 10px}
 details.rawbox{margin:8px 0;border:1px solid #d6d5d0;border-radius:5px;padding:4px 10px;background:#fff}
 .src{font-weight:400;color:#52514e;font-size:11.5px;margin-left:8px} .rawnote{color:#52514e;font-size:12px;margin:2px 0}
@@ -2709,6 +2713,63 @@ def phases_html(A):
     return "\n".join(out)
 
 
+def run_log_html(A):
+    """
+    The run log (Logbook) line by line, with a banner at every boundary the reading draws: operation and phase
+    starts, display step starts (with what changed from the step before) and section starts that were joined
+    into a step. Lines are in method time (pauses excluded), like the sections.
+    """
+    log = A["ch"].run_log()
+    if log is None:
+        return "<p class='none'>No run log in this result.</p>"
+    to_s = conversion_factor(log.time_unit, "s")
+    marks = []  # (elapsed s, order, css class, text)
+    step_no, step_of = 0, {}
+    prev = None
+    for st in A["steps"]:
+        if st["paused"]:
+            marks.append((st["a"], 2, "mk-step", "Held (pause), %.1f s: its own step" % (st["wb"] - st["wa"])))
+            for p in st["parts"]:
+                step_of[p["sec"]] = None
+            prev = None
+            continue
+        step_no += 1
+        change = _differs(st, prev) if prev is not None and prev["op"] == st["op"] else "start of the operation or after a pause"
+        marks.append((st["a"], 2, "mk-step", "Display step %d: %s | %s ml/min, %s %%B | changed from step before: %s | joins section(s) %s%s" % (
+            step_no, st["label"], f(st["flow"], 2), f(st["b_pct"], 0), change, sec_ranges([p["sec"] for p in st["parts"]]),
+            " (absorbed a short piece)" if any(p["absorbed"] for p in st["parts"]) else "")))
+        for p in st["parts"]:
+            step_of[p["sec"]] = step_no
+        prev = st
+    step_starts = {round(m[0], 3) for m in marks}
+    for i, s in enumerate(A["S"]):
+        if s.paused or round(s.elapsed_start_s, 3) in step_starts or step_of.get(i) is None:
+            continue
+        marks.append((s.elapsed_start_s, 3, "mk-sec", "section #%d starts, joined into display step %d" % (i, step_of[i])))
+    for op in A["ops"]:
+        marks.append((op["a"], 0, "mk-op", "Operation: %s" % op["label"]))
+        for p in A["phases"][op["id"]]:
+            if len(A["phases"][op["id"]]) > 1:
+                marks.append((p["a"], 1, "mk-ph", "Phase: %s" % p["label"]))
+    marks.sort(key=lambda m: (m[0], m[1]))
+    out, k = [], 0
+    for e in log.events:
+        t = (e.time or 0.0) * to_s
+        while k < len(marks) and marks[k][0] <= t + 1e-6:
+            out.append("<div class='%s'>%s</div>" % (marks[k][2], E(marks[k][3])))
+            k += 1
+        text = (e.text or "").replace("\r", " ").replace("\n", " | ")
+        if text.lower().startswith("batch id"):
+            text = "Batch ID: <masked>"
+        out.append("<div class='ln'>%10.2f s  %9s ml  %s</div>" % (t, ("%.3f" % e.volume) if e.volume is not None else "-", E(text)))
+    for m in marks[k:]:
+        out.append("<div class='%s'>%s</div>" % (m[2], E(m[3])))
+    return ("<p class='lead'>Every line UNICORN wrote (Chrom.N.Xml, event curve 'Logbook'), in method time (pauses excluded). Banners are the "
+            "reading's boundaries: <span class='mk-op'>operation</span> <span class='mk-ph'>phase</span> <span class='mk-step'>display step</span> "
+            "<span class='mk-sec'>section joined into a step</span>. A banner sits before the first line at or after its time.</p>"
+            "<div class='rlog'>%s</div>" % "".join(out))
+
+
 def decisions_html(A):
     with open(DECISIONS_FILE, encoding="utf-8") as fh:
         items = json.load(fh)
@@ -2791,7 +2852,7 @@ def page(A, inv, rec_name):
     parts.append('<h3>Where sections were joined</h3><p class="lead">The same display steps with every original section as a cell. '
                  'Long runs hide the short pieces in the figure above.</p><div class="fig">%s</div>' % safe("joins", fig_joins, A))
     parts.append('<h2 id="setact">2. Set point next to actual</h2><p class="lead">What the method set, what the pump delivered, what UNICORN measured. '
-                 'Measured traces break at pauses: no data is stored while the run is held.</p>%s<div class="fig">%s</div>' % (
+                 'Measured traces have a gap at each pause: no data is stored while the run is held.</p>%s<div class="fig">%s</div>' % (
                      docs(rs("3.8"), rst(13), rst(18), decide(6), decide(15), decide(18), ref("Scope row 8", RM_, "Scope decisions for CADET")), safe("setact", fig_setpoint_actual, A)))
     parts.append('<h2 id="curves">3. Measured curves by role</h2>%s<div class="fig">%s</div>' % (
         docs(ref("Finding curves by role", UG, "Finding Curves: by Role, Not by Name"), ref("Axes", UG, "Axes"), rs("5")), safe("curves", fig_curves, A)))
@@ -2800,6 +2861,7 @@ def page(A, inv, rec_name):
     parts.append('<h2 id="tables">4. Tables</h2>' + docs(rs("5"), rst(17), rst(18), rst(21), ref("Export guide", EG, "Phase window statistics")))
     parts.append("<h3>Operations, with set point and actual volumes</h3>" + safe("ops", ops_table, A))
     parts.append("<h3>Phases (reading D) and the blocks they come from</h3>" + docs(rs("3.5.1"), rst(6), rst(15), rst(16)) + safe("phases", phases_html, A))
+    parts.append("<h3>The run log, with the operation, phase and step boundaries marked</h3>" + safe("runlog", run_log_html, A))
     parts.append("<h3>Display steps (proposed table)</h3><p class='lead'>Rule 1: one step per phase (a step never crosses a phase boundary), split where flow, %B, feed, by-pass or Hold changes. Rule 2: every pause is its own Held row. "
                  "Rule 3: a piece under 10 s joins the step after it at the start of an operation or after a pause, else the step before it. A Hold, feed or by-pass is never hidden: a short piece that has one joins only a step that has it too. "
                  "Bold rows absorbed such a piece (orange in the figure). The sections table below has the same # numbers.</p>" + safe("steps", steps_table, A))
