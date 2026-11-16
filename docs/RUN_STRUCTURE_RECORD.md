@@ -729,10 +729,16 @@ A run takes material in (the load, buffers) and gives material out (flow-through
 and the eluate, collected as fractions and later pooled). Each carries its own material ID
 (§3.1).
 
-In the JSON, `materials.process_inputs` lists the loads and the buffers (`kind` is `load` or
-`buffer`). `materials.process_outputs` lists every row of the fraction collector and the waste
-lines, told apart by `role` and `goes_to`. A waste line is a process output with no material ID.
-`procedure.links` uses the same two names.
+In the JSON, `materials.process_inputs` lists the loads and the buffers, each with
+`material_use` `Consumed`. The material itself says whether it is a load or a buffer, by its
+constituents: a load contains the protein, a buffer contains salts and buffering species. UNICORN
+stores no constituents, so they are the caller's (`contents`, material ID). PyCORN only knows where
+the material entered: a load through the injection valve, a buffer through an inlet line
+(`element_id` `LOAD1`, `BUF:A`).
+`materials.process_outputs` lists every row of the fraction collector and the waste lines, told
+apart by `role` and `goes_to`. A collected fraction has `material_use` `Produced`, a waste line
+`Other` (`other_value` `waste`) and no material ID. `material_use` is BatchML's `MaterialUse`
+(`B2MML-Common.xsd`). `procedure.links` uses the same two names.
 
 ```mermaid
 flowchart LR

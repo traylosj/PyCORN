@@ -474,7 +474,7 @@ JSON_MAP = [
     ("    .phases[]", "level PH: one per task block run (a block the operation calls with a planned length), or the operation's own stretch, or the whole operation when it has no task block; label as logged, original, how_found, length (planned and executed); never overlapping", "UNICORN + method", "#levels", [("3.5.1", None), ("3.5", None)]),
     ("      .sections[]", "level SE: state, start/end (wall clock and method time), column_flow (set point + fitted actual with pieces), percent_b, injection_valve, inlets (known / assumed / not known), bypass", "UNICORN + volume axis", "#tables", [("3.5", None), ("3.7", None), ("3.8", None)]),
     ("states[]", "ISA-88 state bands: held, holding, restarting, paused", "PyCORN", "#levels", [("3.7", None)]),
-    ("materials", "process inputs (kind load: set point volume; kind buffer: inlet line, positions, %B range; contents and lot null = caller), process outputs (collected fractions and waste lines; ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
+    ("materials", "process inputs (material_use Consumed; a load has its set point volume, a buffer its inlet line, positions, %B range; contents and lot null = caller), process outputs (material_use Produced for collected fractions, Other for waste lines; ID = run + tube); material IDs null = caller", "UNICORN + caller", "#tables", [("3.6.3", None)]),
     ("volumes", "every volume on the flow path with status stored / not stored", "UNICORN", "#path", [("3.6.1.1", None)]),
     ("facts[]", "the inventory: every fact, who needs it, its status and source", "all", "#facts", [("3.9", None)]),
     ("views.display.steps[]", "display steps. A view, not part of the record: computed from sections each time", "PyCORN", "#levels", [("3.5", None)]),
@@ -2235,11 +2235,12 @@ def record(A):
     if cur:
         loads.append(cur)
     bu = buffers_used(A)
-    # ISA-88.01 5.3.2.2 formula: process inputs (loads and buffers, told apart by `kind`) and process outputs
+    # ISA-88.01 5.3.2.2 formula: process inputs and process outputs. `material_use` is BatchML's MaterialUse
+    # (B2MML-Common.xsd); a load or a buffer is told apart by its own fields and element_id (LOAD1, BUF:A)
     mats = OrderedDict(process_inputs=[], process_outputs=[], pools=OrderedDict(
         peak_tables=len(getattr(A["ch"], "peak_tables", None) or {}), pool_tables=len(getattr(A["ch"], "pool_tables", None) or {})))
     mats["process_inputs"] = [OrderedDict(
-        kind="buffer", element_id="BUF:%s" % line, inlet_line=line,
+        material_use="Consumed", element_id="BUF:%s" % line, inlet_line=line,
         positions=[OrderedDict(original=label, state=state) for label, state in used.items()],
         percent_b_range=list(bu["pct"]) if line != "sample" and bu["pct"] else None,
         contents=None, lot_id=None, material_id=None, material_id_source="caller (UNICORN stores none)")
@@ -2247,12 +2248,13 @@ def record(A):
     for i, g in enumerate(loads, 1):
         set_ml = sum((s.column_flow_ml_min or 0) * (s.elapsed_end_s - s.elapsed_start_s) / 60.0 for s in g)
         mats["process_inputs"].insert(i - 1, OrderedDict(
-            kind="load", element_id="LOAD%d" % i, unit_procedure="UP1", injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
+            material_use="Consumed", element_id="LOAD%d" % i, unit_procedure="UP1", injection_valve=g[0].injection_valve, start_wall_s=round(g[0].start_s, 3), end_wall_s=round(g[-1].end_s, 3),
             volume=[val(set_ml, "mL", "set_point", "calculated", "run_log")],
             material_id=None, material_id_source="caller (UNICORN stores none)"))
     for x in event_tables.rows(A["ch"], "fraction"):
         waste = bool(x["waste"])
         mats["process_outputs"].append(OrderedDict(element_id="OUT:%s" % x["name"], unit_procedure="UP1",
+                                             material_use="Other" if waste else "Produced", other_value="waste" if waste else None,
                                              role="waste_line" if waste else "collected_fraction", goes_to="waste" if waste else "fraction_collector",
                                              is_sample=not waste,
                                              start_min=round(x["start_time"], 4), end_min=round(x["end_time"], 4),

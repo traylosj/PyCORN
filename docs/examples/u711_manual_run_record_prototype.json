@@ -2606,7 +2606,7 @@
  "materials": {
   "process_inputs": [
    {
-    "kind": "load",
+    "material_use": "Consumed",
     "element_id": "LOAD1",
     "unit_procedure": "UP1",
     "injection_valve": "Inject",
@@ -2625,7 +2625,7 @@
     "material_id_source": "caller (UNICORN stores none)"
    },
    {
-    "kind": "buffer",
+    "material_use": "Consumed",
     "element_id": "BUF:A",
     "inlet_line": "A",
     "positions": [
@@ -2660,7 +2660,7 @@
     "material_id_source": "caller (UNICORN stores none)"
    },
    {
-    "kind": "buffer",
+    "material_use": "Consumed",
     "element_id": "BUF:B",
     "inlet_line": "B",
     "positions": [
@@ -2691,7 +2691,7 @@
     "material_id_source": "caller (UNICORN stores none)"
    },
    {
-    "kind": "buffer",
+    "material_use": "Consumed",
     "element_id": "BUF:sample",
     "inlet_line": "sample",
     "positions": [
@@ -2715,6 +2715,8 @@
    {
     "element_id": "OUT:Waste",
     "unit_procedure": "UP1",
+    "material_use": "Other",
+    "other_value": "waste",
     "role": "waste_line",
     "goes_to": "waste",
     "is_sample": false,
@@ -2735,6 +2737,8 @@
    {
     "element_id": "OUT:Out 1",
     "unit_procedure": "UP1",
+    "material_use": "Produced",
+    "other_value": null,
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
     "is_sample": true,
@@ -2755,6 +2759,8 @@
    {
     "element_id": "OUT:Out 2",
     "unit_procedure": "UP1",
+    "material_use": "Produced",
+    "other_value": null,
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
     "is_sample": true,
@@ -2775,6 +2781,8 @@
    {
     "element_id": "OUT:Out 3",
     "unit_procedure": "UP1",
+    "material_use": "Produced",
+    "other_value": null,
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
     "is_sample": true,
@@ -2795,6 +2803,8 @@
    {
     "element_id": "OUT:Out 4",
     "unit_procedure": "UP1",
+    "material_use": "Produced",
+    "other_value": null,
     "role": "collected_fraction",
     "goes_to": "fraction_collector",
     "is_sample": true,
@@ -2815,6 +2825,8 @@
    {
     "element_id": "OUT:Out-Waste",
     "unit_procedure": "UP1",
+    "material_use": "Other",
+    "other_value": "waste",
     "role": "waste_line",
     "goes_to": "waste",
     "is_sample": false,
