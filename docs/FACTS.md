@@ -117,7 +117,7 @@ On `samples/sample.zip` (F1-F15) and UNICORN 7.3 / 7.11 results (F16-F24).
 - Injection gap (settled with the owner, don't reopen): the ~0.08 ml planned-vs-executed
   shortfall is the pre-switch gap, not a dead volume or an instrument setting. An Inject block
   counts its length from block start, but the valve turns 1-3 s later while the previous flow
-  runs (measured median 2.7 s on an AKTA avant). Gap about 0.004 ml at 0.35 ml/min, 0.06-0.08 ml at
+  runs. Gap about 0.004 ml at 0.35 ml/min, 0.06-0.08 ml at
   5 ml/min, 0.16 ml at 15 ml/min. Independent of the delay-volume settings (those are after
   the UV monitor). The feed starts at the logged `Injection valve Inject`
   (Completed), so no correction; use set-points, not flow-curve integrals (pump ramp-down).
@@ -190,7 +190,7 @@ Other gotchas:
 
 ## Review 2026-11-08 (a-z)
 
-Every route was run end to end: zips, `.UFol`s, databases (incl. a multi-chromatogram run),
+Every route is run end to end: zips, `.UFol` folders, databases (single and multi-chromatogram runs),
 `pycorn export`, a fresh non-editable install, CADET-Core 5.1.2 / 6.0.0a5 and CADET-Process
 0.12. Checked and fine: full axes on every member; zip / UFol / database parity; search paging
 and filters; `match_files`; every EXPORT_GUIDE file and column; the walkthrough and simulated
@@ -210,7 +210,7 @@ hand-checked UV, conductivity, flow, area, mixer, fraction mass and salt convers
 | i | Column and CSTRs start empty (`INIT_C` 0) | Open: M1 (documented in CADET_GUIDE, Known limitations) |
 | j | No loop volume on the export path | Open: M3 |
 | k | Sample pump inlet named 'Buffer' gives no feed | Open: M4 |
-| l | Paused sections in an Inject period are feed with Q = 0; pseudo 'Waste' fraction rows | Open: M5 |
+| l | Paused sections in an Inject period are feed with Q = 0 | Open: M5. Waste lines are rows with a `waste` column, not fractions (built, unreleased) |
 | m | Core 5 vs 6 differ by 8.2 % on one run | Open: M6 |
 | n | pandas a hidden core dependency; setup and requirements faults | Fixed: pandas in `install_requires`, `python_requires`, no `distutils`, `processing` extra kept empty, `sql/requirements.txt` fixed |
 | o | `--cadet-core` said "written" when the Core file wasn't | Fixed: run `incomplete`, exit 1 (`missing_outputs`) |

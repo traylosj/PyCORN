@@ -17,16 +17,19 @@ still complete, and hovering a bar or box shows its details.
 | Section | Shows | Proposal |
 |---|---|---|
 | Check these first | places in this run that test a decision, each linked to its doc | all |
+| Decisions to review | every open choice with this run's data, the options, the proposed answer, its status (open, decided, proposed) and where the proposal explains it. The items come from `tools/run_structure_decisions.json`; options the spec does not state are marked as placeholders | 11, 9 |
 | 0. Above and beside the operations | linked runs, procedure, unit procedure and cycles, chromatograms, equipment, material, who knows each | 3.1 to 3.4, 3.6 |
 | 1. Levels | procedure, unit procedure, chromatogram, state, operation, phase, activities, section, display step on one clock | 3.5, 3.7 |
 | 2. Set point next to actual | run log, flow fitted to the volume axis, measured curve (broken at pauses) | 3.8 |
 | 3. Curves by role | UV, conductivity, pH, pressure, temperature | |
-| 4. Tables | operations, display steps, states, sections, loads, buffers, fractions | 5 |
+| Recipe | the method as hints only: master recipe, control recipe (the values this run used), planned against run, each block tied to the operation it ran in | 5, 3.2 |
+| 4. Tables | operations, display steps (named by operation and activity), states, sections, loads, buffers, the fraction collector (collected fractions and waste lines, with the flow to each), edge cases | 5, Table 16 |
 | 5. Flow path | every volume on the path, stored or not stored | 3.6.1.1 |
 | 6. Every fact | 73 facts display or CADET could need: stored, derived, hint only, caller gives, not stored | 3.9 |
 | 7. Scope rows | the ten roadmap rows as they come out on this run | ROADMAP |
 | 8. The JSON | map of paths to page sections, key glossary, tree, full text | 5 |
 | 9. Raw UNICORN output | run log, settings, mixer, column, calibration, method, curves, fit, `inspect --json`, in scrollable blocks | |
+| 10. Warnings | the warnings today's readers give for this run | |
 
 Each `<name>_record_prototype.json` is the prototype record of that run (section 8 of its page).
 `sample.zip` and `u73_nonbinding_pulse.zip` are the same run. `u73_blank`, `u711_proa_day12`

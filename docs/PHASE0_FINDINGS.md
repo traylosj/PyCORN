@@ -1,6 +1,6 @@
 # Phase 0 Findings: UNICORN Database vs ZIP Exports
 
-Read-only spike, 2026-11-07, on UNICORN databases with `DB_Version` 1.7.4.0 and 1.8.6.0. Decisions and facts that came from it are in
+Read-only spike, 2026-11-07, of the UNICORN database schema (the `DB_Version` 1.7.4.0 and 1.8.6.0 layouts). Decisions and facts that came from it are in
 [`docs/ROADMAP.md`](ROADMAP.md). This file keeps schema names, mappings, vocabularies and
 rules. Every query was a `SELECT`.
 
@@ -154,7 +154,7 @@ Curve `CurveDataTypeName` x `AmplitudeUnit` seen:
   (or `''` on time-grid ratio curves). `Chromatogram.TimeUnit`/`VolumeUnit` are
   `min`/`ml`.
 - No `AU`, `L/h` or `L` was seen; process-scale systems may use them. Unit handling is
-  table-driven so it can be extended (see the plan's Units section).
+  table-driven so it can be extended (see `pycorn/units.py`).
 - `mAU/cm` UV curves are already divided by the path length in cm; plain `mAU` curves are
   not (checked on a derived curve with no `CurveUVInfo`: a `mAU` curve's values divided by
   its 0.2 cm nominal path).
@@ -168,8 +168,8 @@ most curves are normalized to the nominal path, a few are not.
 
 **Extinction coefficient:** the schema has `Peak.ExtCoeff`/`ExtCoeffConc`/`ExtCoeffAmount`
 (units in `PeakUnit.ExtCoeffUnit`, ...), `Pool.ExtCoeff` and
-`ProteinInfo.ExtinctionCoefficient`. They were empty where surveyed, so for now it comes
-from the user (plan: "Concentration output").
+`ProteinInfo.ExtinctionCoefficient`. PyCORN does not read them: the extinction coefficient comes
+from the caller (see `docs/USER_GUIDE.md`, "Concentration (mg/ml) from UV").
 
 Event vocabulary: `EventCurveTypeName` = `Logbook`, `Injection`, `Fraction`, and
 `ImportedLogbook`. `EventTypeName` = `Method`, `Manual`, `ManualAtInstrument`, `System`,
@@ -220,7 +220,7 @@ be converted without guessing the zone.
   that second Continue for the first one's follow-up entry and dropped it. Now only
   (Processing)/(Completed) entries are follow-ups, and a repeat of the previous anchor's
   kind (a Pause while paused) is still merged.
-- **Left (warned, not placed):** a few runs end a few seconds late after hours with no
+- **Left (warned, not placed):** a run can end a few seconds late after hours with no
   pauses (drift of the elapsed clock, or a stop UNICORN didn't log).
 - Alarm texts carry `Occurred at time <date> <offset>`. It agrees with the rebuilt clock to
   the second in the runs inspected. Not used as an anchor (a possible cross-check).

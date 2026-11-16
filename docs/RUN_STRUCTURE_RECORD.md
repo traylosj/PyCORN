@@ -150,7 +150,7 @@ stores, what ISA-88 calls it, and what the PyCORN batch history keeps.
 flowchart LR
     prod["Linked runs<br/>through materials<br/>or a series"] --> proc
     proc["Procedure<br/>UNICORN: result"] --> up
-    up["Unit procedure<br/>one per cycle"] --> op
+    up["Unit procedure<br/>one per run by default"] --> op
     op["Operation<br/>UNICORN: phase"] --> ph
     ph["Phase<br/>UNICORN: block"] --> st
     st["Section<br/>not ISA-88<br/>CADET-Process: Phase"]
@@ -278,12 +278,27 @@ in the recipe" (ISA-88.01 6.4.1.2).
 A **unit procedure** is a complete piece of work on one unit (ISA-88: "a strategy for
 carrying out a contiguous process within a unit", made of contiguous operations, ISA-88.01 3.61). A run has
 **one** by default.
-It has several only when the run repeats a whole process, which chromatographers call
-**cycles**: to process enough material, one recipe runs the same sequence (equilibrate, load,
-wash, elute, clean) N times on one column. "Cycle" is not an ISA-88 term. The PyCORN batch history maps
-each cycle to one unit procedure. Elements carry no `cycle` field. The chromatographers'
-word comes back as the caller's label for the unit procedure (e.g. "Cycle 2"), and the rules
-below say how cycles are marked and used.
+
+**The term "cycle".** Chromatographers repeat a whole process to handle more material than one
+pass can: one recipe runs the same sequence (equilibrate, load, wash, elute, clean) N times on
+one column, and each pass is a **cycle**. People then want a result, a summary or a comparison
+"per cycle". "Cycle" is not an ISA-88 term, and neither UNICORN nor the result stores it.
+
+**How this proposal solves it, with one level and no new word.** A cycle is a unit procedure:
+a complete piece of work on one unit, made of whole operations. So the PyCORN batch history has
+no cycle level, no `cycle` field on any element and no `cycle` column. The caller says where
+each unit procedure starts (the rules below), and everything that wants "per cycle" (the summary
+row, the window statistics, the overlay aligned at each start, one CADET input each) takes the
+unit procedure instead. The chromatographers' word survives only as the label: the default text
+is "Cycle 1", "Cycle 2", and the caller can give any other ("Lot X, pass 3"). The option that
+splits a run is named for what it does, `unit_procedures` (owner, 2026-11-15), not for the
+word.
+
+> **Status: a proposal, not checked against data.** No sample in this repository holds more
+> than one cycle, so nothing in this section, the three marking rules and the checks below
+> included, has been tried on a real multi-cycle run (§9 says what would settle it). The design
+> follows from ISA-88's definition of a unit procedure and from how UNICORN records results, and
+> the details are expected to change when a sample shows the cases.
 
 <a id="table-4"></a>**Table 4.** Three ways UNICORN can record the same cycles, and how the PyCORN batch history marks each.
 
@@ -306,8 +321,9 @@ unit, so reading each cycle as one is this proposal's choice.
 **How cycles are handled (proposed).** Cycles are never found on their own. The caller marks
 them, and PyCORN applies the marking the same way every time:
 
-1. **Marking.** The caller gives one of three rules (a CLI flag and an options JSON key, name
-   open):
+1. **Marking.** The caller gives one of three rules with the option `unit_procedures` (CLI
+   `--unit-procedures`, the same name in the options JSON; how the values and the phase names
+   are spelled is left to the build):
    - **By chromatogram:** each chromatogram is one cycle.
    - **By phase:** the UNICORN phase that starts each cycle, as the method names it (e.g.
      "Equilibration"). Optionally also the phase that ends each cycle (e.g. "CIP").
@@ -321,17 +337,17 @@ them, and PyCORN applies the marking the same way every time:
    exception.
 3. **Labels and order.** Each unit procedure keeps the caller's label as given ("Cycle 1",
    "Prime", "Lot X, pass 3"), with source `caller` (§3.9). PyCORN adds only its position in
-   run order. Without labels, the default names apply ("Cycle n", [Table 15](#table-15)).
+   run order. Without labels, the default names apply ([Table 15](#table-15): "Cycle n" and the like; by chromatogram, its name).
    Across results, the series run number gives the order.
 4. **Checks.** A chromatogram cut inside a phase fails with an error naming the phase.
    Cycles whose phase order differs from the others get a warning that lists the phases.
    Unequal cycles are kept as they ran, never padded or dropped ([Table 16](#table-16)).
 5. **Hints, without a rule.** The run is one unit procedure. A repeat in the logged phase
    order is offered as a suggested rule (start phase and count), never applied on its own.
-6. **Outputs.** Display gets a `cycle` column with the caller's labels, a summary row and
-   window statistics per cycle, and the overlay aligned at each cycle's start (W12). ISA-88's
+6. **Outputs.** Display gets a `unit_procedure` column with the label, a summary row and
+   window statistics per unit procedure, and the overlay aligned at each unit procedure's start (W12). ISA-88's
    multi-batch trend likewise "must be with relative time-axis" (ISA-88.01 6.4.3.2). The model
-   view gives one CADET input per cycle, each with its own measured reference, since real
+   view gives one CADET input per unit procedure, each with its own measured reference, since real
    cycles differ as the column loads and ages. The JSON holds the unit procedures with their
    `label` and `boundary_source` ([Table 17](#table-17)). Each `element_id` starts with its
    unit procedure (`UP2/OP3/...`).
@@ -403,17 +419,21 @@ run into **sections**, the word CADET-Core uses for the stretches of its input
 
 | Level | UNICORN | CADET-Process 0.13 | In the PyCORN batch history | Row in [Figure 7](#figure-7) |
 |---|---|---|---|---|
-| Operation (ISA-88.01 5.1.2.3: "a major processing sequence that takes the material being processed from one state to another") | a UNICORN **phase** (Equilibration, Sample Application, ...) | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats, each occurrence identified, as ISA-88.01 5.3.3.2 asks), logged text, label | "Operation" |
-| Phase (ISA-88.01 3.34: "the lowest level of procedural element") | a UNICORN **block**, and the activities running at once inside a phase (flow and gradient, sample feed, fractionation, watches) | none (activities are flow-sheet units) | `phase`: one per equipment activity, with the equipment module that carries it out | "Phase", and "Phase activity" shows one activity, the sample feed |
+| Operation (ISA-88.01 5.1.2.3: "a major processing sequence that takes the material being processed from one state to another") | each element the method's main block calls: a UNICORN **phase** (Equilibration, Sample Application, ...), or a top-level block in a method with no phase elements (the UNICORN Method Manual calls both "phases", 10.1.2). A run with no method is one operation. | none (CADET-GUI: a "Phase ..." run-log marker) | `operation`: number, instance (repeats, each occurrence identified, as ISA-88.01 5.3.3.2 asks), logged text, label | "Operation" |
+| Phase (ISA-88.01 3.34: "the lowest level of procedural element") | a **task block** (§3.5.1): a block the operation reaches by a `Block` or `Loop` call, with a planned length above 0, the run's variable values applied. A stretch of the operation's own instructions with a planned length above 0 is a phase too. An operation with neither is one phase. | none (activities are flow-sheet units) | `phase`: one per task block run, in run order, never overlapping; planned length (`set_point`, from the method) and executed length (`actual`) | "Phase" |
+| Steps and transitions (ISA-88.01 5.1.2.4: "one method of defining subdivisions of a phase") | smaller logic inside a phase: blocks that only control equipment or wait, conditions, watch actions, breakpoints | none | not a stored level: each section keeps its block in `original.block` (whether to store steps is open and not wanted now, §11) | none |
+| Equipment phase (ISA-88.01 3.18 and 5.2.2.3.2; equipment control, which "is not considered to be part of the recipe", 5.3.3) | an activity of one equipment module: sample feed, fractionation, column by-pass | flow-sheet units and `ValveEvent` | `equipment_phases` per unit procedure (names proposed): `equipment_module`, start, end, `commanded_by`. They may overlap each other and cross operation boundaries | "Phase activity" shows one activity, the sample feed |
 | Section (not ISA-88, CADET-Core's word) | the stretch from one executed instruction to the next: the settings (flow, %B or its ramp, valves, feed, state) don't change inside it | **`Phase`** (one flow, linear composition) and `ValveEvent` | `section`: the PyCORN batch history's lowest level, as the model gets it | "Section" |
 
 **Display: sections joined (proposed).** People don't need 29 sections for one run. The
 display view joins neighbouring sections whose flow, %B, feed and state are equal, and folds
 the previous phase's set points into the phase when the phase's own instruction replaces them
 within 10 s, with a note (decided 2026-11-12). This is computed from the sections each time
-and isn't stored in the PyCORN batch history. In `u73_blank.zip` the 29 sections become 12 such rows. What
-to call them is open (§11: "the words below the phase"). This draft calls them
-**display steps**.
+and isn't stored in the PyCORN batch history. In `u73_blank.zip` the 29 sections become far
+fewer such rows (the worked example page counts them with the current rule; Figure 7 was drawn
+with an earlier rule and is due for a redraw). Each row is labelled by its operation and the
+activity words that are on ([Table 15](#table-15)). Whether to call the rows "steps" is open
+(§11: "the words below the phase"). This draft calls them **display steps**.
 
 ![u73_blank.zip: operations, phases, sections and display steps, with the column flow and %B set points](images/u73_run_levels.svg)
 
@@ -423,9 +443,82 @@ display steps (proposed). The curves below are the column flow and %B set points
 run log.
 
 > **Three kinds of "phase".** A UNICORN phase is an ISA-88 operation, an ISA-88 phase
-> is closer to a UNICORN block, and a CADET-Process `Phase` is a section. The PyCORN batch history uses
+> is a UNICORN task block (§3.5.1), and a CADET-Process `Phase` is a section. The PyCORN batch history uses
 > ISA-88's words with UNICORN's beside them. Display keeps UNICORN's. `Phase` appears only in
 > CADET objects.
+
+#### 3.5.1 Which blocks are phases (decided 2026-11-15, except the task-block test, which is proposed)
+
+A UNICORN method is a tree of blocks. The main block calls the **phases** UNICORN shows in its
+method editor (Equilibration, Sample Application, ...) or, in a method without phase elements,
+top-level blocks that play the same role. A block can call other blocks (`Block`), repeat them
+(`Loop`) or be started by a condition (a `Watch` action). A block's **planned length** is the
+breakpoint of its `End_Block` instruction, with the run's own variable value when the breakpoint
+is tied to a variable. ISA-88 calls the operation "an ordered set of phases" and a phase "the
+smallest element of procedural control that can accomplish a process-oriented task", which "may
+be subdivided into smaller parts" (ISA-88.01 5.1.2.3, 5.1.2.4). This proposal reads the tree
+that way. It uses only what the method stores and what the run log shows, and no block names.
+
+| Case in the samples | Operations | Phases |
+|---|---|---|
+| `u73_blank.zip`: each UNICORN phase calls one task block (Equilibrate, Inject, Wash, Isocratic, ...) beside zero-length blocks (Hold until a stable signal, Start frac, Stop frac) | Equilibration, Sample Application, Column Wash, Elution, Equilibration (2), and "Method Settings" | one per task block; the zero-length blocks are smaller logic inside it |
+| `sample.zip`: one UNICORN phase called Run holds five task blocks (PurgeB, Purge, Equilibrate, SampleLoad, Wash) | "Method Settings" and Run | five phases in Run |
+| `u711_manual_run.zip`: no method | one operation, "Manual run" | one phase |
+
+1. **Operations.** Each element the main block calls, in call order. "Method Settings",
+   UNICORN's short first phase, is always an operation (owner, 2026-11-15).
+2. **Task block.** A block the operation reaches by a `Block` or `Loop` call, with a planned
+   length above 0. Each executed run of it is a phase, in run order, labelled with the block's
+   name as logged (`Equilibrate_1` stays as it is). A block called twice shows `Inject (2)`.
+   A block whose length variable is 0 in this run is not a phase in this run: the planned-vs-run
+   table lists it as "length 0 in this run" (owner, 2026-11-15).
+3. **Nested blocks.** A task block called by another task block is a step of the outer one
+   (owner, 2026-11-15): a phase is the lowest procedural level (ISA-88.01 3.34).
+4. **Loops.** The iterations of a loop are repeated phases with instance numbers. Unit
+   procedures are marked by the caller only (§3.3). A caller's unit procedure that falls inside
+   one operation splits that operation into instances, which needs a rule against ISA-88.01
+   5.1.2.2 ("an ordered set of operations"): open (§9).
+5. **The operation's own work.** Instructions of the operation itself with a planned length
+   above 0, beside the blocks it calls, are a phase too, labelled with the operation's name, one
+   per contiguous stretch (owner, 2026-11-15). For example, a synthetic operation that calls a
+   purge block of 5 ml and then runs its own 5 CV at a low flow has two phases: the purge, then
+   the operation's own equilibration.
+6. **Smaller logic (proposed).** Not every block with a planned length is a task. A block that
+   only watches the trace and ends or switches something, such as one that stops fractionation,
+   is smaller logic, whatever its length (owner, 2026-11-15). The proposed test, read from the
+   method alone:
+   - ignore the structural instructions (`Base`, `End_Block`) and the waits (`Hold until`,
+     `Pause`): a wash that waits for a stable signal is still a wash;
+   - a block with its own process instruction (flow, gradient, inlet, column position,
+     injection valve) or one that calls another block is a task;
+   - a block with no instruction of its own is a task: its length does the work;
+   - a block whose own instructions only control equipment (fraction collector, outlet valve,
+     tube handling, a watch) is smaller logic;
+   - a block reached only by a `Watch` action is a task only if it has a process instruction of
+     its own.
+   The public samples show only the zero-length case (Start frac, Stop frac, Hold until). The
+   rest is read from method definitions, not run behaviour, and needs more examples. The caller
+   can list block names to force either reading, since names differ between skids.
+7. **Watch-started blocks.** The phases stay sequential: a phase started by a watch cuts the
+   operation's stretch at its start (owner, 2026-11-15). To be checked on a run whose curves
+   show such a block.
+8. **Waits.** A block that waits for a condition (Hold until a signal with a timeout, Pause) is
+   smaller logic: a transition inside the neighbouring phase (owner, 2026-11-15).
+9. **A run with logged blocks and no method.** One phase, with a warning that planned lengths
+   could not be read. Commands in the run may be promoted to phase level when they change the
+   state of the system in a way that looks like a phase, by the same splitting rules as the
+   sections and the display steps and nothing new (owner, 2026-11-15).
+10. **Feed, fractionation and by-pass.** These are **equipment phases** (ISA-88.01 3.18):
+    equipment control, kept in their own list per unit procedure with the phase that commanded
+    them. They are not children of operations, so a fractionation that runs across an operation
+    boundary stays one. The pump's whole-run flow is not kept as an element: the sections carry
+    the flow and %B (owner, 2026-11-15).
+11. **Display steps.** A display step never crosses a phase boundary (owner, 2026-11-15). Its
+    label is in [Table 15](#table-15).
+
+Steps and transitions below the phase (IEC 60848, ISA-88.01 5.1.2.4) are not stored. The
+sections stay the lowest level. Whether to derive steps from breakpoints and zero-length blocks
+is open and not wanted now (§11, "the words below the phase").
 
 ### 3.6 Where it ran and what it did to the material
 
@@ -664,7 +757,7 @@ caller-given extinction coefficient and its accuracy note.
 | Buffers | inlet positions and %B per section | inlet line and position, with names and the buffer lot's material ID only from the caller (§3.6.3.2) | an input of the run, and IOF `BufferSolution` |
 | Flow-through, waste | outlet valve at waste, with times and volumes | the outlet sections | an output of the run, with no class |
 | Eluate | the stream reaching the fraction collector. UNICORN stores no separate record of it. | the outlet sections at the collector | an output of the run, with no class |
-| Fraction | one row per tube: tube id, start, end, volume (the `Fraction` event curve) | the run, chromatogram and UNICORN's tube id, with its span | No class for a collected fraction. ISA-95 (B2MML) `MaterialSubLot` is the closest place for one. |
+| Fraction | one row per tube or waste line: tube id, start, end, volume, `waste` (true for a waste line, which is not a collected fraction) (the `Fraction` event curve) | the run, chromatogram and UNICORN's tube id, with its span | No class for a collected fraction. ISA-95 (B2MML) `MaterialSubLot` is the closest place for one. |
 | Pool | fractions combined in UNICORN's evaluation (today's `pools` table): name, members, pooled curve | the run and the pool name (`<first>-<last>` tube id) | IOF `PoolingProcess` is the act of pooling. The pool itself has no class. It is an ISA-95 `MaterialLot` when it becomes the next step's load. |
 
 An ontology-aligned PyCORN batch history would need two things beyond this:
@@ -1001,7 +1094,7 @@ apply to every input in [Table 14](#table-14):
 
 | Input | Used in | Form | Without it |
 |---|---|---|---|
-| Cycle rule and unit procedure labels | §3.3 | a rule (by chromatogram, by start and end phase, or by series) and a text label per unit procedure | One unit procedure, no cycles |
+| Unit procedure rule (`unit_procedures`) and labels | §3.3 | a rule (by chromatogram, by start and end phase, or by series) and a text label per unit procedure | One unit procedure, no cycles |
 | Material ID of each load and of a combined pool | §3.1, §3.6.3 | text | A default ID ([Table 15](#table-15)). Runs aren't linked through that material. |
 | Which pool became which load, and a combined pool's parents | §3.1 | pairs of material IDs | Runs aren't linked |
 | Link labels (a lot, a series), and whether a series counts as cycles | §3.1, §3.3 | text | Only UNICORN's own scouting link, not counted as cycles |
@@ -1040,13 +1133,14 @@ Masking replaces names that can identify people or projects, as every output doe
 |---|---|---|---|
 | Run | the result name as UNICORN stores it | none: the key is UNICORN's Batch ID (§5) | - |
 | Unit procedure | `label`, first that applies: the user's override (`User input`); when cycles are marked, "Cycle n", "Before cycles", "After cycles" (by chromatogram: the chromatogram's name); when the run has one unit procedure, the name of its chromatogram if the result holds exactly one (`UNICORN`), else the result name (`UNICORN`). | `UP1`, `UP2`, ... when there is more than one. Cycles 1 to N count cycles only. | - |
-| Operation | `label`: the UNICORN phase name as logged, unless the user gives one. A repeat shows as `Equilibration (2)` (`instance`, Decide 23). "Method Settings", UNICORN's short first phase, is always kept as an operation, never folded into the next (owner decision). | `OP1`, `OP2`, ... | - |
-| Phase | `label`: the activity in plain words ("System flow", "Sample feed", "Fractionation"), unless the user gives one. `equipment_module` holds the key (`system_pump`, `sample_feed`, ...). UNICORN's block names stay in each section's `original`. | `PH1` (System flow, the whole operation), then `PH2`, ... in start order within the operation. Phases may overlap. | - |
-| Display step (view, not stored) | `label` (`PyCORN`): the operation's name as logged plus the activity words that are on (feed, by-pass, Hold), e.g. "Run, by-pass". A pause is "Run, Held". Equal labels are counted in run order and the later ones show "(2)", "(3)", as repeated operations do. | the step number in the table | - |
+| Operation | `label`: the UNICORN phase name as logged (or the top-level block's name in a method without phases; a run with no method: "Manual run"), unless the user gives one. A repeat shows as `Equilibration (2)` (`instance`, Decide 23). "Method Settings", UNICORN's short first phase, is always kept as an operation, never folded into the next (owner decision). | `OP1`, `OP2`, ... | - |
+| Phase | `label` (`UNICORN`): the task block's name as logged; for an operation's own stretch, or an operation with one phase and no task block, the operation's label. Repeats in one operation show `Inject (2)`. | `PH1`, `PH2`, ... in run order within the operation. Phases don't overlap. | planned length: from the method, run values (source `method`); executed length: from the axes |
+| Equipment phase | `label` (`PyCORN`): "Sample feed", "Fractionation", "Column by-pass", unless the user gives one. `equipment_module` holds the key (`sample_feed`, `fraction_collector`, ...). | `EP1`, `EP2`, ... in start order within the unit procedure. They may overlap each other and cross operation boundaries. | start, end, `commanded_by` (proposed names) |
+| Display step (view, not stored) | `label` (`PyCORN`): the operation's label, then ": " and the phase label when the operation has more than one phase, then ", " and the activity words that are on (feed, by-pass, Hold). E.g. "Run: SampleLoad, feed", "Sample Application, feed". A pause is "<label>, Held". Equal labels are counted in run order and the later ones show "(2)", "(3)", as repeated operations do. A step never crosses a phase boundary (§3.5.1). | the step number in the table | - |
 | Section | none: its `element_id` | `SE1`, `SE2`, ... within the phase | - |
 | Chromatogram | UNICORN's name | UNICORN's order | - |
 | Load | "Load n", with its feed in brackets: `Load 1 (S1)`, `Load 2 (Inject)` | in run order of the feed sections | Material ID: the run's Batch ID and the load number. Contents: not known. |
-| Fraction | UNICORN's tube id | UNICORN's order | Material ID: the run's Batch ID and the tube id |
+| Fraction | UNICORN's tube id | UNICORN's order | Material ID: the run's Batch ID and the tube id. A waste line (`waste` true) is a row with its flow but not a sample: no material ID |
 | Pool | UNICORN's pool name (`<first>-<last>` tube id) | UNICORN's order | Material ID: the run's Batch ID and the pool name |
 | Combined pool (declared by the caller without a name) | "Combined pool n" | in the order the caller declares them | Material ID: the parents' IDs joined by `+` |
 | Series | UNICORN's scouting name | the scouting run number | - |
@@ -1072,6 +1166,12 @@ plain case, and what the PyCORN batch history does with each.
 | One run loads several materials (several injections, or sample inlets S1, S2, ...) | One load per feed, each with its own material ID from the caller. Which fractions came from which load is not inferred beyond the cycle (or injection) they fall in. |
 | Pools combined outside UNICORN, then loaded on the next step | A new material whose ID and parents (the pools) come from the caller. The PyCORN batch history never joins runs on its own. |
 | A by-pass measurement split from the column run by a new chromatogram | Two operations in one unit procedure (same unit), unless the caller says otherwise. |
+| A loop inside one operation repeats task blocks | Repeated phases with instance numbers (`Inject`, `Inject (2)`). A unit procedure inside the operation is the caller's to mark and splits the operation into instances (§3.5.1, open for 5.1.2.2). |
+| A watch starts a task block | The phases stay sequential: the watch-started phase cuts the operation's stretch at its start. |
+| An operation's own instructions run beside the blocks it calls | The own stretch is a phase labelled with the operation's name, one per contiguous stretch. |
+| A task block calls another task block | The inner one is a step of the outer phase, not a phase. |
+| The run ends inside a phase | The phase ends at the run's end. In the planned-vs-run table it has the status `ended_early` when it ran shorter than planned. |
+| A block with a planned length that only controls equipment or watches the trace (for example stops fractionation) | Smaller logic, not a phase (§3.5.1 item 6, proposed). |
 
 ## 5. The PyCORN batch history's fields
 
@@ -1100,9 +1200,10 @@ elements (schematic):
 ```
 element  level=unit_procedure  UP1
   element  level=operation     OP2           "Sample Application" (a UNICORN phase)
-    element  level=phase       OP2/PH1       sample feed (an ISA-88 phase)
+    element  level=phase       OP2/PH1       task block "Inject" (an ISA-88 phase)
       element  level=section   OP2/PH1/SE1   flow 5 ml/min (the previous phase's set point)
       element  level=section   OP2/PH1/SE2   flow 1 ml/min
+  equipment phase              EP1           sample feed (equipment control, in a list of the unit procedure)
 ```
 
 **Naming rule: general words as keys, UNICORN's words as values.** The keys use words that
@@ -1140,7 +1241,7 @@ Fields with a fixed list of allowed values follow it too:
 | `chromatogram` | UNICORN's word (Allotrope uses it for one signal, §12) | the chromatogram the element was recorded in | results with several chromatograms (§3.4) |
 | `state` | ISA-88: key and values are its example procedural states (ISA-88.01 5.7.2.1, Table 2) | `running`, `held`, `paused`, `holding`, `restarting`, `stopping` | pauses, holds and the pump's ramps around them (§3.7) |
 | `start`, `end` | Plain words. The axes are PyCORN's (`axes.py`). Method time is UNICORN's axis. | the element's start and end on every axis: wall clock (s from method start, pauses included), method time (s, pauses excluded), volume (ml), column volumes (CV), and date and time (UTC) | placing the element on any axis a reader uses |
-| `equipment_module` | ISA-88.01 5.2.3.3, with PyCORN's names as values | `system_pump`, `sample_feed`, `fraction_collector`, ... | phases only: the equipment module that carries out the phase (single valves and monitors are control modules, §3.6.1) |
+| `equipment_module` | ISA-88.01 5.2.3.3, with PyCORN's names as values | `system_pump`, `sample_feed`, `fraction_collector`, ... | equipment phases only: the equipment module that carries out the activity (single valves and monitors are control modules, §3.6.1) |
 
 <a id="table-18"></a>**Table 18.** Fields on every value: where each name comes from, and its values.
 
@@ -1282,7 +1383,7 @@ JSON. The web page shows the same tables. The proposal touches few of them ([Tab
 | 3. Display view | `phases` table (CSV, Excel, page), `phase_windows`, the page's tracks | **Changed values.** A short delay at a phase start is folded in, with a note column. Repeated phases are named `Equilibration (2)`. Window statistics skip the held-over lead-in, retiring the "interim phase rule" note. Listed first in the CHANGELOG. |
 | 4. Display steps table (name open, §11) | between `phases` (one row per phase) and `sections` (1:1 with CADET) | **New table** (e.g. `<c>_steps.csv`, an Excel sheet, a page tab), added to `export_tables.py`. `schema --json` lists it (schema 1, additions only). |
 | Keys (Decide 2, 24) | `phases`, `sections`, `phase_windows`, `warnings` | **Added columns** `phase_number`, `section_number`, `element_id`. Warnings carry the `element_id` they belong to. One value per column ("Outputs stay atomic"). |
-| Cycles, chromatograms | the same tables | A `cycle` column (the caller's labels, §3.3) only when the caller marks cycles. Chromatograms already get their own files. |
+| Cycles, chromatograms | the same tables | A `unit_procedure` column (the label, §3.3) only when the caller marks unit procedures. Chromatograms already get their own files. |
 | 5. `pycorn record --json` | `inspect --json` | **New command**, same envelope, schema version and masking as every `--json`. `inspect` stays the summary and gains the operation list. `record` gives the whole structure. Neither holds curve values. |
 | 6. Model view | CADET files: `model_view.json`, CADET-Process CSVs, CADET-Core input | Same files, built from the PyCORN batch history. Values change with the decided flow source (Decide 6). File names may change (§11, "experiment"). |
 | Later: BatchML XML, Allotrope ASM | none | New optional files beside the others |

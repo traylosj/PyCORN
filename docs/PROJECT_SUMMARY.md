@@ -24,7 +24,7 @@ no programming), [`docs/USER_GUIDE.md`](USER_GUIDE.md) (the run model),
 [`sql/CONNECTOR_GUIDE.md`](../sql/CONNECTOR_GUIDE.md) (database settings) and
 [`CHANGELOG.md`](../CHANGELOG.md) (what changed in each release).
 
-**Status** (start at "Start here" in [`docs/ROADMAP.md`](ROADMAP.md)): every track is complete: loading,
+**Status** (start at "Start here" in [`docs/ROADMAP.md`](ROADMAP.md)): every track except the run structure proposal is complete: loading,
 axes, units, run search, the CLI, UV concentration (issue #1) and the CADET export (phases
 C0-C5, owner decisions D1-D30). What's left is in the roadmap: the "Modeler input" questions,
 open questions and possible items by goal ("Open, by goal"); ask the owner before starting any of it.
@@ -57,7 +57,7 @@ PyCORN/
 |-- pycorn/                   Python package
 |   |-- __init__.py           Exports parsers, model, open_run/open_folder, connector,
 |   |                         load_files, export_cadet
-|   |-- __main__.py, cli.py   `pycorn find` / `export` / `bypass-uv` (also python -m pycorn)
+|   |-- __main__.py, cli.py   `pycorn find` / `export` / `bypass-uv` / `windows` / `inspect` / `schema` / `sources` (also python -m pycorn)
 |   |-- setup_env.py          `pycorn-setup`: writes the per-user .env by questions, tests the connection
 |   |-- messages.py           plain_error(): one plain sentence for file and memory errors
 |   |-- version.py            __version__ (set only here), git commit, version_text()
@@ -101,7 +101,7 @@ PyCORN/
 |   |-- cadet_walkthrough.py  UNICORN run -> CADET-Core simulation next to what was measured
 |-- web/
 |   |-- index.html            Template of the in-browser page (Pyodide + Plotly)
-|   |-- i18n/                 Page texts: en, de, fr, it, sv
+|   |-- i18n/                 Page texts: en, de, es, fr, it, pt, sv
 |-- .github/workflows/pages.yml  Builds and deploys the page to GitHub Pages
 |-- tools/
 |   |-- anonymize_zip.py      Sanitize a result .zip before it leaves the lab
@@ -113,7 +113,6 @@ PyCORN/
 |   |-- SAMPLE_ZIP_CONTENTS.md  Entry-by-entry contents; identifying curves
 |-- tests/                    pytest: parsers, ZIP/UFol/SQL readers, axes, search,
 |                             sources, variables, roles/geometry, run log, CADET
-|-- unicorn_test_files/       Optional extra exports (gitignored); tests use them when present
 |-- sql/                      Connector support files
     |-- .env.example          Credential template (real .env is gitignored)
     |-- requirements.txt      pymssql, pandas, xmltodict
@@ -146,8 +145,8 @@ Curve and event names differ between instruments: look curves up with
 Connects over TCP/IP with SQL Server authentication. Credentials come from a `.env` file
 (`UNICORN_SERVER`, `UNICORN_DATABASE`, `UNICORN_USER`, `UNICORN_PASSWORD`, optional
 `UNICORN_PORT`; more databases and servers through `UNICORN_DATABASES` and
-`UNICORN_SOURCES`). The file is the first of `PYCORN_ENV_FILE`, `./sql/.env`, `./.env` and
-the checkout's `sql/.env` (`find_env_file()`); `UNICORN_*` environment variables override it
+`UNICORN_SOURCES`). The file is the first of `env_file=`, `PYCORN_ENV_FILE`, `./sql/.env`, `./.env`,
+the checkout's `sql/.env` and the per-user file `pycorn-setup` writes (`find_env_file()`); `UNICORN_*` environment variables override it
 key by key (`load_env()`). With no server set, `localhost` is used only if a SQL Server
 answers there (warned), else `ValueError`. Output names a source by its alias only.
 

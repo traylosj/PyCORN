@@ -2362,8 +2362,8 @@ def _text_data(A):
         "up_cycles": "%d chromatogram(s). Default: one unit procedure, labelled '%s'. %s." % (
             len(A["chroms"]), up_label(A), ("Phase order repeats: %s (a suggested start phase)" % ", ".join(reps)) if reps else "No repeated phase"),
         "chromatograms": "%d chromatogram(s): %s. How the run log marks a cut: not verified." % (len(A["chroms"]), ", ".join(c["name"] for c in A["chroms"])),
-        "display_steps": "%d sections become %d display steps." % (n_secs, len(steps)),
-        "join_rule": "%d sections become %d display steps. %d short piece(s) under 10 s were absorbed%s." % (
+        "display_steps": "%d running sections (pauses not counted) become %d running display steps." % (n_secs, len(steps)),
+        "join_rule": "%d running sections become %d running display steps. %d short piece(s) under 10 s were absorbed%s." % (
             n_secs, len(steps), len(pieces), (" (%s s)" % ", ".join(f(p["b"] - p["a"], 1) for p in pieces[:6])) if pieces else ""),
         "repeats": ("Repeated: %s. Shown as an instance number." % ", ".join(reps)) if reps else "No repeated phase in this run.",
         "ramps_flow": "%d of %d sections fitted to the volume axis; %d section(s) over 5 s where the pump delivered more than 10 %% off the set flow." % (fitted, tot, len(big)),
@@ -2461,7 +2461,7 @@ def page(A, inv, rec_name):
     vc = (A["view"].column or {}).get("vc_m3") if A["view"] else None
     steps_n = len([x for x in A["steps"] if not x["paused"]])
     tiles = [("%d" % len(A["ops"]), "operations"), ("%d" % len(A["blocks"]), "phases (blocks)"),
-             ("%d" % len([s for s in S if not s.paused]), "sections"), ("%d" % steps_n, "display steps"),
+             ("%d" % len([s for s in S if not s.paused]), "sections (pauses not counted)"), ("%d" % steps_n, "running display steps"),
              ("%d" % len(A["pauses"]), "pauses"), ("%d / %d" % (len([x for x in A["rows"] if x and x["fitted"]]), len([x for x in A["rows"] if x])), "sections fitted to the volume axis"),
              ("%s min" % f((A["end_wall"] or 0) / 60, 1), "wall-clock length"), ("%s ml" % f(vc * 1e6, 2) if vc else "none", "Vc"),
              ("%d" % len([x for x in inv["facts"] if x["status"] in ("missing", "caller")]), "facts the caller must give or UNICORN lacks")]

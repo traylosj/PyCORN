@@ -17,10 +17,10 @@ One row per goal: where it stands and what comes next. Details live in the secti
 | Goal | Status | Next step (owner decides) | Where |
 |------|--------|---------------------------|-------|
 | Read runs from zip, UFol and SQL into one `Run`; axes, units, search | Built | Nothing queued | Status by track |
-| Export for people and scripts (`pycorn export`, Excel, web page) | Built, 0.24.0 | Run-structure decisions change column names; see below | Status by track, [`CHANGELOG.md`](../CHANGELOG.md) |
+| Export for people and scripts (`pycorn export`, Excel, web page) | Built, 0.37.0 | Run-structure decisions change column names; see below | Status by track, [`CHANGELOG.md`](../CHANGELOG.md) |
 | Non-programmers: setup, Excel, plain messages, web page | Built | Web page review 2026-11-10 (W1-W17): 0.32.0-0.37.0 released (downloads, tables, report round 2, W16, W11 overlays, W17 chromatogram selection, run list ticks and M22's page table in 0.37.0); W12 after the phase decisions; then PyPI | Status by track: "Web page review (owner, 2026-11-10)", Open, by goal |
 | Modelers: CADET export and UV / salt calibration | Built (C0-C5) | A modeling SME settles M1-M13 and D30; per-phase curve statistics built (M22, 0.35.0, interim phase rule; page table and `pycorn windows` 0.37.0); UV baseline / breakthrough: proposed, under owner review, test data by CADET simulation (nothing built) | Modeler input (M1-M9), Status by track: UV concentration and signal calibration (issue #1, M10-M13, M22) |
-| Run structure: how phases, steps and sections reach each audience | Active; eight decisions made; the page's chart tracks and x axes built; inlets from the system configuration built (0.35.0); held-over folding decided (Decide 7-10, 2026-11-12, not built) | Track 0 (owner decisions): phases, repeats, lead-in and feed volumes (the other Decide items of 1-26), the enabler for CADET and M22's final phase rule; a new sample with a ramp | Run structure, "Web page review" release plan, [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) |
+| Run structure: how phases, steps and sections reach each audience | Active; decisions made (listed under "Run structure" below); the page's chart tracks and x axes built; inlets from the system configuration built (0.35.0); held-over folding decided (Decide 7-10, 2026-11-12, not built) | Track 0 (owner decisions): phases, repeats, lead-in and feed volumes (the other Decide items of 1-26), the enabler for CADET and M22's final phase rule; a new sample with a ramp | Run structure, "Web page review" release plan, [`RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) |
 | Agents and scripts: everything the page and CLI do, usable from code | A1, A2, A6, A9 built (0.36.0); A3, A4, A5, A7, A11 built (0.37.0) | A8 (the page's analysis logic in a public module); the MCP server (A10) paused (owner, 2026-11-12) | Track 9 in "Web page review" tracks; `local/AGENTIC_AUDIT.md` |
 | Upstream merge into ronald-jaepel/PyCORN | Issue #4 open, no reply; stage 1 branch pushed, PR 1 not opened | Decide how to proceed, then freeze `upstream-base` | Upstream merge |
 | Search and export extras (file-catalog filters, local index, tidy tables) | Ideas only | Ask first, with options | Open, by goal |
@@ -32,7 +32,7 @@ method and CADET facts, and the 2026-11-08 review).
 
 ## Start here
 
-**Built.** Every track is complete: reading runs from `.zip`, `.UFol` and the UNICORN
+**Built.** Every track except run structure is complete: reading runs from `.zip`, `.UFol` and the UNICORN
 database into one `Run`; time, volume, CV and UTC axes; units, Vc and event tables; run
 search over several databases and over files; `pycorn find` / `pycorn export`; UV
 concentration with accuracy notes and by-pass epsilon (issue #1); CADET export for
@@ -58,7 +58,7 @@ scripts reading the old CSV names need the CHANGELOG tables. Every release bumps
 and how general users want to see it (status track "Run structure";
 [`docs/RUN_STRUCTURE_REVIEW.md`](RUN_STRUCTURE_REVIEW.md) for experts,
 [`docs/RUN_STRUCTURE_GUIDE.md`](RUN_STRUCTURE_GUIDE.md) for new users).
-Under discussion with the owner; seven decisions made (listed under "Run structure" below). Built:
+Under discussion with the owner; decisions made (listed under "Run structure" below). Built:
 the web page's phase, fraction and pause tracks and its x-axis picker (Decide 4, 5). The table
 decisions are not built yet (checked: no `original_time_unit` column exists in the code).
 
@@ -769,6 +769,16 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
 - **Settled, not built** (owner, 2026-11-15): Decide 2, 3, 11, 13, 14, 16 and 24, Decide
   18, the value fields and the renames. See "Decisions", "Run structure and the PyCORN batch
   history".
+- **Also settled, not built** (owner, 2026-11-15): operations are UNICORN's phases, and
+  "Method Settings" is always one. Every element has a `label` and a positional `element_id`.
+  A run has one unit procedure by default, labelled with its chromatogram's name when the
+  result holds exactly one, else the result name. Display steps are named by operation and
+  activity words. "Cycle" is a label and a chromatographers' word, not a level, a field or a
+  column: the option that splits a run is `unit_procedures`, and the display column is
+  `unit_procedure` (RUN_STRUCTURE_RECORD §3.3, a proposal, no sample holds more than one
+  cycle). Display needs total liquid and void volume for DBC, and the extinction coefficient for
+  mg/ml, as the display's inputs (CADET needs them too). Waste lines are rows, not fractions
+  (built, unreleased).
 - **Open:** the other Decide items in the review, and a new shareable sample with a ramp
   (review section 6). This topic replaces open owner question 6 and roadmap item
   8. Owner, 2026-11-10: how phases are shown and exported is a critical enabler for CADET
@@ -780,7 +790,7 @@ Raised on a database run; evidence from `samples/u73_blank.zip`.
 The owner's review of the page after 0.31: slow downloads, too many places to download,
 the drop zone keeps its space, no split between key information and extras, an "Excel"
 download that holds CSVs, status texts partly in English, two more languages, multi-curve
-views, a taller injection mark, downloading chosen runs only, table features, a note that the CADET export is experimental. Items W1-W15.
+views, a taller injection mark, downloading chosen runs only, table features, a note that the CADET export is experimental. Items W1-W17.
 Built in 0.32.0 (2026-11-10): W1, W2, W3, W4, W5, W7, W8, W9, W15; built in 0.33.0 (2026-11-10): W6, W10, W13; built in 0.34.0 (2026-11-11): W16; built in 0.35.0 (2026-11-11): W11, the Injections table
 folded at load; built in 0.36.0: W17; built in 0.37.0: W17's follow-up, run list ticks, M22's page table; open: W12; W14 on hold. Each item lists what is there today, the proposal and its open choices; ask
 the open lines before building (owner rule).
@@ -1759,7 +1769,7 @@ Decide 7-10: fold for display with a `start_lag` note, see "Run structure"; not 
 (today), the longest-running value plus min/max, or both; (c) %B as text (today),
 start/end numbers, or both; (d) more columns from the sections: sample flow, outlet valve,
 wavelengths, holds, pauses in the row. Every branch (Python tables, export, page) keeps the
-same columns and formats. Decided and built: inlets (Decide 22, 0.35.0). (a) and the repeats
+same columns and formats. Decided and built: inlets (Decide 22, 0.35.0). Refined 2026-11-15: the decision closes per AKTA model (from the instrument description, not SystemTypeName); no model is verified yet, so first positions stay assumed, and the map of verified models is not built. (a) and the repeats
 (Decide 9, 23) also replace M22's interim phase rule.
 
 ### Non-programmers
@@ -1778,7 +1788,7 @@ same columns and formats. Decided and built: inlets (Decide 22, 0.35.0). (a) and
    more views; SRI hashes, the Content-Security-Policy and the web worker are in, see the
    usability audit entry). Details: Decisions, "Usability for
    non-programmers"; handoffs in [`HANDOFFS.md`](HANDOFFS.md).
-4. **Web page review** (owner, 2026-11-10): W1-W13 and W15, with a release plan (0.31.2-0.37.0) and
+4. **Web page review** (owner, 2026-11-10): W1-W17, with a release plan (0.31.2-0.37.0) and
    tracks that can run at once, in "Status by track", "Web page review (owner,
    2026-11-10)"; the UNICORN report comparison of the remaining sections is there too. Ask
    each item's open lines before building it.
@@ -1974,7 +1984,7 @@ until the owner settles it, with the SME's view.
 - **M5 Paused sections inside an Inject period** (review l). They are marked feed with Q = 0
   (no mass enters). They occur, from under a second to
   hours, valve at Inject or Direct inject. The owner is reviewing the data before deciding;
-  also whether `exp.fractions` should drop the pseudo 'Waste' rows.
+  waste lines are no longer fractions: rows with a `waste` column (built, unreleased, 2026-11-15).
 - **M6 Core 5 vs Core 6** (review m). One run differs by 8.2 % at the peak (step
   feed, made-up 2.5 x 0.5 cm column at 10 ml/min); others 0.1-0.7 %. Likely discretization; a
   modeler should say what discretization defaults are acceptable before it is called a bug.

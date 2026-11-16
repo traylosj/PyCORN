@@ -137,9 +137,9 @@ To get the metadata, call `load()` without `load_all_xml()`. The decoded dicts a
 then available under each entry name (e.g. `u["MethodData"]["Xml"]`).
 `Chrom.1.Xml_dict` keeps the peak table and curve details either way.
 
-## Additional Findings (2026-11-07; facts F1-F24 in [`docs/ROADMAP.md`](../docs/ROADMAP.md))
+## Additional Findings (2026-11-07; facts F1-F25 in [`docs/FACTS.md`](../docs/FACTS.md))
 
-These were checked while planning time/CV/UTC support. The plan lists them as facts F1-F13.
+These were checked while planning time/CV/UTC support. They are facts F1-F13 in `docs/FACTS.md`.
 
 - **Time grid:** every curve has `IsoChroneType = Time`. Point i is at
   `DistanceToStartPoint + i * DistanceBetweenPoints` (min). The inner zips store only
@@ -258,8 +258,8 @@ Compared: results from 7.3.0.473 and 7.11.0.1097, some runs exported from both v
 
 ## Check Against UNICORN's Text Export (.asc, 2026-11-07)
 
-Checked on three `.asc` exports and their bundles (7.3 in min;
-7.11 in ml; 7.11 in min). Tab-separated: row 1 chromatogram, row 2 curve names, row 3 x/y units,
+The format, as UNICORN 7.3 (time in min) and 7.11 (volume in ml or time in min) write it.
+Tab-separated: row 1 chromatogram, row 2 curve names, row 3 x/y units,
 then one x/y column pair per curve, each with its own length. Values are printed with
 7 significant digits, x with 3 decimals. Tests: `test_asc_*` in `tests/test_zip_source.py`.
 
@@ -310,8 +310,8 @@ with the same code as `open_run()`, and returns a list of `Run`s with `source = 
 summary, `None` if it is missing). A `.Result` taken out of the tar opens with `open_run()`.
 Tests: `tests/test_ufol_source.py`.
 
-**Time-grid curves with amplitudes only.** One result has `UV 3_280@0339,DIV`, a UV ratio
-curve made in evaluation: `CurveDataType = UV`, unit `mAU/cm`, `IsOriginalData = false`,
+**Time-grid curves with amplitudes only.** A UV ratio curve made in evaluation (named like
+`UV 3_280@0339,DIV`) can be stored with `CurveDataType = UV`, unit `mAU/cm`, `IsOriginalData = false`,
 `IsoChroneType = Time`, empty `VolumeUnit`, and a point file holding only
 `CoordinateData.Amplitudes`. Point i is at `DistanceToStartPoint + i * DistanceBetweenPoints`
 min. `open_run()` builds `time` from that grid and leaves `volume` as `None` (the mirror of
@@ -324,8 +324,6 @@ length curve) is the way to tell it from absorbance.
 
 Added for `docs/RUN_STRUCTURE_REVIEW.md` section 6 (UNICORN 7.11). Sanitized with `tools/anonymize_zip.py` (person names
 as `--token`), then searched again in every nested member for names, logins and result names.
-`u711_column_test.zip` is the ColumnTest result that scan also picked (same 27 curves); it
-was already here.
 
 | File | Run | What it covers |
 |---|---|---|
@@ -475,7 +473,7 @@ do not cover them all; process-scale systems use others (e.g. `UV_280` instead o
 - **`CurveDataType` is coarse but stable**: `UV`, `Conduction` (`Cond` and `% Cond`), `pH`,
   `Pressure`, `Temperature`, `Other` (flows, concentrations, counted volume, UV ratio and path
   length). Derived curves (e.g. baselines) keep their source's type with `IsOriginalData = false`;
-  so does the evaluation curve `UV 3_280@0339,DIV` (`UV`, `mAU/cm`).
+  so does an evaluation curve such as a UV ratio (`UV`, `mAU/cm`).
 - **`EventCurveType`** is `Fraction`, `Injection` or `Logbook` in all samples.
 - **UV wavelength is not stored per curve**; it appears only in the name (`UV 1_280`,
   `UV 2_0` = off) and in method instructions, which can change it during a run.
@@ -485,10 +483,11 @@ do not cover them all; process-scale systems use others (e.g. `UV_280` instead o
 
 In code, use roles (`pycorn/curve_roles.py`, `Chromatogram.curves_with_role()`), which match
 on type and unit: `uv`, `conductivity` (`Conduction`, unit not `%`), `conductivity_percent`,
-`ph`, `pressure`, `temperature`. Only `conc_b` needs a name pattern (case, spaces and
-punctuation ignored: `Conc B`, `Conc_B`, `ConcB`, `Concentration B`, `%B`); extend
-`curve_roles.ROLES` for names not seen yet. A role can match several curves (e.g. two
-conductivity cells) and returns all of them. There is no flow role: system and sample flow
-cannot be told apart without names. `import_xml_as_df` keys can be exact names, roles, or the
+`ph`, `pressure`, `temperature`. The roles stored as `Other` in `%` or as a flow need a name
+pattern as well: `conc_b` (case, spaces and punctuation ignored: `Conc B`, `Conc_B`, `ConcB`,
+`Concentration B`, `%B`), `conc_q` (`Conc Q1` to `Conc Q4`), and the flow roles `flow` (a
+volumetric flow unit, any name not starting with "sample") and `sample_flow` (a name starting
+with "sample"); extend `curve_roles.ROLES` for names not seen yet. A role can match several
+curves (e.g. two conductivity cells) and returns all of them. `import_xml_as_df` keys can be exact names, roles, or the
 legacy `Cond`/`UV`/`Conc B`/`pH`, which stand for roles; anything unmatched raises a
 `KeyError` listing the run's curves and the roles.

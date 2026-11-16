@@ -5,13 +5,38 @@ Every release, newest first. The version is in `pycorn/version.py`; each release
 (`README.txt`, `provenance.json`, the Excel Summary sheet), so you can find here what
 changed since your files were made.
 
-## Status (2026-11-14)
+## Status (2026-11-15)
 
-- **In progress:** nothing.
-- **Planned:** for scripts and agents: the page's analysis logic as a public module. After
-  decisions: how phases, steps and feed are read from a run (lead-in, repeats, phase start lag;
-  proposed as one ISA-88 run record); phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a
-  CADET form on the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+- **In progress:** the run structure proposal
+  ([`docs/RUN_STRUCTURE_RECORD.md`](docs/RUN_STRUCTURE_RECORD.md), worked examples in
+  [`docs/examples/`](docs/examples/README.md)): how phases, steps and feed are read from a run,
+  as one ISA-88 run record. Documents and examples only: no export reads a run this way yet.
+  - **Settled:** operations are UNICORN's phases, and "Method Settings" is always one. Every
+    element has a `label` and a positional `element_id`. A unit procedure is one per run by
+    default. Display steps are named by operation and activity. Waste lines are rows, not
+    fractions (built). The system type that closes the inlet first-position question is the
+    AKTA model. Display needs total liquid and void volume for DBC, and the extinction
+    coefficient for mg/ml.
+  - **Settled, which blocks are phases** (`docs/RUN_STRUCTURE_RECORD.md` 3.5.1): a phase is a
+    task block of the method (a block with a planned length, run values applied); an
+    operation's own work, a loop's iterations and a block called twice are phases too; a block
+    inside a task block and a wait are steps or smaller
+    logic, and a watch-started block cuts the operation's stretch at its start; display steps never cross a phase boundary; feed, fractionation and by-pass are
+    equipment phases in their own list; the pump's whole-run flow is not an element.
+  - **Proposed, thin evidence:** the test that tells a task block from smaller logic when a
+    block only controls equipment or a watch calls it (3.5.1 item 6).
+  - **Still open, and each changes how the exports read a run:** how cycles are marked (the
+    rule's values); whether to store steps and transitions below the phase (not wanted now);
+    which flow users see (set or delivered); the loop and sample-path volume options; how much
+    buffer provenance and composition the record holds; whether an offline volume overrides
+    the volume axis; how a new chromatogram cut inside a phase is handled; the first inlet
+    position per AKTA model, once each model is verified. The full list with options is in the
+    "Decisions to review" section of every worked example.
+  - **Then:** rebuild the export logic (operations, phases, sections, tables, CADET input)
+    on the settled reading. Each change to an output gets a release note here.
+- **Planned:** for scripts and agents: the page's analysis logic as a public module;
+  phase-aligned overlay; UV baseline and breakthrough. On hold: an MCP server, a CADET form on
+  the page. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Unreleased
 
@@ -38,7 +63,8 @@ unchanged.
 **Worked examples of the run structure proposal** (docs only, nothing built):
 [`docs/examples/`](docs/examples/README.md) holds one page per example result in `samples/`
 (levels, set point next to actual, every fact UNICORN provides or lacks, the prototype
-record as JSON, the raw UNICORN output, the scope rows), written by
+record as JSON, the raw UNICORN output, the scope rows, every open decision with this run's
+data, options and the proposed answer, the method as recipe hints, the edge cases), written by
 `tools/build_run_structure_examples.py` and checked by `tests/test_run_structure_examples.py`.
 The proposal links to them.
 

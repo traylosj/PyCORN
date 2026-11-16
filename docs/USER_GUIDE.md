@@ -341,8 +341,9 @@ Each row has start and end on every axis (`start_time`, `end_time`, `start_volum
 `start_cv`, `start_utc`, ...). A phase ends where the next one starts. An injection or
 fraction ends where the next of its kind starts. The first row, number 0, is a pseudo-row
 (`pseudo=True`) from method start to the first real row: 'Before injection', 'Waste' for
-fractions, the first run-log text for phases. `length_time`, `length_volume` and `length_cv`
-are end minus start (stored time stops during a pause).
+fractions, the first run-log text for phases. The `waste` column follows `pseudo` (fraction
+table: see below). `length_time`, `length_volume` and `length_cv` are end minus start (stored
+time stops during a pause).
 
 In the fraction table, `waste` marks the waste lines: row 0, and any tube whose name contains
 "waste" (any case: `Waste`, `Waste(Frac)`, `Out-Waste`). The flow to each waste line stays in
@@ -547,8 +548,10 @@ h.blocks, h.injections, h.sample_application, h.warnings
 
 The method is a plan, not a record of what ran. These hints compare planned block lengths
 and injection volumes with what the run log shows. Use them as a check only: what ran is in
-the run log and the sections above. Exports call these tables "Planned vs run - blocks" and
-"Planned vs run - injections".
+the run log and the sections above. A block the run ended inside ends at the run's end and
+has the status `ended_early` when it ran shorter than planned. A watch action runs inside the
+block it started in and ends only itself. Exports call these tables "Planned vs run - blocks"
+and "Planned vs run - injections".
 
 ## Warnings and What to Check
 
