@@ -1244,6 +1244,24 @@ def fig_levels(A):
     return svg.out()
 
 
+def clip(text, n):
+    text = str(text)
+    return text if len(text) <= n else text[:n - 3] + "..."
+
+
+def section_details(s):
+    """The original section as UNICORN's run log set it, one short line per fact (for the join figure)."""
+    lines = ["wall %.1f-%.1f s, method time %.1f-%.1f s" % (s.start_s, s.end_s, s.elapsed_start_s, s.elapsed_end_s),
+             "column flow %s ml/min, system flow %s" % (f(s.column_flow_ml_min or 0.0, 3), f(s.system_flow_ml_min, 3) if s.system_flow_ml_min is not None else "-"),
+             "%%B %s, slope %s %%B/s" % (f(s.percent_b[0], 1) if s.percent_b[0] is not None else "-", f(s.percent_b[1], 4)),
+             "valve %s, sample use %s, position %s" % (s.injection_valve or "-", s.sample_use or "-", s.column_position or "-"),
+             "inlets %s" % (", ".join("%s %s" % kv for kv in s.inlets.items()) or "-")]
+    flags = ", ".join(w for k, w in (("feed", "feed"), ("bypass", "by-pass"), ("held", "Hold")) if getattr(s, k))
+    lines.append("on: %s" % (flags or "none"))
+    lines.append("run log: %s" % ("; ".join(map(str, s.changes)) or "-"))
+    return lines
+
+
 def fig_joins(A):
     """
     Where original sections were joined, one row per display step that joined more than one.
@@ -1253,7 +1271,7 @@ def fig_joins(A):
     steps = [st for st in A["steps"] if not st["paused"] and len(st["parts"]) > 1]
     if not steps:
         return "<p class='lead'>No display step joined more than one section in this run.</p>"
-    cw, ch, gap, left = 190, 50, 8, 330
+    cw, ch, gap, left = 290, 132, 8, 330
     width = left + max(len(st["parts"]) for st in steps) * (cw + gap) + 20
     svg = Svg(max(width, 900))
     y = 24
@@ -1277,15 +1295,19 @@ def fig_joins(A):
         svg.text(20, y + 46, "%d sections joined, %d absorbed" % (len(st["parts"]), len([p for p in st["parts"] if p["absorbed"]])), 11, INK2)
         x = left
         for p in st["parts"]:
-            tip = "section #%d: %.1f - %.1f s (%.1f s)%s" % (p["sec"], p["wa"], p["wb"], p["b"] - p["a"],
-                                                           " absorbed: " + _differs(p["vals"], st) if p["absorbed"] else "")
+            details = section_details(A["S"][p["sec"]])
+            tip = "section #%d: %.1f - %.1f s (%.1f s)%s\n%s" % (p["sec"], p["wa"], p["wb"], p["b"] - p["a"],
+                                                               " absorbed: " + _differs(p["vals"], st) if p["absorbed"] else "",
+                                                               "\n".join(details))
             if p["absorbed"]:
                 svg.rect(x, y, cw, ch, C_PREV, 3, tip, opacity=0.85)
             else:
                 svg.rect(x, y, cw, ch, STEP_FILLS[1], 3, tip)
             ink = "#ffffff" if p["absorbed"] else INK
             svg.text(x + 7, y + 17, "#%d   %s s" % (p["sec"], f(p["b"] - p["a"], 1)), 12, ink, weight="600")
-            svg.text(x + 7, y + 34, ("absorbed: " + _differs(p["vals"], st)) if p["absorbed"] else "same values", 10.5, ink)
+            svg.text(x + 7, y + 33, ("absorbed: " + _differs(p["vals"], st)) if p["absorbed"] else "same values", 10.5, ink)
+            for k, line in enumerate(details):
+                svg.text(x + 7, y + 49 + k * 13, clip(line, 50), 10, ink)
             x += cw + gap
         svg.line(left, y + ch + 6, x - gap, y + ch + 6, INK, 1.5)
         svg.text(left, y + ch + 19, "= display step %d" % n, 10.5, INK2)
