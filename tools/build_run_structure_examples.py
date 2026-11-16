@@ -388,17 +388,7 @@ def raw_html(A):
     run, ch, r = A["run"], A["ch"], A["r"]
     fr = A["frames"]
     out = []
-    log = ch.run_log()
-    if log is not None:
-        to_s = conversion_factor(log.time_unit, "s")
-        lines = []
-        for e in log.events:
-            text = (e.text or "").replace("\r", " ").replace("\n", " | ")
-            if text.lower().startswith("batch id"):
-                text = "Batch ID: <masked>"
-            lines.append("%10.2f s  %9s ml  %s" % ((e.time or 0.0) * to_s, ("%.3f" % e.volume) if e.volume is not None else "-", text))
-        out.append(raw("Run log (Logbook): every line UNICORN wrote", "Chrom.N.Xml, event curve 'Logbook' (%d lines)" % len(lines), "\n".join(lines),
-                       "The source of every section, pause and state on this page. Time is method time in seconds (pauses excluded)."))
+    # the Logbook itself is shown with the phases, with the step boundaries marked (run_log_html)
     ent = ["%10.2f s  %-18s %s" % (e["elapsed_s"], e["kind"], e["text"]) for e in r["entries"]]
     out.append(raw("Run-log instructions PyCORN read as executed (run_log_sections)", "derived from the Logbook: %d entries" % len(ent), "\n".join(ent),
                    "kind is PyCORN's reading; lines that match no kind are ignored for sections."))
@@ -1316,8 +1306,30 @@ def fig_joins(A):
     return svg.out()
 
 
-def panel(svg, A, X, y, h, title, unit, series, ymax=None, ymin=0.0, bands=True):
-    """One line panel. series: list of dict(points, color, width, dash, label)."""
+def step_strip(svg, A, X, y):
+    """The proposed display steps as a numbered strip (same blue pair as the levels figure; a diamond is a pause).
+    Hover a step for its values and the sections it joins. Returns the next y."""
+    h = 22
+    svg.text(L - 40, y + 15, "Display steps", 12, INK, "end", "600")
+    n = 0
+    for st in A["steps"]:
+        if st["paused"]:
+            svg.diamond(X(st["wa"]), y + 7, "pause (Held): %.1f - %.1f s" % (st["wa"], st["wb"]))
+            continue
+        n += 1
+        listing = "; ".join("#%d %.1f-%.1f s%s" % (p["sec"], p["wa"], p["wb"], " (absorbed)" if p["absorbed"] else "") for p in st["parts"])
+        tip = "step %d (%s): %.1f - %.1f s | %s ml/min | %s %%B | joins %d section(s): %s%s" % (
+            n, st["label"], st["wa"], st["wb"], f(st["flow"], 3), f(st["b_pct"], 1), st["n_sections"], listing,
+            " | " + "; ".join(st["notes"]) if st["notes"] else "")
+        w = X(st["wb"]) - X(st["wa"])
+        svg.rect(X(st["wa"]), y, w - 1, h, C_PREV if any(p["absorbed"] for p in st["parts"]) else STEP_FILLS[n % 2], 0, tip)
+        if w > 18:
+            svg.text(X(st["wa"]) + 3, y + 15, str(n), 10.5, INK, weight="600")
+    return y + h + 14
+
+
+def panel(svg, A, X, y, h, title, unit, series, ymax=None, ymin=0.0, bands=True, step_edges=False):
+    """One line panel. series: list of dict(points, color, width, dash, label). step_edges: a dotted line at each display step start."""
     allv = [q[1] for s in series for q in s["points"] if q is not None]
     if not allv:
         svg.text(L, y + 14, "%s: no data" % title, 11, INK2)
@@ -1342,6 +1354,9 @@ def panel(svg, A, X, y, h, title, unit, series, ymax=None, ymin=0.0, bands=True)
     for p in A["pauses"]:
         wa = A["wall"](p["elapsed_s"]) - p["duration_s"]
         svg.rect(X(wa), y, X(wa + p["duration_s"]) - X(wa), h, "#dad9d5", 0, "pause %.1f s" % p["duration_s"], opacity=0.7)
+    if step_edges:
+        for st in A["steps"]:
+            svg.line(X(st["wa"]), y, X(st["wa"]), y + h, INK2, 0.8, "2 3")
     for s in series:
         pts = [None if q is None else (X(q[0]), y + h - (q[1] - lo) / (hi - lo) * h) for q in s["points"]]
         svg.path(pts, s["color"], s.get("width", 1.6), s.get("dash"))
@@ -1421,8 +1436,13 @@ def fig_curves(A):
     svg.text(20, y, "Measured curves by role, on the same clock", 16, weight="600")
     y += 20
     svg.text(20, y, "Roles, not names (curve names differ by instrument). Grey bands: operations alternate. "
-                    "Darker bands: pauses.", 11.5, INK2)
-    y += 36
+                    "Darker bands: pauses. Dotted lines: where a display step starts.", 11.5, INK2)
+    y += 22
+    svg.text(20, y, "Display steps: blue pair alternates, orange = a short piece was absorbed. Hover a step for its values and sections. "
+                    "The page is vector: zoom in to check a boundary against the curves.", 11.5, INK2)
+    y += 12
+    y = step_strip(svg, A, X, y)
+    y += 14
     for role, title, unit, height in (("uv", "UV", "stored unit", 110), ("conductivity", "Conductivity", "stored unit", 90),
                                       ("ph", "pH", "", 70), ("pressure", "Pressure", "stored unit", 80),
                                       ("temperature", "Temperature", "stored unit", 60)):
