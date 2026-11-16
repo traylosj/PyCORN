@@ -13,6 +13,10 @@ Rows (owner, 2026-11-08):
   start) to the first real row, when that row starts after 0. Labels: the first run-log text
   for phases (as the CTE's first row), 'Before injection', and 'Waste' for fractions (the
   fractionator is at waste until the first fraction).
+- Fractions: a row is a waste line, not a fraction, when `waste` is true: its tube name contains
+  'waste' (any case), or is one of the caller's `waste_names` (a skid may name its waste lines
+  otherwise). Row 0 is always a waste line. The flow to each waste line stays in its row
+  (`length_volume`); "Waste" and "Waste(Frac)" stay two tubes. `pseudo` still means row 0 only.
 
 Each row has its length on the time, volume and CV axes (`length_*`, end - start). The tables
 (`chrom.phase_table()` etc., the export, the page) also give what ran in each row
@@ -34,11 +38,14 @@ STATUS_SUFFIX = re.compile(r"(\s*\((?:Issued|Processing|Completed|Manual|System)
 PHASE_START = re.compile(r"^Phase\b")
 PHASE_END = re.compile(r"^End Phase\b")
 PSEUDO_NAMES = {"injection": "Before injection", "fraction": "Waste"}  # phases use the first run-log text
+# A fraction row is a waste line, not a fraction, when its tube name contains this (a skid may name
+# its waste lines otherwise: `waste_names=` replaces the rule with the caller's exact names).
+WASTE_PATTERN = re.compile(r"waste", re.IGNORECASE)
 
 # what ran in a row, from the run-log sections (`pycorn.run_log_sections.span_details`)
 SPAN_COLUMNS = ["blocks", "system_flow_ml_min", "column_flow_ml_min", "percent_b", "percent_q", "inlets",
                 "inlets_source", "column_position", "injection_valve", "sample_use", "set_marks"]
-COLUMNS = ["kind", "number", "name", "pseudo", "start_time", "end_time", "start_volume", "end_volume",
+COLUMNS = ["kind", "number", "name", "pseudo", "waste", "start_time", "end_time", "start_volume", "end_volume",
            "start_cv", "end_cv", "start_utc", "end_utc", "length_time", "length_volume", "length_cv"] + SPAN_COLUMNS + [
            "end_source", "event_curve", "time_unit", "volume_unit", "text"]
 
@@ -48,8 +55,19 @@ def strip_status(text):
     return STATUS_SUFFIX.sub("", text or "") or None
 
 
-def _row(kind, number, name, pseudo, start, end, end_source, ec, text):
-    row = OrderedDict([("kind", kind), ("number", number), ("name", name), ("pseudo", pseudo)])
+def is_waste(name, waste_names=None):
+    """
+    True when the fraction-collector tube `name` is a waste line. `waste_names` None: the name
+    contains 'waste' (any case). A list: exactly these names (any case), nothing else; an empty
+    list flags none.
+    """
+    if waste_names is None:
+        return bool(WASTE_PATTERN.search(name or ""))
+    return (name or "").strip().lower() in {str(n).strip().lower() for n in waste_names}
+
+
+def _row(kind, number, name, pseudo, start, end, end_source, ec, text, waste=False):
+    row = OrderedDict([("kind", kind), ("number", number), ("name", name), ("pseudo", pseudo), ("waste", waste)])
     for axis in ("time", "volume", "cv", "utc"):
         row["start_" + axis] = getattr(start, axis, None) if start is not None else None
         row["end_" + axis] = getattr(end, axis, None) if end is not None else None
@@ -96,19 +114,22 @@ def phase_rows(chrom):
     return rows
 
 
-def _point_rows(chrom, kind, event_type):
+def _point_rows(chrom, kind, event_type, waste_names=None):
     log = _log(chrom)
     run_end = log.events[-1] if log is not None else None
     rows = []
     for ec in chrom.own_event_curves(event_type):
         events = sorted(ec.events, key=lambda e: (e.time if e.time is not None else float("inf")))
         if log is not None and _starts_after_zero(events[0]):
-            rows.append(_row(kind, 0, PSEUDO_NAMES[kind], True, log.events[0], events[0], "next", ec, None))
+            # the stretch before the first tube is at waste by definition
+            rows.append(_row(kind, 0, PSEUDO_NAMES[kind], True, log.events[0], events[0], "next", ec, None,
+                             waste=kind == "fraction"))
         for k, e in enumerate(events):
             end, source = (events[k + 1], "next") if k + 1 < len(events) else (run_end, "run_end")
             # an Injection event has no text: name it by its number ('Injection 1'); `text` stays as stored
             name = e.text if e.text else "%s %d" % (event_type, k + 1)
-            rows.append(_row(kind, k + 1, name, False, e, end, source, ec, e.text))
+            rows.append(_row(kind, k + 1, name, False, e, end, source, ec, e.text,
+                             waste=kind == "fraction" and is_waste(e.text, waste_names)))
     return rows
 
 
@@ -116,17 +137,19 @@ def injection_rows(chrom):
     return _point_rows(chrom, "injection", "Injection")
 
 
-def fraction_rows(chrom):
-    return _point_rows(chrom, "fraction", "Fraction")
+def fraction_rows(chrom, waste_names=None):
+    """Fraction-collector rows. `waste` marks the waste lines (`is_waste`): the flow to a waste line is
+    in the row's length, but a waste line is not a fraction."""
+    return _point_rows(chrom, "fraction", "Fraction", waste_names)
 
 
 TABLES = {"phase": phase_rows, "injection": injection_rows, "fraction": fraction_rows}
 
 
-def rows(chrom, kind):
+def rows(chrom, kind, waste_names=None):
     if kind not in TABLES:
         raise KeyError("unknown table %r; known: %s" % (kind, ", ".join(TABLES)))
-    return TABLES[kind](chrom)
+    return TABLES[kind](chrom, waste_names) if kind == "fraction" else TABLES[kind](chrom)
 
 
 def with_details(chrom, table_rows, sections=None):

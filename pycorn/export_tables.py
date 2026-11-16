@@ -102,6 +102,8 @@ _EVENT_TABLE = OrderedDict([
     ("event_curve", _u("the UNICORN event curve the row comes from")),
     ("kind", _a("phase, injection or fraction")),
     ("pseudo", _c("true for row 0, the stretch before the first one", "row number 0")),
+    ("waste", _c("fractions: true for a waste line (tube name contains 'waste', or the caller's names), row 0 included; "
+                 "its flow is in the row, but it is not a fraction", "the tube name")),
     ("start_time", _c("start on the stored time axis", "the event's stored time")),
     ("end_time", _a("end on the stored time axis")),
     ("start_volume", _c("start on the stored volume axis", "the event's stored volume")),

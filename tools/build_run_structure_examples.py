@@ -56,6 +56,7 @@ INK, INK2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
 LEVEL_FILLS = ("#e9e8e4", "#d6d5d0")
 STEP_FILLS = ("#b7d3f6", "#86b6ef")
 C_PREV, C_FEED, C_LINE, C_ACT, C_MEAS, C_BYPASS, C_FRAC = "#eb6834", "#1baf7a", "#2a78d6", "#eb6834", "#8d8c88", "#8e5bd0", "#12908e"
+C_WASTE = "#b9b8b3"  # fraction collector at a waste line: flow counted, not a sample
 STATE_FILL = {"running": "#d9efe4", "held": "#c9c8c4", "holding": "#f6c9b3", "restarting": "#f6c9b3",
               "paused": "#cfe0f7"}
 PALETTE = ("#2a78d6", "#eb6834", "#1baf7a", "#8e5bd0", "#c9a100", "#12908e")
@@ -969,8 +970,8 @@ def fig_levels(A):
             if fr["pseudo"]:
                 continue
             a, b = A["wall"](fr["start_time"] * 60), A["wall"](fr["end_time"] * 60)
-            svg.rect(X(a), top + 48, X(b) - X(a), bar, C_FRAC, 1, "fraction %s: %.1f - %.1f s, %s ml"
-                     % (fr["name"], a, b, f(fr["length_volume"], 2)))
+            svg.rect(X(a), top + 48, X(b) - X(a), bar, C_WASTE if fr["waste"] else C_FRAC, 1, "%s %s: %.1f - %.1f s, %s ml"
+                     % ("waste line (not a sample)" if fr["waste"] else "fraction", fr["name"], a, b, f(fr["length_volume"], 2)))
             if X(b) - X(a) > 7 * len(str(fr["name"])) + 4:
                 svg.text((X(a) + X(b)) / 2, top + 62, fr["name"], 10.5, "#ffffff", "middle")
     except Exception:  # noqa: BLE001
@@ -1028,7 +1029,7 @@ def fig_levels(A):
     y += 26
     lx = L
     for fill, name in ((STEP_FILLS[1], "section / display step"), (C_PREV, "orange: short piece (under 10 s) absorbed into the step it touches"),
-                       (C_FEED, "feed"), (C_BYPASS, "column by-pass"), (C_FRAC, "fraction")):
+                       (C_FEED, "feed"), (C_BYPASS, "column by-pass"), (C_FRAC, "fraction (sample)"), (C_WASTE, "waste line (not a sample)")):
         svg.rect(lx, y, 13, 11, fill, 2)
         svg.text(lx + 19, y + 10, name, 10.5, INK2)
         lx += 28 + 6.3 * len(name)
@@ -1244,7 +1245,7 @@ def above_run(A):
     repeats = sorted({o["name"] for o in real if o["repeats"] > 1})
     scout = (hints.scouting if hints and hints.available else None) or {}
     series = bool(scout.get("runs") or scout.get("name"))
-    fr = [x for x in event_tables.rows(A["ch"], "fraction") if not x["pseudo"]]
+    fr = [x for x in event_tables.rows(A["ch"], "fraction") if not x["waste"]]  # collected fractions, not waste lines
     inj = [x for x in event_tables.rows(A["ch"], "injection") if not x["pseudo"]]
     feeds = len([1 for i, s in enumerate(A["S"]) if s.feed and (i == 0 or not A["S"][i - 1].feed)])
     pk = getattr(A["ch"], "peak_tables", None) or {}
@@ -1621,7 +1622,8 @@ def inventory(A):
     add("Events and material", "Injection marks", "both", "stored", "%d" % len(inj_rows), "Injection event curve", "")
     fr_rows = event_tables.rows(ch, "fraction")
     add("Events and material", "Fractions (tube, start, end, volume)", "both", "stored" if fr_rows else "missing",
-        "%d rows (%d collected)" % (len(fr_rows), len([x for x in fr_rows if not x["pseudo"]])), "Fraction event curve", "")
+        "%d rows (%d collected fractions, %d waste lines)" % (len(fr_rows), len([x for x in fr_rows if not x["waste"]]),
+                                                              len([x for x in fr_rows if x["waste"]])), "Fraction event curve", "")
     pk = getattr(ch, "peak_tables", None) or {}
     add("Events and material", "Peak tables (evaluation)", "display", "stored" if pk else "absent", "%d table(s)" % len(pk), "evaluation", "")
     pl = getattr(ch, "pool_tables", None) or {}
@@ -1816,11 +1818,25 @@ def materials_html(A):
     out.append("<h4>Buffers (inlet lines used)</h4>" + table(["id", "line", "positions used (state)", "%B range", "contents", "lot ID"], buf_rows, "") +
                "<p class='none'>%s</p>" % ("BufferPro recipe stored in the result (hint only)." if bu["bufferpro"] else "No BufferPro recipe stored. UNICORN never stores what a buffer contains."))
     fr = []
+    waste_ml, sample_ml, per_line = 0.0, 0.0, OrderedDict()
     for x in event_tables.rows(A["ch"], "fraction"):
-        fr.append(["%s:%s" % ("RUN", x["name"]), x["name"], "waste / flow-through" if x["pseudo"] else "collected fraction",
-                   f(x["start_time"], 3), f(x["end_time"], 3), f(x["length_volume"], 2), "(caller)"])
-    out.append("<h4>Fractions and flow-through</h4>" + (table(["id (run + tube)", "UNICORN tube", "role", "start min", "end min", "volume ml", "material ID"], fr, "")
-                                                          if fr else "<p class='none'>No fraction event curve.</p>"))
+        vol = x["length_volume"] or 0.0
+        if x["waste"]:
+            waste_ml += vol
+            per_line[x["name"]] = per_line.get(x["name"], 0.0) + vol
+            role = "waste line (before the first tube)" if x["pseudo"] else "waste line (not a sample)"
+        else:
+            sample_ml += vol
+            role = "collected fraction (sample)"
+        fr.append(["%s:%s" % ("RUN", x["name"]), x["name"], "waste" if x["waste"] else "fraction collector", role,
+                   f(x["start_time"], 3), f(x["end_time"], 3), f(x["length_volume"], 2), "-" if x["waste"] else "(caller)"])
+    out.append("<h4>Fraction collector: where the flow went</h4>" + (table(
+        ["id (run + tube)", "UNICORN tube", "goes to", "role", "start min", "end min", "volume ml", "material ID"], fr, "")
+        if fr else "<p class='none'>No fraction event curve.</p>"))
+    if fr:
+        out.append("<p>Volume to waste lines: <b>%s ml</b> (%s). Volume collected as fractions: <b>%s ml</b>. A waste line is a row with its flow, "
+                   "not a sample: it gets no material ID.</p>" % (E(f(waste_ml, 2)), E(", ".join("%s %s ml" % (n, f(v, 2)) for n, v in per_line.items()) or "none"),
+                                                              E(f(sample_ml, 2))))
     pk = getattr(A["ch"], "peak_tables", None) or {}
     pl = getattr(A["ch"], "pool_tables", None) or {}
     out.append("<p>Peak tables: %d. Pool tables: %d (evaluation results; pools belong to the material layer, section 3.6.3).</p>" % (len(pk), len(pl)))
@@ -1954,7 +1970,8 @@ def record(A):
                                                      pools=[], note="all caller-supplied except fraction IDs (run + tube)"))
     ups = OrderedDict(level="unit_procedure", element_id="UP1", label=up_label(A), label_source="UNICORN", boundary_source="default", operations=[])
     blocks_by_op = {}
-    fractions = [x for x in event_tables.rows(A["ch"], "fraction") if not x["pseudo"] and x["end_time"] is not None]
+    # the Fractionation phase is collecting fractions: a waste line is not a fractionation
+    fractions = [x for x in event_tables.rows(A["ch"], "fraction") if not x["waste"] and x["end_time"] is not None]
     for k, (s, row) in enumerate(zip(S, rows)):
         mid = s.elapsed_start_s
         op = next((o for o in ops if o["a"] - 1e-6 <= mid < o["b"] - 1e-6), ops[-1])
@@ -2035,10 +2052,14 @@ def record(A):
             volume=[val(set_ml, "mL", "set_point", "calculated", "run_log")],
             material_id=None, material_id_source="caller (UNICORN stores none)"))
     for x in event_tables.rows(A["ch"], "fraction"):
-        mats["fractions"].append(OrderedDict(element_id="FR:%s" % x["name"], unit_procedure="UP1", role="waste_or_flow_through" if x["pseudo"] else "collected_fraction",
+        waste = bool(x["waste"])
+        mats["fractions"].append(OrderedDict(element_id="FR:%s" % x["name"], unit_procedure="UP1",
+                                             role="waste_line" if waste else "collected_fraction", goes_to="waste" if waste else "fraction_collector",
+                                             is_sample=not waste,
                                              start_min=round(x["start_time"], 4), end_min=round(x["end_time"], 4),
                                              volume=[val(x["length_volume"], "mL", "actual", "measured", "volume_axis")],
-                                             material_id="RUN:%s" % x["name"], material_id_source="derived (run + tube)"))
+                                             material_id=None if waste else "RUN:%s" % x["name"],
+                                             material_id_source="none: a waste line is not a sample" if waste else "derived (run + tube)"))
     rec["materials"] = mats
     rec["method"] = recipe_block(A)
     rec["volumes"] = OrderedDict((k, OrderedDict(status=v["status"], text=v["text"], source=v["why"])) for k, v in A["inv"]["volumes"].items())

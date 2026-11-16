@@ -1704,8 +1704,8 @@
         "method_s": 688.2
        },
        "end": {
-        "wall_s": 1043.6,
-        "method_s": 992.6
+        "wall_s": 919.6,
+        "method_s": 868.6
        }
       }
      ]
@@ -2027,21 +2027,6 @@
          "bypass": false
         }
        ]
-      },
-      {
-       "level": "phase",
-       "element_id": "OP6/PH2",
-       "label": "Fractionation",
-       "label_source": "PyCORN",
-       "equipment_module": "fraction_collector",
-       "start": {
-        "wall_s": 1043.6,
-        "method_s": 992.6
-       },
-       "end": {
-        "wall_s": 1412.8,
-        "method_s": 1308.3
-       }
       }
      ]
     }
@@ -2318,7 +2303,9 @@
    {
     "element_id": "FR:Waste",
     "unit_procedure": "UP1",
-    "role": "waste_or_flow_through",
+    "role": "waste_line",
+    "goes_to": "waste",
+    "is_sample": false,
     "start_min": 0.0267,
     "end_min": 11.47,
     "volume": [
@@ -2330,13 +2317,15 @@
       "source": "volume_axis"
      }
     ],
-    "material_id": "RUN:Waste",
-    "material_id_source": "derived (run + tube)"
+    "material_id": null,
+    "material_id_source": "none: a waste line is not a sample"
    },
    {
     "element_id": "FR:3.A.1",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
+    "goes_to": "fraction_collector",
+    "is_sample": true,
     "start_min": 11.47,
     "end_min": 12.3117,
     "volume": [
@@ -2354,7 +2343,9 @@
    {
     "element_id": "FR:Waste(Frac)",
     "unit_procedure": "UP1",
-    "role": "collected_fraction",
+    "role": "waste_line",
+    "goes_to": "waste",
+    "is_sample": false,
     "start_min": 12.3117,
     "end_min": 13.1817,
     "volume": [
@@ -2366,13 +2357,15 @@
       "source": "volume_axis"
      }
     ],
-    "material_id": "RUN:Waste(Frac)",
-    "material_id_source": "derived (run + tube)"
+    "material_id": null,
+    "material_id_source": "none: a waste line is not a sample"
    },
    {
     "element_id": "FR:3.A.2",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
+    "goes_to": "fraction_collector",
+    "is_sample": true,
     "start_min": 13.1817,
     "end_min": 14.1817,
     "volume": [
@@ -2391,6 +2384,8 @@
     "element_id": "FR:3.A.3",
     "unit_procedure": "UP1",
     "role": "collected_fraction",
+    "goes_to": "fraction_collector",
+    "is_sample": true,
     "start_min": 14.1817,
     "end_min": 14.4767,
     "volume": [
@@ -2408,7 +2403,9 @@
    {
     "element_id": "FR:Waste(Frac)",
     "unit_procedure": "UP1",
-    "role": "collected_fraction",
+    "role": "waste_line",
+    "goes_to": "waste",
+    "is_sample": false,
     "start_min": 14.4767,
     "end_min": 21.805,
     "volume": [
@@ -2420,8 +2417,8 @@
       "source": "volume_axis"
      }
     ],
-    "material_id": "RUN:Waste(Frac)",
-    "material_id_source": "derived (run + tube)"
+    "material_id": null,
+    "material_id_source": "none: a waste line is not a sample"
    }
   ],
   "pools": {
@@ -3302,7 +3299,7 @@
    "fact": "Fractions (tube, start, end, volume)",
    "needed_by": "both",
    "status": "stored",
-   "value": "6 rows (5 collected)",
+   "value": "6 rows (3 collected fractions, 3 waste lines)",
    "source": "Fraction event curve"
   },
   {

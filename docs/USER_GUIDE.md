@@ -344,6 +344,11 @@ fraction ends where the next of its kind starts. The first row, number 0, is a p
 fractions, the first run-log text for phases. `length_time`, `length_volume` and `length_cv`
 are end minus start (stored time stops during a pause).
 
+In the fraction table, `waste` marks the waste lines: row 0, and any tube whose name contains
+"waste" (any case: `Waste`, `Waste(Frac)`, `Out-Waste`). The flow to each waste line stays in
+its row, but a waste line is not a fraction. A skid that names its waste lines otherwise gives
+the exact names: `chrom.fraction_table(waste_names=["Drain"])`.
+
 Each row also says what ran in it, from the run-log sections the CADET export uses (the
 export and the in-browser page have the same columns; the page shows a default set and
 "Columns" picks more, downloads hold all of them; pass `sections=run_log_sections(run, chrom)`

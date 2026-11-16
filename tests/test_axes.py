@@ -595,6 +595,12 @@ def test_sample_tables(sample):
     assert list(fractions["name"]) == ["Waste", "Frac", "Waste"] and list(fractions["pseudo"]) == [True, False, False]
     assert fractions["end_volume"].iloc[0] == fractions["start_volume"].iloc[1]
     assert list(fractions["end_source"]) == ["next", "next", "run_end"]
+    # waste lines are rows, not fractions: row 0 and the 'Waste' tube; 'Frac' is the collected one
+    assert list(fractions["waste"]) == [True, False, True]
+    assert not injections["waste"].any()
+    # the caller's names replace the rule: only these exact names are waste lines (row 0 always is)
+    assert list(chrom.fraction_table(waste_names=["frac"])["waste"]) == [True, True, False]
+    assert list(chrom.fraction_table(waste_names=[])["waste"]) == [True, False, False]
     offsets = chrom.zero_offsets("injection", 1)
     assert offsets["volume"] == chrom.retention_zero["volume"] and offsets["time"] == chrom.retention_zero["time"]
     assert offsets["utc"] == chrom.event_curves["Injection"].events[0].utc

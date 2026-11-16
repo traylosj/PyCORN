@@ -15,6 +15,13 @@ changed since your files were made.
 
 ## Unreleased
 
+**New: a `waste` column in the fraction table.** A tube whose name contains "waste" (`Waste`,
+`Waste(Frac)`, `Out-Waste`) is a waste line, not a fraction. Row 0 always is one. The flow to
+each waste line stays in its row, so nothing is dropped, but a waste line no longer counts as a
+fraction where fractions are counted. Skids that name their waste lines otherwise pass
+`waste_names=` (`Chromatogram.fraction_table`, `table_rows`, `event_tables.rows`). `pseudo` still
+means row 0 only. The column appears after `pseudo` in `_fractions.csv`, the Excel sheet and the page.
+
 **Fixed: a watch action ended the block around it.** The `End_Block` of a watch action closed the
 block it ran inside, so later sections lost their block name and `method_hints` cut the block
 short. A watch action now runs inside its block and ends only itself. Results without a fired

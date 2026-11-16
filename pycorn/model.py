@@ -398,14 +398,18 @@ class Chromatogram:
         """The curves of an imported chromatogram that are of another method run (`from_other_run`)."""
         return [c for c in self.curves.values() if self.from_other_run(c)]
 
-    def table_rows(self, kind):
-        """Rows of the 'phase', 'injection' or 'fraction' table (see `pycorn.event_tables`)."""
+    def table_rows(self, kind, waste_names=None):
+        """
+        Rows of the 'phase', 'injection' or 'fraction' table (see `pycorn.event_tables`).
+        `waste_names` (fractions only): the caller's exact waste tube names; None: names that
+        contain 'waste'.
+        """
         from .event_tables import rows
-        return rows(self, kind)
+        return rows(self, kind, waste_names)
 
-    def _table(self, kind, sections):
+    def _table(self, kind, sections, waste_names=None):
         from .event_tables import to_frame, with_details
-        return to_frame(with_details(self, self.table_rows(kind), sections))
+        return to_frame(with_details(self, self.table_rows(kind, waste_names), sections))
 
     def phase_table(self, sections=None):
         """
@@ -419,9 +423,13 @@ class Chromatogram:
         """Injections, with the same columns as `phase_table`."""
         return self._table("injection", sections)
 
-    def fraction_table(self, sections=None):
-        """Fractions, with the same columns as `phase_table`."""
-        return self._table("fraction", sections)
+    def fraction_table(self, sections=None, waste_names=None):
+        """
+        Fraction-collector rows, with the same columns as `phase_table`. The `waste` column marks
+        the waste lines (a tube name that contains 'waste', or one of the caller's `waste_names`):
+        the flow to each stays in its row, but a waste line is not a fraction.
+        """
+        return self._table("fraction", sections, waste_names)
 
     def zero_offsets(self, kind, number):
         """
