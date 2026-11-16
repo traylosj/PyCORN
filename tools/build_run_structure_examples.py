@@ -513,6 +513,127 @@ def outline(obj, key="record", depth=0, max_depth=5):
     return '<div class="leaf"><b>%s</b> = <code>%s</code></div>' % (E(str(key)), E(short(obj, 90)))
 
 
+def fig_record_graph(rec):
+    """
+    The record as a graph: the ISA-88 levels left to right (PR > UP > OP > PH > SE), equipment phases linked to
+    the phase that commanded them, equipment (instrument, column) under the unit procedure, and material, data
+    and states beside the procedure. Border colour = who knows it (the status colours of the inventory).
+    Hover a node for its JSON path. Built from the record, so it shows this run's own elements and keys.
+    """
+    colw = (200, 96, 150, 200, 210, 150, 200)
+    gap, rowh, boxh = 34, 34, 26
+    xs, x = [], 16
+    for w in colw:
+        xs.append(x)
+        x += w + gap
+    svg = Svg(x)
+    svg.text(16, 24, "Graph of the record (element_id keys, one box per element)", 15, weight="600")
+    svg.text(16, 42, "Solid line: contains. Dashed purple: commanded by. Dotted: belongs to the procedure. "
+                     "Border: who knows it (legend below). Hover a box for its JSON path.", 11.5, INK2)
+    boxes, edges = [], []  # boxes (col, y, text, sub, status, path, why)
+
+    def node(col, y, title, sub, status, path, why):
+        boxes.append((col, y, title, sub, status, path, why))
+        return (xs[col], y + boxh / 2.0, xs[col] + colw[col], y + boxh / 2.0)  # left x, mid y, right x, mid y
+
+    def link(a, b, color=INK2, dash=None, width=1.2):
+        edges.append((a[2], a[3], b[0], b[1], color, dash, width))
+
+    up_list = rec.get("unit_procedures") or []
+    ups = up_list[0] if up_list else {}
+    y = 64.0
+    ph_nodes, op_rows = {}, []
+    ops = ups.get("operations") or []
+    for op in ops:
+        top = y
+        phs = op.get("phases") or []
+        phase_nodes = []
+        for ph in phs:
+            secs = ph.get("sections") or []
+            ph_n = node(3, y, "%s  %s" % (ph["element_id"].split("/")[-1], clip(ph.get("label") or "", 24)), "phase",
+                        "derived", "unit_procedures[].operations[].phases[]  (%s)" % ph["element_id"],
+                        "A task block the operation called with a planned length, or the operation's own stretch (3.5.1). How found: %s" % ph.get("how_found", "-"))
+            if secs:
+                ids = [s["element_id"].split("/")[-1] for s in secs]
+                se_n = node(4, y, "%s  (%d section%s)" % (ids[0] if len(ids) == 1 else "%s-%s" % (ids[0], ids[-1]), len(secs), "" if len(secs) == 1 else "s"),
+                            "one executed instruction each", "derived", "unit_procedures[].operations[].phases[].sections[]  (%s)" % ph["element_id"],
+                            "Sections: flow, %B, valves, inlets as the run log set them, flow fitted to the volume axis (3.5, 3.8).")
+                link(ph_n, se_n)
+            phase_nodes.append((ph, ph_n))
+            ph_nodes[ph["element_id"]] = ph_n
+            y += rowh
+        if not phs:
+            y += rowh
+        mid = (top + y - rowh) / 2.0
+        op_n = node(2, mid, "%s  %s" % (op["element_id"], clip(op.get("label") or "", 20)), "state: %s" % op.get("state", "-"),
+                    "stored", "unit_procedures[].operations[]  (%s)" % op["element_id"], "A UNICORN phase (or a top-level block) as logged (3.5).")
+        for _ph, ph_n in phase_nodes:
+            link(op_n, ph_n)
+        op_rows.append(op_n)
+        y += 8
+    mid_y = (64.0 + max(y - 8 - rowh, 64.0)) / 2.0 if ops else 64.0
+    up_n = node(1, mid_y, ups.get("element_id", "UP1"), "unit procedure", "caller", "unit_procedures[]",
+                "One by default. Several only when the caller marks cycles (3.3).")
+    pr_n = node(0, mid_y, "PR  result (batch)", "procedure", "stored", "procedure", "One result = one method run = one batch (3.1).")
+    link(pr_n, up_n)
+    for op_n in op_rows:
+        link(up_n, op_n)
+    eqs = ups.get("equipment_phases") or []
+    last_y = 0.0
+    for ep in eqs:
+        cb = ph_nodes.get(ep.get("commanded_by"))
+        ey = max((cb[1] - boxh / 2.0) if cb else mid_y, last_y + rowh)
+        last_y = ey
+        ep_n = node(6, ey, "%s  %s" % (ep["element_id"], clip(ep.get("label") or "", 22)), clip(ep.get("equipment_module") or "", 28), "derived",
+                    "unit_procedures[].equipment_phases[]  (%s)" % ep["element_id"], "Feed, fractionation or by-pass: may overlap and cross operations (3.5.1).")
+        link(cb or up_n, ep_n, "#8e5bd0", "5 3", 1.5)
+    # equipment under the unit procedure
+    ey = max(y, 64.0 + 40.0) + 6
+    for key, title, why in (("instrument", "Instrument", "The system's model from the instrument configuration (3.6.1)."),
+                            ("column", "Column", "Column type and Vc with its source (3.6.1.2).")):
+        v = rec.get(key)
+        if v is not None:
+            eq = node(1, ey, title, "equipment", "stored", key, why)
+            edges.append((xs[1] + 8, mid_y + boxh, xs[1] + 8, eq[1], INK2, None, 1.0))  # straight down from the unit procedure
+            ey += rowh
+    # beside the procedure
+    mats = rec.get("materials") or {}
+    side_y = mid_y + rowh + 16
+    side_mid = None
+    for title, sub, status, path, why in (
+            ("Chromatograms (%d)" % len((rec.get("procedure") or {}).get("chromatograms") or []), "data, not a level", "stored", "procedure.chromatograms[]", "How the data was recorded (3.4)."),
+            ("Process inputs (%d)" % len(mats.get("process_inputs") or []), "loads and buffers: Consumed", "caller", "materials.process_inputs[]", "Loads and buffers. Constituents and lot IDs are the caller's (3.6.3)."),
+            ("Process outputs (%d)" % len(mats.get("process_outputs") or []), "fractions: Produced, waste: Other", "derived", "materials.process_outputs[]", "Collected fractions and waste lines. IDs = run + tube (3.6.3)."),
+            ("States (%d)" % len(rec.get("states") or []), "held, holding, restarting, paused", "derived", "states[]", "ISA-88 state bands (3.7)."),
+            ("Method (hints)", "recipe, planned vs ran", "hint", "method", "The method is a template: hints only (5).")):
+        side = node(0, side_y, title, sub, status, path, why)
+        side_mid = side[1]
+        side_y += rowh + 6
+    if side_mid is not None:  # a dotted line down the left edge: these belong to the procedure
+        edges.append((xs[0] + 6, mid_y + boxh, xs[0] + 6, side_mid, "#8d8c88", "1 3", 1.2))
+    for x1, y1, x2, y2, color, dash, width in edges:
+        mx = (x1 + x2) / 2.0
+        if abs(y1 - y2) < 0.5:
+            svg.line(x1, y1, x2, y2, color, width, dash)
+        else:
+            svg.path([(x1, y1), (mx, y1), (mx, y2), (x2, y2)], color, width, dash)
+    for col, by, title, sub, status, path, why in boxes:
+        stroke = STATUS[status][1]
+        svg.rect(xs[col], by, colw[col], boxh, LEVEL_FILLS[0], 3, "%s\nJSON path: %s\n%s\nWho knows it: %s" % (title, path, why, STATUS[status][0]),
+                 stroke=stroke, dash="4 3" if status in ("caller", "hint") else None)
+        svg.rect(xs[col], by, 4, boxh, stroke, 0)
+        svg.text(xs[col] + 9, by + 12, clip(title, int(colw[col] / 6.6)), 11, INK, weight="600")
+        svg.text(xs[col] + 9, by + 23, clip(sub, int(colw[col] / 5.6)), 9.5, INK2)
+    ly = max([b[1] for b in boxes] + [y]) + boxh + 22
+    lx = 16
+    for k in ("stored", "derived", "hint", "caller"):
+        svg.rect(lx, ly, 13, 11, STATUS[k][1], 2)
+        svg.text(lx + 19, ly + 10, "%s: %s" % (STATUS[k][0], STATUS[k][2]), 10.5, INK2)
+        lx += 40 + 6.1 * len("%s: %s" % (STATUS[k][0], STATUS[k][2]))
+    svg.y = ly + 24
+    return svg.out()
+
+
 def json_section(A, rec_name):
     rec = A["rec"]
     text = json.dumps(rec, indent=1, default=str)
@@ -524,6 +645,8 @@ def json_section(A, rec_name):
         '<p class="lead">The whole prototype record: <a href="%s">%s</a> (%d bytes, %d lines). Nothing on this page is hidden from it except the '
         'curve values, the scope rows (analysis, not record) and the layout. Read it as: structure first (map and tree), then the exact text.</p>'
         % (E(rec_name), E(rec_name), len(text), text.count("\n") + 1),
+        "<h3>Graph of this run's record</h3><p class='lead'>The levels and what hangs off them, one box per element. Hover a box for its JSON path "
+        "and who knows it. Zoom in on a long run.</p><div class='fig'>%s</div>" % safe("record graph", fig_record_graph, rec),
         "<h3>Map: JSON path, what it holds, where it is on this page</h3>", table(["JSON path", "holds", "origin", "shown above", "explained in"], rows, ""),
         "<h3>Field glossary (keys on every element and value)</h3>", table(["key", "values", "meaning", "defined in"], gloss, ""),
         "<h3>Tree of this run's record</h3><p class='lead'>Click to open. Lists show their first item.</p><div class='tree'>%s</div>" % outline(rec),
