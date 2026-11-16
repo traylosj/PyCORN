@@ -2,8 +2,13 @@
 body{font-family:Segoe UI,Helvetica,Arial,sans-serif;margin:0;background:#fcfcfb;color:#0b0b0b;line-height:1.45}
 header{padding:18px 28px;background:#0b0b0b;color:#fff}
 header h1{margin:0;font-size:20px} header p{margin:4px 0 0;color:#cfcfca;font-size:13px}
-nav{position:sticky;top:0;background:#f1f0ec;border-bottom:1px solid #d6d5d0;padding:6px 28px;font-size:13px;z-index:5}
-nav a{margin-right:14px;color:#1d4f9c;text-decoration:none} nav a:hover{text-decoration:underline}
+nav.toc{position:fixed;top:0;left:0;bottom:0;width:250px;overflow:auto;background:#f1f0ec;border-right:1px solid #d6d5d0;padding:10px 0 30px;font-size:12.5px;z-index:5;box-sizing:border-box}
+nav.toc .tochead{padding:0 14px 6px;font-weight:600;color:#52514e;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+nav.toc a{display:block;color:#1d4f9c;text-decoration:none;padding:2px 14px;border-left:3px solid transparent;line-height:1.3}
+nav.toc a.t2{font-weight:600;margin-top:8px} nav.toc a.t3{padding-left:26px;color:#33322f}
+nav.toc a:hover{background:#e4e3df} nav.toc a.on{background:#dfe9f8;border-left-color:#1d4f9c}
+body.toc{padding-left:250px}
+@media (max-width:900px){nav.toc{position:static;width:auto;border-right:0;border-bottom:1px solid #d6d5d0;max-height:200px} body.toc{padding-left:0}}
 main{padding:10px 28px 60px;max-width:1340px}
 h2{margin:34px 0 6px;font-size:18px;border-bottom:2px solid #d6d5d0;padding-bottom:4px} h3{margin:18px 0 4px;font-size:15px} h4{margin:18px 0 4px;font-size:14px;color:#33322f}
 p.lead{color:#52514e;margin:4px 0 10px;max-width:980px}

@@ -2378,8 +2378,13 @@ CSS = """
 body{font-family:Segoe UI,Helvetica,Arial,sans-serif;margin:0;background:#fcfcfb;color:#0b0b0b;line-height:1.45}
 header{padding:18px 28px;background:#0b0b0b;color:#fff}
 header h1{margin:0;font-size:20px} header p{margin:4px 0 0;color:#cfcfca;font-size:13px}
-nav{position:sticky;top:0;background:#f1f0ec;border-bottom:1px solid #d6d5d0;padding:6px 28px;font-size:13px;z-index:5}
-nav a{margin-right:14px;color:#1d4f9c;text-decoration:none} nav a:hover{text-decoration:underline}
+nav.toc{position:fixed;top:0;left:0;bottom:0;width:250px;overflow:auto;background:#f1f0ec;border-right:1px solid #d6d5d0;padding:10px 0 30px;font-size:12.5px;z-index:5;box-sizing:border-box}
+nav.toc .tochead{padding:0 14px 6px;font-weight:600;color:#52514e;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+nav.toc a{display:block;color:#1d4f9c;text-decoration:none;padding:2px 14px;border-left:3px solid transparent;line-height:1.3}
+nav.toc a.t2{font-weight:600;margin-top:8px} nav.toc a.t3{padding-left:26px;color:#33322f}
+nav.toc a:hover{background:#e4e3df} nav.toc a.on{background:#dfe9f8;border-left-color:#1d4f9c}
+body.toc{padding-left:250px}
+@media (max-width:900px){nav.toc{position:static;width:auto;border-right:0;border-bottom:1px solid #d6d5d0;max-height:200px} body.toc{padding-left:0}}
 main{padding:10px 28px 60px;max-width:1340px}
 h2{margin:34px 0 6px;font-size:18px;border-bottom:2px solid #d6d5d0;padding-bottom:4px} h3{margin:18px 0 4px;font-size:15px} h4{margin:18px 0 4px;font-size:14px;color:#33322f}
 p.lead{color:#52514e;margin:4px 0 10px;max-width:980px}
@@ -2820,13 +2825,11 @@ def page(A, inv, rec_name):
              ("%d" % len([x for x in inv["facts"] if x["status"] in ("missing", "caller")]), "facts the caller must give or UNICORN lacks")]
     warns = list(A["r"]["warnings"]) + list(A["dwarn"]) + (list(A["view"].warnings) if A["view"] else [])
     uniq = list(OrderedDict.fromkeys(warns))
-    parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>%s</title><style>%s</style></head><body>' % (E(A["file"]), CSS)]
+    parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>%s</title><style>%s</style></head><body class="toc">' % (E(A["file"]), CSS)]
     parts.append('<header><h1>%s</h1><p>%s &middot; UNICORN %s &middot; %s &middot; <a style="color:#9ec5ff" href="index.html">all examples</a> &middot; '
                  'prototype record: <a style="color:#9ec5ff" href="%s">%s</a></p></header>' % (
                      E(A["file"]), E(A["instrument"] or "instrument not stored"), E(str(run.unicorn_version)), E(SAMPLE_NOTES.get(A["file"], "")), E(rec_name), E(rec_name)))
-    parts.append('<nav><a href="#checks">Check these</a><a href="#decide">Decisions</a><a href="#above">Above the run</a><a href="#levels">Levels</a><a href="#setact">Set point vs actual</a><a href="#curves">Curves</a><a href="#recipe">Recipe</a>'
-                 '<a href="#tables">Tables</a><a href="#path">Flow path and volumes</a><a href="#facts">Every fact</a><a href="#scope">Scope rows</a>'
-                 '<a href="#record">The JSON</a><a href="#raw">Raw UNICORN output</a><a href="#warn">Warnings</a></nav><main>')
+    parts.append(TOC_MARK + "<main>")
     parts.append('<p class="note">Prototype for review. The record in docs/RUN_STRUCTURE_RECORD.md is not built: every number here is what today\'s code '
                  'returns, laid out as the proposal describes. If something looks wrong, that is the finding: note the figure or table and the time.</p>')
     parts.append('<div class="tiles">%s</div>' % "".join('<div class="tile"><b>%s</b><span>%s</span></div>' % (E(a), E(b)) for a, b in tiles))
@@ -2885,8 +2888,39 @@ def page(A, inv, rec_name):
     parts.append('<h2 id="raw">9. Raw UNICORN output, as extracted</h2><p class="lead">The text and tables PyCORN read from the result, scrollable. Everything above is derived from these.</p>%s%s' % (
         docs(rs("3.2"), rs("3.4"), ref("Run structure review: evidence", RV, "5. Evidence")), safe("raw", raw_html, A)))
     parts.append('<h2 id="warn">10. Warnings from today\'s readers</h2><ul class="warn">%s</ul>' % "".join("<li>%s</li>" % E(w) for w in uniq))
-    parts.append("</main><script>%s</script></body></html>" % ZOOM_JS)
-    return "\n".join(parts)
+    parts.append("</main><script>%s</script></body></html>" % (ZOOM_JS + TOC_JS))
+    return add_toc("\n".join(parts))
+
+
+TOC_MARK = "<!--TOC-->"
+TOC_JS = """
+(function(){var links=Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+var heads=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+function spy(){var cur=0;for(var i=0;i<heads.length;i++){if(heads[i]&&heads[i].getBoundingClientRect().top<120)cur=i;}
+links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+if(links[cur]&&links[cur].scrollIntoView){var n=links[cur].parentNode,r=links[cur].getBoundingClientRect();if(r.top<60||r.bottom>window.innerHeight-20)n.scrollTop=links[cur].offsetTop-n.clientHeight/2;}}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+"""
+
+
+def add_toc(html):
+    """A clickable contents bar down the left side: every h2 and h3 of the page (h3 without an id get one)."""
+    items, count = [], [0]
+
+    def sub(m):
+        level, attrs, inner = m.group(1), m.group(2) or "", m.group(3)
+        found = re.search(r'\bid="([^"]+)"', attrs)
+        if found:
+            hid = found.group(1)
+        else:
+            count[0] += 1
+            hid, attrs = "s%d" % count[0], attrs + ' id="s%d"' % count[0]
+        label = re.sub(r"<[^>]+>", "", inner).strip()
+        items.append('<a class="t%s" href="#%s">%s</a>' % (level, hid, label))
+        return "<h%s%s>%s</h%s>" % (level, attrs, inner, level)
+
+    html = re.sub(r"<h([23])((?: [^>]*)?)>(.*?)</h\1>", sub, html, flags=re.S)
+    return html.replace(TOC_MARK, '<nav class="toc"><div class="tochead">Contents</div>%s</nav>' % "".join(items), 1)
 
 
 def index_page(results):
