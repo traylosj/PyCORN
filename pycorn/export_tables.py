@@ -249,7 +249,7 @@ _HINT_BLOCKS = OrderedDict([
     ("planned", _u("block length the method set (End_Block), with the run's variable value")),
     ("variable", _u("the method variable that sets the length")),
     ("executed", _a("length that ran, in the base unit (set-point flows, pauses excluded)")),
-    ("executed_ml", _a("volume that ran (ml)")), ("status", _a("as_planned, shorter or longer")),
+    ("executed_ml", _a("volume that ran (ml)")), ("status", _a("as_planned, shorter, longer or ended_early (the run ended inside the block)")),
     ("cause", _a("next_breakpoint, watch_in_block or hold_or_pause, where the log shows one")),
 ])
 

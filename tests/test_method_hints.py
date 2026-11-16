@@ -135,6 +135,35 @@ def test_block_rows_causes_and_blocks_not_run():
     assert not h.warnings  # block rows are report only
 
 
+def test_block_open_at_the_run_end_is_cut_off_not_unrun():
+    # Wash starts at 2 min and the run ends at 3 min with no End_Block: 2 ml of the planned 4 ran
+    events = [_e(0.0, "Method Run 1/1/2024 10:00:00 AM -05:00", subtype="BlockStart", status=""),
+              _e(0.0, "System flow 2.000 {ml/min} Off"), _block(1.0, "Block Load"), _e(1.01, "Injection valve Inject"),
+              _e(2.0, "Injection valve Manual load"), _block(2.0, "End_Block", start=False), _block(2.0, "Block Wash"),
+              _e(3.0, "End 1/1/2024", status="")]
+    run = _run(events)
+    run.metadata["MethodData"] = _method([LOAD, WASH, MAIN])
+    run.result["search_criteria"] = [{"Name": "VariableValue", "Keyword1": "SampleVol", "Keyword2": "2.00"},
+                                     {"Name": "VariableValue", "Keyword1": "WashVol", "Keyword2": "4"}]
+    h = method_hints(run)
+    wash = next(b for b in h.blocks if b["block"] == "Wash")
+    assert (wash["status"], wash["cause"], wash["executed"]) == ("ended_early", "run_ended", pytest.approx(2.0))
+    assert "Wash" not in h.blocks_not_run
+
+
+def test_injection_in_a_block_the_run_ended_in_is_ended_early_without_a_warning():
+    # the valve is at Inject for 1 min (2 ml of the planned 5) when the run ends: no End_Block
+    events = [_e(0.0, "Method Run 1/1/2024 10:00:00 AM -05:00", subtype="BlockStart", status=""),
+              _e(0.0, "System flow 2.000 {ml/min} Off"), _block(1.0, "Block Load"), _e(1.01, "Injection valve Inject"),
+              _e(3.0, "End 1/1/2024", status="")]
+    run = _run(events)
+    run.metadata["MethodData"] = _method([LOAD, WASH, MAIN])
+    run.result["search_criteria"] = [{"Name": "VariableValue", "Keyword1": "SampleVol", "Keyword2": "5.00"}]
+    h = method_hints(run)
+    inj, = h.injections
+    assert inj["status"] == "ended_early" and not h.warnings
+
+
 def test_stale_dialog_volume_warns():
     phase = _blk("SAMPLE APPLICATION", [_ins("Block", Block="Load")], phase="Sample Application",
                  dialog="<a><mLoopType>Superloop, 10 ml</mLoopType><mSampleVolumeForSuperloop>5</mSampleVolumeForSuperloop>"
@@ -180,6 +209,8 @@ def test_local_superloop_injection_as_planned():
         if not injections:
             continue
         for r in injections:
+            if r["status"] == "ended_early":  # the run ended inside the block: nothing to hold to the plan
+                continue
             assert r["status"] == "as_planned", (path, r)
             assert r["planned"] - r["gap_allowance"] <= r["executed"] <= r["planned"]
         for d in h.sample_application:

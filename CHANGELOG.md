@@ -15,6 +15,14 @@ changed since your files were made.
 
 ## Unreleased
 
+**Fixed: a block the run ended inside was reported as not run.** `method_hints` paired each
+`Block` start with an `End_Block` line, so a run that ended (or was ended) inside a block, with
+no `End_Block`, dropped that block: it showed under "blocks not run" although it had sections
+and a valve period. Such a block now ends at the run's end. Its row and its injection row get
+the status `ended_early` when they ran shorter than planned (cause `run_ended`), with no
+injection warning, and it leaves the not-run list. Rows of blocks that were closed are
+unchanged.
+
 **Worked examples of the run structure proposal** (docs only, nothing built):
 [`docs/examples/`](docs/examples/README.md) holds one page per example result in `samples/`
 (levels, set point next to actual, every fact UNICORN provides or lacks, the prototype

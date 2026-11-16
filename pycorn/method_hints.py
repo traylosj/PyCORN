@@ -30,8 +30,10 @@ Field names are matched as stored; raw values are kept next to parsed ones.
   reported, not checked.
 - Blocks: one row per executed block with a fixed length (`End_Block` past 0), planned against
   executed, with a cause where the log or the method shows one ('next_breakpoint',
-  'watch_in_block', 'hold_or_pause'). Report only, no warnings. Phases are logged as phases, not
-  blocks, and are not rows. Method blocks that never ran are listed by name.
+  'watch_in_block', 'hold_or_pause'). A block still open when the run ends (no `End_Block`) ends
+  at the last log entry: status 'ended_early' when it ran shorter than planned, cause 'run_ended'.
+  Report only, no warnings. Phases are logged as phases, not blocks, and are not rows. Method
+  blocks that never ran are listed by name.
 - Sample application: the phase dialog fields (`m...` in the phase's `ConfigurationProperties`).
   The dialog's sample volume can be stale (the block breakpoint is what ran); a difference is a
   warning.
@@ -222,8 +224,13 @@ class _Block:
         return out
 
 
-def _block_runs(entries):
-    """[(name, start elapsed s, end elapsed s)] of every executed block, by the log's start/end nesting."""
+def _block_runs(entries, end_s=None):
+    """
+    ([(name, start elapsed s, end elapsed s)] of every executed block, by the log's start/end
+    nesting, and the set of names the run's end cut off). A block still open when the run ends
+    (no End_Block: the run ended, or was ended, inside it) ends at `end_s`, the run's elapsed
+    end, else at the last log entry.
+    """
     runs, stack = [], []
     for e in entries:
         if e["kind"] == "block_start" and e["text"].startswith("Block "):
@@ -231,8 +238,12 @@ def _block_runs(entries):
         elif e["kind"] == "block_end" and e["text"].startswith("End_Block") and stack:
             name, t0 = stack.pop()
             runs.append((name, t0, e["elapsed_s"]))
+    cut = {name for name, _ in stack}
+    if stack:
+        end = max([entries[-1]["elapsed_s"]] + ([end_s] if end_s is not None else []))
+        runs += [(name, t0, end) for name, t0 in stack]
     runs.sort(key=lambda r: r[1])
-    return runs
+    return runs, cut
 
 
 def _wall(sections, elapsed_s):
@@ -422,7 +433,7 @@ def method_hints(run, chrom=None, sections=None):
 
     hints.sample_application = _dialogs(blocks, volume_unit)
     entries = executed_entries(chrom)
-    runs = _block_runs(entries)
+    runs, cut = _block_runs(entries, sections[-1].elapsed_end_s if sections else None)
     log, to_s = _event_seconds(chrom)
     next_bp = [e.time * to_s for e in (log.events if log is not None else [])
                if e.time is not None and (e.text or "").startswith("Next breakpoint")]
@@ -451,10 +462,14 @@ def method_hints(run, chrom=None, sections=None):
                     held = any(s.held or s.paused for s in sections
                                if s.elapsed_end_s > t0 and s.elapsed_start_s < t1)
                     row["cause"] = "hold_or_pause" if held or b.has(HOLD_INSTRUCTIONS) else None
+                if name in cut:  # the run ended inside the block: a shorter block is cut off, not finished
+                    if row["status"] == "shorter":
+                        row["status"] = "ended_early"
+                    row["cause"] = "run_ended"
             hints.blocks.append(row)
         for position, start, end, end_at in b.planned_injections():
             hints.injections.append(_injection(sections, b, name, t0, t1, kind, unit, position, start, end, end_at,
-                                               nb, warnings))
+                                               nb, warnings, name in cut))
     _check_dialogs(hints, blocks, warnings)
     return hints
 
@@ -465,8 +480,11 @@ def _has_watch(block):
                not (i.get("ReadableName") or "").endswith("parameters") for i in block.instructions)
 
 
-def _injection(sections, b, name, t0, t1, kind, unit, position, start, end, end_at, nb, warnings):
-    """Planned vs executed valve period for one run of block `name` (elapsed t0..t1)."""
+def _injection(sections, b, name, t0, t1, kind, unit, position, start, end, end_at, nb, warnings, cut=False):
+    """
+    Planned vs executed valve period for one run of block `name` (elapsed t0..t1). `cut`: the run
+    ended inside the block, so a short valve period is 'ended_early' (no warning), not a plan miss.
+    """
     at_position = lambda s: (s.injection_valve or "").lower() == position.lower()  # noqa: E731
     inside = [s for s in sections if not s.paused and at_position(s) and s.elapsed_end_s > t0 and s.elapsed_start_s < t1]
     planned = None if start is None or end is None else end - start
@@ -504,7 +522,9 @@ def _injection(sections, b, name, t0, t1, kind, unit, position, start, end, end_
         row["status"] = "over"
     else:
         row["status"] = "as_planned"
-    if row["status"] != "as_planned":
+    if cut and row["status"] == "short":
+        row["status"] = "ended_early"
+    if row["status"] not in ("as_planned", "ended_early"):
         warnings.append("injection in block %r at %.1f-%.1f s: valve at %s for %.4g %s, planned %.4g %s%s "
                         "(pre-switch gap %.3g %s; allowed %.3g %s short, %g %% over)%s; the feed is the logged "
                         "valve period (D20)"

@@ -1141,8 +1141,8 @@
    "blocks": [
     "Purge",
     "Equilibrate",
-    "turnload",
     "SampleLoad",
+    "turnload",
     "Wash"
    ]
   },
@@ -1308,14 +1308,38 @@
     "ran": 14.99833,
     "status": "as_planned",
     "cause": null
+   },
+   {
+    "block": "SampleLoad",
+    "element": {
+     "element_id": "OP2",
+     "label": "Run"
+    },
+    "planned": 4.0,
+    "base": "ml",
+    "variable": "SampleVol",
+    "ran": 3.1461689999999995,
+    "status": "ended_early",
+    "cause": "run_ended"
    }
   ],
   "blocks_not_run": [
    "turnload",
-   "SampleLoad",
    "Wash"
   ],
-  "injections": [],
+  "injections": [
+   {
+    "block": "SampleLoad",
+    "element": {
+     "element_id": "OP2",
+     "label": "Run"
+    },
+    "planned": 4.0,
+    "base": "ml",
+    "ran": 3.1374668,
+    "variable": "SampleVol"
+   }
+  ],
   "sample_application": [],
   "buffer_prep": "not stored",
   "scouting": {
